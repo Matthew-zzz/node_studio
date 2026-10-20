@@ -49,7 +49,13 @@ export async function checkPayments(page, origin, width, screenshots) {
   await page.getByText("Параметры теста", { exact: true }).click();
   await page.getByLabel("Цена разработчика, ₽").fill("0");
   await page.getByRole("button", { name: "Обновить сумму" }).click();
-  assert.equal(await page.getByRole("alert").count(), 1);
+  const validation = page.getByRole("alert").filter({ hasText: "Укажите положительную сумму" });
+  await validation.waitFor({ state: "visible" });
+  assert.equal(
+    await page.getByLabel("Цена разработчика, ₽").getAttribute("aria-describedby"),
+    await validation.getAttribute("id"),
+    "validation belongs to the amount field, independently of the Next.js route announcer",
+  );
   assert.equal(await digits(), "13000", "invalid input keeps the previous quote");
   await page.getByLabel("Что оплачиваем").selectOption("project");
   await page.getByLabel("Цена разработчика, ₽").fill("25000");
