@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/export.test.mjs",
+    "test": "node tests/export.test.mjs && node tests/payments.test.mjs",
+    "test:payments": "node tests/payments.test.mjs",
     "test:e2e": "node tests/browser.mjs",
     "test:deploy": "python3 -B -m unittest discover -s tests/deploy -v",
     "check": "npm run lint && npm run typecheck && npm run test"

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
+import { checkPayments } from "./browser/payments.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const screenshots = resolve(root, "test-results/screenshots");
@@ -94,6 +95,7 @@ try {
       await page.waitForFunction(() => document.querySelector(".toast").textContent.includes("скопирован"));
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "@ma11hew_z");
     }
+    await checkPayments(page, origin, width, screenshots);
     await context.close();
   }
 
@@ -110,7 +112,7 @@ try {
   assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, all pages, client navigation, mobile menu, keyboard, disclosures, clipboard, motion preferences, stable marquee layout and no-JS content.");
+  console.log("Passed: 4 viewports, site navigation, mobile menu, motion, no-JS content and mock payments (success, failure, cancel, retry, quotes and themes).");
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));
