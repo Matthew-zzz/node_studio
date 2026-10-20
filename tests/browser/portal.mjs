@@ -32,6 +32,7 @@ export async function checkPortal(page, origin, width, screenshots) {
   await task.locator("summary").filter({ hasText: "Управление задачей" }).click();
   await task.getByLabel("Ваша стоимость, ₽", { exact: true }).fill("1000");
   await task.getByRole("button", { name: "Выставить оценку", exact: true }).click();
+  if (width <= 650) await tabs.getByRole("button", { name: "Чат", exact: true }).click();
   await chat.getByRole("heading", { name: wish, exact: true }).waitFor();
 
   await role.selectOption("client");
@@ -113,6 +114,7 @@ export async function checkPortal(page, origin, width, screenshots) {
   await page.getByRole("heading", { name: "Здесь будет управление студией", exact: true }).waitFor();
   assert.equal(await page.getByRole("region", { name: "Чат проекта", exact: true }).count(), 0);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${width}px admin: no overflow`);
+  console.log(`Portal ${width}px: role workflows, payments, handoff and themes passed.`);
 }
 
 export async function checkPortalAuthentication(browser, origin) {
