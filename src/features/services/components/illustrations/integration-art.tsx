@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
-import { MotionSurface } from "@/components/ui/motion-surface";
+import { AnimatedIllustration } from "@/features/services/components/animated-illustration";
 
 export function IntegrationArt() {
   return (
-    <MotionSurface className="ability-art integration-art" aria-label="Ваш сервис обменивается данными с сайтом, таблицами, Telegram, CRM, базой данных и почтой." role="img">
+    <AnimatedIllustration className="ability-art integration-art" aria-label="Ваш сервис обменивается данными с сайтом, таблицами, Telegram, CRM, базой данных и почтой." role="img">
       <svg className="ability-beams" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient
@@ -130,6 +130,6 @@ export function IntegrationArt() {
           {"Почта"}
         </span>
       </div>
-    </MotionSurface>
+    </AnimatedIllustration>
   );
 }

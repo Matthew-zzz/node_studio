@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
+import { checkMotionPreferences } from "./browser/motion.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const screenshots = resolve(root, "test-results/screenshots");
@@ -96,15 +97,20 @@ try {
     await context.close();
   }
 
+  await checkMotionPreferences(browser, origin);
+
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();
   await fallbackPage.goto(origin);
   assert.equal(await fallbackPage.locator("h1").count(), 1);
   await fallbackPage.locator(".service-disclosure summary").first().click();
   assert.equal(await fallbackPage.locator(".service-disclosure[open]").count(), 1);
+  const fallbackMarquee = fallbackPage.locator('[data-marquee="stack"]');
+  assert.equal(await fallbackMarquee.getAttribute("data-static"), "true");
+  assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, all pages, client navigation, mobile menu, keyboard, disclosures, clipboard, reduced motion and no-JS content.");
+  console.log("Passed: 4 viewports, all pages, client navigation, mobile menu, keyboard, disclosures, clipboard, motion preferences, stable marquee layout and no-JS content.");
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));

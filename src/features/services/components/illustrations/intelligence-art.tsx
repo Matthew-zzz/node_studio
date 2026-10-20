@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
-import { MotionSurface } from "@/components/ui/motion-surface";
+import { AnimatedIllustration } from "@/features/services/components/animated-illustration";
 
 export function IntelligenceArt() {
   return (
-    <MotionSurface className="ability-art intelligence-art" aria-label="Пример ИИ-агента: находит информацию в ваших документах и сервисах и готовит ответ для проверки сотрудником." role="img">
+    <AnimatedIllustration className="ability-art intelligence-art" aria-label="Пример ИИ-агента: находит информацию в ваших документах и сервисах и готовит ответ для проверки сотрудником." role="img">
       <svg className="ability-beams" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient
@@ -91,6 +91,6 @@ export function IntelligenceArt() {
           {"Проверка сотрудником"}
         </div>
       </div>
-    </MotionSurface>
+    </AnimatedIllustration>
   );
 }

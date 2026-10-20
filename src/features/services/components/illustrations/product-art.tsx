@@ -1,10 +1,10 @@
 import { Icon } from "@/components/ui/icon";
 import { BrandMark } from "@/components/ui/brand";
-import { MotionSurface } from "@/components/ui/motion-surface";
+import { AnimatedIllustration } from "@/features/services/components/animated-illustration";
 
 export function ProductArt() {
   return (
-    <MotionSurface className="ability-art product-art" aria-label="Пример собственного продукта: сайт с личным кабинетом и приложением в Telegram." role="img">
+    <AnimatedIllustration className="ability-art product-art" aria-label="Пример собственного продукта: сайт с личным кабинетом и приложением в Telegram." role="img">
       <div className="product-browser">
         <div className="product-browser-bar">
           <span className="product-window-dots">
@@ -115,6 +115,6 @@ export function ProductArt() {
         </div>
         <span className="product-phone-home" />
       </div>
-    </MotionSurface>
+    </AnimatedIllustration>
   );
 }

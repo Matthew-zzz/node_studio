@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
-import { MotionSurface } from "@/components/ui/motion-surface";
+import { AnimatedIllustration } from "@/features/services/components/animated-illustration";
 
 export function AutomationArt() {
   return (
-    <MotionSurface className="ability-art automation-art" aria-label="Пример автоматизации: новая заявка сохраняется в базу, после чего сотрудник получает уведомление." role="img">
+    <AnimatedIllustration className="ability-art automation-art" aria-label="Пример автоматизации: новая заявка сохраняется в базу, после чего сотрудник получает уведомление." role="img">
       <div className="automation-track">
         <div className="automation-step" style={{ "--step": "0" } as CSSProperties}>
           <span>
@@ -46,6 +46,6 @@ export function AutomationArt() {
           </span>
         </div>
       </div>
-    </MotionSurface>
+    </AnimatedIllustration>
   );
 }

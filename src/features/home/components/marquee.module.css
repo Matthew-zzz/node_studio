@@ -1,6 +1,6 @@
 /* Continuous marquee pattern: https://magicui.design/docs/components/marquee */
 
-.studio-marquee {
+.root {
   --marquee-font-size: 16px;
   --marquee-gap: 28px;
   --marquee-duration: 56s;
@@ -14,7 +14,7 @@
   background: linear-gradient(110deg,#3b5bdb0a,#7c3aed0d 55%,#3b5bdb05);
 }
 
-.studio-marquee:before {
+.root:before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -25,24 +25,24 @@
 
 /* Match the following services section's responsive top spacing. */
 
-.studio-marquee--directions {
+.directions {
   margin-top: 112px;
 }
 
-.marquee-viewport {
+.viewport {
   overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
   mask-image: linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
 }
 
-.marquee-track {
+.track {
   display: flex;
   width: max-content;
-  animation: studio-marquee-loop var(--marquee-duration) linear infinite;
+  animation: loop var(--marquee-duration) linear infinite;
   animation-play-state: paused;
 }
 
-.marquee-group {
+.group {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -54,7 +54,7 @@
   list-style: none;
 }
 
-.marquee-direction {
+.direction {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -67,24 +67,24 @@
   white-space: nowrap;
 }
 
-.marquee-spark {
+.spark {
   color: #a99bf4;
   font-size: 1em;
   line-height: 1;
   text-shadow: 0 0 22px #8b6ee033;
 }
 
-.studio-marquee--stack {
+.stack {
   --marquee-gap: 40px;
   --marquee-duration: 78s;
   background: #13172480;
 }
 
-.studio-marquee--stack .marquee-track {
+.stack .track {
   animation-direction: reverse;
 }
 
-.marquee-technology {
+.technology {
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -98,27 +98,27 @@
   transition: color .2s;
 }
 
-.marquee-technology>svg {
+.technology>svg {
   display: block;
   width: 24px;
   height: 24px;
   flex-shrink: 0;
 }
 
-.studio-marquee[data-playing="true"] .marquee-track {
+.root[data-playing="true"] .track {
   animation-play-state: running;
 }
 
 @media(hover:hover) {
-  .studio-marquee:hover .marquee-track {
+  .root:hover .track {
     animation-play-state: paused;
   }
-  .marquee-technology:hover {
+  .technology:hover {
     color: #e4e8ff;
   }
 }
 
-@keyframes studio-marquee-loop {
+@keyframes loop {
   from {
     transform: translateX(0);
   }
@@ -128,31 +128,31 @@
 }
 
 @media(max-width:900px) {
-  .studio-marquee--directions {
+  .directions {
     margin-top: 80px;
   }
 }
 
 @media(max-width:760px) {
-  .studio-marquee {
+  .root {
     --marquee-font-size: 15px;
     --marquee-gap: 20px;
     padding-block: 18px;
   }
-  .studio-marquee--directions {
-    margin-top: 72px;
+  .directions {
+    margin-top: 88px;
   }
-  .marquee-viewport {
+  .viewport {
     -webkit-mask-image: linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
     mask-image: linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
   }
-  .studio-marquee--stack {
+  .stack {
     --marquee-gap: 26px;
   }
-  .marquee-technology {
+  .technology {
     gap: 8px;
   }
-  .marquee-technology>svg {
+  .technology>svg {
     width: 22px;
     height: 22px;
   }
@@ -160,17 +160,17 @@
 
 /* Keep every item available when movement is disabled or JavaScript is absent. */
 
-.studio-marquee[data-static="true"] .marquee-viewport {
+.root[data-static="true"] .viewport {
   mask-image: none;
   -webkit-mask-image: none;
 }
 
-.studio-marquee[data-static="true"] .marquee-track {
+.root[data-static="true"] .track {
   width: 100%;
   animation: none;
 }
 
-.studio-marquee[data-static="true"] .marquee-group {
+.root[data-static="true"] .group {
   min-width: 0;
   width: 100%;
   padding: 0 24px;
@@ -179,20 +179,20 @@
   row-gap: 16px;
 }
 
-.studio-marquee[data-static="true"] .marquee-group[aria-hidden="true"] {
+.root[data-static="true"] .group[aria-hidden="true"] {
   display: none;
 }
 
 @media(prefers-reduced-motion:reduce) {
-  .studio-marquee .marquee-viewport {
+  .root .viewport {
     mask-image: none;
     -webkit-mask-image: none;
   }
-  .studio-marquee .marquee-track {
+  .root .track {
     width: 100%;
     animation: none;
   }
-  .studio-marquee .marquee-group {
+  .root .group {
     min-width: 0;
     width: 100%;
     padding: 0 24px;
@@ -200,10 +200,10 @@
     justify-content: center;
     row-gap: 16px;
   }
-  .studio-marquee .marquee-group[aria-hidden="true"] {
+  .root .group[aria-hidden="true"] {
     display: none;
   }
-  .marquee-technology {
+  .technology {
     transition: none;
   }
 }

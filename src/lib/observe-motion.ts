@@ -1,8 +1,16 @@
-/** Observe visibility, tab state and the system motion preference with one cleanup. */
-export function observeMotion(element: Element, onChange: (active: boolean) => void) {
+export interface MotionState {
+  readonly active: boolean;
+  readonly reducedMotion: boolean;
+}
+
+/** Visibility pauses playback; only the motion preference should change presentation. */
+export function observeMotion(element: Element, onChange: (state: MotionState) => void) {
   const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
   let visible = false;
-  const sync = () => onChange(visible && !document.hidden && !preference.matches);
+  const sync = () => onChange({
+    active: visible && !document.hidden && !preference.matches,
+    reducedMotion: preference.matches,
+  });
   const observer = new IntersectionObserver(([entry]) => {
     visible = entry?.isIntersecting ?? false;
     sync();

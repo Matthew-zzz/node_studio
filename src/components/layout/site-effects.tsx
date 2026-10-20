@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { observeMotion } from "@/lib/observe-motion";
+import { navigation } from "@/config/navigation";
 
 /** Progressive decoration only: page content stays visible when JavaScript is unavailable. */
 export function SiteEffects() {
@@ -22,7 +23,7 @@ export function SiteEffects() {
       });
     }, { threshold: 0.06 });
     document.querySelectorAll(".reveal").forEach((element) => reveal.observe(element));
-    const stopBrands = [...document.querySelectorAll<HTMLElement>("[data-brand-mark]")].map((brand) => observeMotion(brand, (active) => { brand.dataset.logoVisible = String(active); }));
+    const stopBrands = [...document.querySelectorAll<HTMLElement>("[data-brand-mark]")].map((brand) => observeMotion(brand, ({ active }) => { brand.dataset.logoVisible = String(active); }));
 
     let frame = 0;
     const updateProgress = () => {
@@ -48,7 +49,8 @@ export function SiteEffects() {
         });
       });
     }, { rootMargin: "-15% 0px -65% 0px" });
-    document.querySelectorAll("#services,#projects,#process,#faq").forEach((element) => sections.observe(element));
+    const sectionSelectors = navigation.map(({ href }) => new URL(href, window.location.origin).hash).filter(Boolean).join(",");
+    if (sectionSelectors) document.querySelectorAll(sectionSelectors).forEach((element) => sections.observe(element));
     const cancelAnimations = () => { if (motion.matches) animations.forEach((animation) => animation.cancel()); };
     motion.addEventListener("change", cancelAnimations);
 

@@ -2,6 +2,11 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
+const aliasRestriction = {
+  group: ["../*"],
+  message: "Use the @/ alias across module boundaries."
+};
+
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
@@ -24,7 +29,29 @@ export default defineConfig([
         logical: "parens-new-line"
       }],
       "no-restricted-imports": ["error", {
-        patterns: [{ group: ["../*"], message: "Use the @/ alias across module boundaries." }]
+        patterns: [aliasRestriction]
+      }]
+    }
+  },
+  {
+    files: ["src/components/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}", "src/config/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [aliasRestriction, {
+          group: ["@/app", "@/app/**", "@/features", "@/features/**"],
+          message: "Shared modules must not depend on routes or feature implementations."
+        }]
+      }]
+    }
+  },
+  {
+    files: ["src/features/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [aliasRestriction, {
+          group: ["@/app", "@/app/**"],
+          message: "Feature modules must not depend on route implementations."
+        }]
       }]
     }
   },

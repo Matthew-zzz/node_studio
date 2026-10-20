@@ -11,7 +11,6 @@ import "@/features/home/styles/experience.css";
 import "@/features/projects/styles/screenshots.css";
 import "@/features/home/styles/hero-atmosphere.css";
 import "@/features/services/styles/services.css";
-import "@/features/home/styles/marquees.css";
 import "@/styles/responsive.css";
 import "@/styles/responsive-layout.css";
 import "@/features/projects/styles/project-stories.css";

@@ -1,14 +1,9 @@
 import type { CSSProperties } from "react";
-import { MotionSurface } from "@/components/ui/motion-surface";
+import { HeroAtmosphereMotion } from "@/features/home/components/hero-atmosphere-motion";
 
 export function HeroAtmosphere() {
   return (
-    <MotionSurface
-      atmosphere
-      className="intro-atmosphere"
-      data-active="false"
-      aria-hidden="true"
-    >
+    <HeroAtmosphereMotion>
       <div className="intro-atmosphere-plane">
         <div className="intro-aura intro-aura-blue" />
         <div className="intro-aura intro-aura-violet" />
@@ -277,6 +272,6 @@ export function HeroAtmosphere() {
         </svg>
       </div>
       <div className="intro-atmosphere-veil" />
-    </MotionSurface>
+    </HeroAtmosphereMotion>
   );
 }
