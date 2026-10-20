@@ -14,8 +14,13 @@ function compose(...args) {
   try { return execFileSync("docker", [...docker, ...args], { env: environment, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], timeout: 180000 }); }
   catch { throw new Error(`Docker Compose failed: ${args.slice(0, 3).join(" ")}`); }
 }
+async function fetchApplication(path, options = {}) {
+  // Replacing a container invalidates TCP connections retained by the test process.
+  try { return await fetch(origin + path, { ...options, headers: { ...options.headers, Connection: "close" }, signal: AbortSignal.timeout(15000) }); }
+  catch (cause) { throw new Error(`Container request failed: ${options.method || "GET"} ${path}`, { cause }); }
+}
 async function login(email, password) {
-  const response = await fetch(`${origin}/api/portal/login`, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+  const response = await fetchApplication("/api/portal/login", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
   assert.equal(response.status, 200, "container authentication succeeds");
   return { snapshot: await response.json(), cookie: response.headers.get("set-cookie").split(";")[0] };
 }
@@ -23,12 +28,15 @@ async function login(email, password) {
 try {
   compose("up", "--detach", "--no-build", "--wait", "--wait-timeout", "90");
   for (const route of ["/", "/projects/autoparts/", "/cabinet/", "/cabinet-demo/", "/checkout/"]) {
-    const response = await fetch(origin + route); assert.equal(response.status, 200, route); assert.ok((await response.text()).includes("<html"));
+    const response = await fetchApplication(route); assert.equal(response.status, 200, route); assert.ok((await response.text()).includes("<html"));
   }
-  const health = await fetch(origin + "/api/portal/health").then(response => response.json());
+  const health = await fetchApplication("/api/portal/health").then(response => response.json());
   assert.equal(health.status, "ok"); assert.equal(health.revision, process.env.SOURCE_REVISION || "local");
   assert.equal(compose("exec", "--no-TTY", "app", "node", "-p", "process.getuid()").trim(), "1000", "application runs without root");
-  for (const path of ["/.env", "/server/main.ts", "/data/initial-access.json"]) assert.ok([403, 404].includes((await fetch(origin + path)).status));
+  for (const path of ["/.env", "/server/main.ts", "/data/initial-access.json"]) {
+    const response = await fetchApplication(path); assert.ok([403, 404].includes(response.status)); await response.arrayBuffer();
+  }
+  console.log("Docker frontend, API health and runtime isolation verified.");
 
   // Generated test credentials stay in process memory and never enter CI logs.
   const access = JSON.parse(compose("exec", "--no-TTY", "app", "node", "-e", "process.stdout.write(require('node:fs').readFileSync('/data/initial-access.json','utf8'))"));
@@ -36,15 +44,16 @@ try {
   const first = await login(developer.email, developer.password);
   assert.equal(first.snapshot.viewer.mustChangePassword, true);
   const password = "Container-verified-password-2026";
-  const changed = await fetch(origin + "/api/portal/password", {
+  const changed = await fetchApplication("/api/portal/password", {
     method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": first.snapshot.csrf },
     body: JSON.stringify({ current: developer.password, replacement: password }),
   });
   assert.equal(changed.status, 200);
   assert.equal((await changed.json()).viewer.mustChangePassword, false);
   compose("up", "--detach", "--no-build", "--force-recreate", "--wait", "--wait-timeout", "90");
+  console.log("Docker container replaced; checking persistent account and session.");
   assert.equal((await login(developer.email, password)).snapshot.viewer.mustChangePassword, false, "recreating the container preserves the account");
-  assert.equal((await fetch(origin + "/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json())).viewer.role, "developer", "session survives a container replacement");
+  assert.equal((await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json())).viewer.role, "developer", "session survives a container replacement");
   console.log("Docker verified: frontend + API, health, non-root runtime, first login, password change and persistent volume across recreation.");
 } catch (error) {
   // Application logs contain no bootstrap credentials or incoming request bodies.
