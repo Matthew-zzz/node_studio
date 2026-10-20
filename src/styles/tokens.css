@@ -1,0 +1,16 @@
+/* Shared design tokens. */
+:root {
+  --bg: #10121b;
+  --surface: #171a26;
+  --surface-2: #1d2130;
+  --line: #2a3043;
+  --text: #f1f3fb;
+  --muted: #9aa2b8;
+  --accent: #a6adff;
+  --font: Arial,Helvetica,sans-serif;
+  --mono: "Courier New",monospace;
+  --accent-blue: #3b5bdb;
+  --accent-violet: #7c3aed;
+  --accent-gradient: linear-gradient(115deg,var(--accent-blue),var(--accent-violet));
+  --accent-text-gradient: linear-gradient(110deg,#8fb7ff,#c3a0ff);
+}

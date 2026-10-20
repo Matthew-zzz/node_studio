@@ -1,0 +1,18 @@
+/* Shared additions for the Next.js application. */
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.button-outline {
+  border-color: #3c3d4b;
+  background: transparent;
+}
+
+.button-outline:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
