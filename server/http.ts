@@ -36,7 +36,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
     try {
       const url = new URL(request.url ?? "/", config.origin);
       const path = url.pathname.replace(/\/$/, "");
-      if (request.method === "GET" && path === "/api/portal/health") { send(200, { status: "ok", service: "node-studio-portal", version: 1 }); return; }
+      if (request.method === "GET" && path === "/api/portal/health") { send(200, { status: "ok", service: "node-studio-portal", version: 1, revision: config.revision }); return; }
       if (!["GET", "POST"].includes(request.method ?? "")) throw new PortalError(405, "Метод не поддерживается.");
       const isWebhook = ["/api/portal/webhooks/github", "/api/portal/webhooks/telegram"].includes(path);
       if (request.method === "POST" && !isWebhook && request.headers.origin !== config.origin) throw new PortalError(403, "Проверьте адрес сайта и повторите запрос.");
@@ -58,8 +58,8 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         send(202, { accepted: true }); return;
       }
       if (request.method === "POST" && ["/api/portal/login", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
-        // Only a loopback proxy can reach this listener; Nginx overwrites this header.
-        const address = String(request.headers["x-real-ip"] ?? request.socket.remoteAddress ?? "unknown");
+        // Enable only behind the domain proxy, which overwrites X-Real-IP.
+        const address = String((config.trustProxy ? request.headers["x-real-ip"] : undefined) ?? request.socket.remoteAddress ?? "unknown");
         const key = `${address}:${path}`; const epoch = Date.now(); const limit = publicLimits.get(key);
         if (limit && epoch - limit.since < 60_000 && limit.count >= 30) throw new PortalError(429, "Слишком много запросов. Повторите через минуту.");
         publicLimits.set(key, { count: limit && epoch - limit.since < 60_000 ? limit.count + 1 : 1, since: limit && epoch - limit.since < 60_000 ? limit.since : epoch });

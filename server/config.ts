@@ -2,6 +2,12 @@ export interface PortalConfig {
   origin: string;
   database: string;
   port: number;
+  host: string;
+  staticDirectory: string;
+  stateDirectory: string;
+  bootstrapEmployees: boolean;
+  trustProxy: boolean;
+  revision: string;
   secureCookies: boolean;
   githubToken: string;
   githubOwner: string;
@@ -22,6 +28,9 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
   const config: PortalConfig = {
     origin, database: env.PORTAL_DATABASE || ".cache/portal/portal.sqlite",
     port: Number(env.PORTAL_PORT || 3158), secureCookies: origin.startsWith("https:"),
+    host: env.PORTAL_HOST || "127.0.0.1", staticDirectory: env.PORTAL_STATIC_DIR || "",
+    stateDirectory: env.PORTAL_STATE_DIR || "", bootstrapEmployees: env.PORTAL_BOOTSTRAP_EMPLOYEES === "true",
+    trustProxy: env.PORTAL_TRUST_PROXY === "true", revision: env.SOURCE_REVISION || "local",
     githubToken: env.PORTAL_GITHUB_TOKEN || "", githubOwner: env.PORTAL_GITHUB_OWNER || "Matthew-zzz",
     githubWebhookSecret: env.PORTAL_GITHUB_WEBHOOK_SECRET || "",
     telegramToken: env.PORTAL_TELEGRAM_TOKEN || "", telegramWebhookSecret: env.PORTAL_TELEGRAM_WEBHOOK_SECRET || "",

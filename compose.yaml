@@ -1,0 +1,46 @@
+name: node-studio
+
+services:
+  app:
+    image: node-studio:${IMAGE_TAG:-local}
+    build:
+      context: .
+      args:
+        SITE_ORIGIN: ${SITE_ORIGIN:-https://node-studio.ru}
+        SOURCE_REVISION: ${SOURCE_REVISION:-local}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-3158}:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORTAL_HOST: 0.0.0.0
+      PORTAL_PORT: "3000"
+      PORTAL_ORIGIN: ${PORTAL_ORIGIN:-https://node-studio.ru}
+      PORTAL_STATIC_DIR: /app/dist
+      PORTAL_DATABASE: /data/portal.sqlite
+      PORTAL_STATE_DIR: /data
+      PORTAL_BOOTSTRAP_EMPLOYEES: "true"
+      PORTAL_MOCK_PAYMENTS: ${PORTAL_MOCK_PAYMENTS:-true}
+      PORTAL_TRUST_PROXY: ${PORTAL_TRUST_PROXY:-true}
+    volumes:
+      - portal-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  portal-data:

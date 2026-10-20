@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const cache = resolve(root, ".cache") + sep;
 
-// The existing Nginx scripts consume dist/ or an isolated build under .cache/.
+// Docker consumes dist/; an isolated local build may use a directory under .cache/.
 if (output !== resolve(root, "dist") && !output.startsWith(cache)) {
   throw new Error("SITE_OUTPUT_DIR must be dist/ or a subdirectory of .cache/");
 }

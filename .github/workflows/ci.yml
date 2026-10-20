@@ -1,4 +1,4 @@
-name: Check and publish
+name: Check application and Docker image
 
 on:
   push:
@@ -26,45 +26,27 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
-      - run: npm run test:deploy
-      - name: Validate deployment configuration
-        run: |
-          bash -n scripts/deploy/install-autodeploy.sh scripts/deploy/install-portal.sh scripts/deploy-node-studio.sh
-          systemd-analyze verify deploy/node-studio-deploy.service deploy/node-studio-deploy.timer deploy/node-studio-portal.service
+      - run: docker compose config --quiet
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build application image
+        uses: docker/build-push-action@v6
         with:
-          name: verified-static-site
-          path: dist/
-          if-no-files-found: error
-          retention-days: 3
+          context: .
+          load: true
+          tags: node-studio:ci
+          build-args: |
+            SOURCE_REVISION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify running container and persistent data
+        run: npm run test:container
+        env:
+          IMAGE_TAG: ci
+          SOURCE_REVISION: ${{ github.sha }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-screenshots
           path: test-results/
-
-  publish:
-    needs: check
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    concurrency:
-      group: publish-production
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: verified-static-site
-          path: .cache/verified-dist
-      - name: Publish verified export to production branch
-        env:
-          SOURCE_SHA: ${{ github.sha }}
-        run: python3 scripts/deploy/deployment.py publish --directory .cache/verified-dist --source-sha "$SOURCE_SHA"
-      - name: Report production DNS
-        continue-on-error: true
-        run: node scripts/check-domain-dns.mjs
