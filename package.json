@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node tests/export.test.mjs",
     "test:e2e": "node tests/browser.mjs",
+    "test:deploy": "python3 -B -m unittest discover -s tests/deploy -v",
     "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {

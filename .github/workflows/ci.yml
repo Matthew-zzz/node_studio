@@ -1,8 +1,10 @@
-name: Frontend checks
+name: Check and publish
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,10 +26,45 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      - run: npm run test:deploy
+      - name: Validate deployment configuration
+        run: |
+          bash -n scripts/deploy/install-autodeploy.sh scripts/deploy-node-studio.sh
+          systemd-analyze verify deploy/node-studio-deploy.service deploy/node-studio-deploy.timer
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-static-site
+          path: dist/
+          if-no-files-found: error
+          retention-days: 3
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-screenshots
           path: test-results/
+
+  publish:
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-static-site
+          path: .cache/verified-dist
+      - name: Publish verified export to production branch
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: python3 scripts/deploy/deployment.py publish --directory .cache/verified-dist --source-sha "$SOURCE_SHA"
+      - name: Report production DNS
+        continue-on-error: true
+        run: node scripts/check-domain-dns.mjs

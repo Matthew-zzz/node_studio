@@ -1,0 +1,11 @@
+[Unit]
+Description=Check node-studio.ru for a verified release every 30 seconds
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=30s
+AccuracySec=1s
+Unit=node-studio-deploy.service
+
+[Install]
+WantedBy=timers.target
