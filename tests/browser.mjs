@@ -63,8 +63,9 @@ try {
     }
 
     if (width <= 900) {
-      const menuButton = page.getByRole("button", { name: "Открыть меню", exact: true });
-      await menuButton.click();
+      // Opening the modal changes its label and makes the trigger inert.
+      const menuButton = page.locator(".menu-toggle");
+      await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
       assert.equal(await menuButton.getAttribute("aria-expanded"), "true");
       assert.ok(await page.locator("#mobile-nav").evaluate((element) => element.open));
       await page.keyboard.press("Escape");
