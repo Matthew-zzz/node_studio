@@ -29,8 +29,8 @@ jobs:
       - run: npm run test:deploy
       - name: Validate deployment configuration
         run: |
-          bash -n scripts/deploy/install-autodeploy.sh scripts/deploy-node-studio.sh
-          systemd-analyze verify deploy/node-studio-deploy.service deploy/node-studio-deploy.timer
+          bash -n scripts/deploy/install-autodeploy.sh scripts/deploy/install-portal.sh scripts/deploy-node-studio.sh
+          systemd-analyze verify deploy/node-studio-deploy.service deploy/node-studio-deploy.timer deploy/node-studio-portal.service
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

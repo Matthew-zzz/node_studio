@@ -96,6 +96,17 @@ test("sitemap, robots and custom 404 are exported", async () => {
   assert.ok(notFound.includes('name="robots" content="noindex"'));
 });
 
+test("portal and checkout routes are exported and excluded from indexing", async () => {
+  const sitemap = await readFile(resolve(output, "sitemap.xml"), "utf8");
+  for (const route of ["/cabinet/", "/cabinet-demo/", "/checkout/", "/checkout-demo/"]) {
+    const { nodes } = await documentAt(route);
+    assert.equal(nodes.filter(node => node.tagName === "h1").length, 1);
+    assert.equal(nodes.filter(node => node.tagName === "main").length, 1);
+    assert.ok(nodes.some(node => node.tagName === "meta" && attribute(node, "name") === "robots" && attribute(node, "content").includes("noindex")));
+    assert.ok(!sitemap.includes(`<loc>${origin}${route}</loc>`));
+  }
+});
+
 test("exported assets match the source files byte for byte", async () => {
   async function verify(directory, relative = "") {
     for (const item of await readdir(directory, { withFileTypes: true })) {

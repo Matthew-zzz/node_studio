@@ -1,0 +1,103 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { Icon } from "@/components/ui/icon";
+import { PaymentButton } from "@/features/portal/components/payment-button";
+import { Empty, LongText } from "@/features/portal/components/ui";
+import { formatRubles } from "@/features/payments/model/payment";
+import type { Conversation } from "@/features/portal/model/types";
+import type { PortalController } from "@/features/portal/lib/use-portal";
+import styles from "./portal.module.css";
+
+export function Chat({ thread, controller }: { thread: Conversation | undefined; controller: PortalController }) {
+  const [text, setText] = useState("");
+  const log = useRef<HTMLDivElement>(null);
+  const { snapshot, busy, run } = controller;
+  const viewer = snapshot.viewer;
+  const messages = snapshot.messages.filter(message => message.threadId === thread?.id);
+  const drafts = snapshot.drafts.filter(draft => draft.threadId === thread?.id && !draft.confirmed);
+  const quotes = snapshot.quotes.filter(quote => quote.projectId === thread?.projectId && quote.status !== "superseded");
+  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages.length, drafts.length, quotes.length, thread?.id]);
+  if (!thread || !viewer) return <section className={`${styles.panel} ${styles.chat}`}><Empty title="Диалог появится здесь" text="Выберите проект или обращение из очереди." icon="bot" /></section>;
+  const human = viewer.role === "developer" || viewer.role === "curator";
+  const canWrite = viewer.role === "client" || thread.ownerId === viewer.id;
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (thread && text.trim() && await run({ type: "message", threadId: thread.id, text })) setText("");
+  }
+  return (
+    <section className={`${styles.panel} ${styles.chat}`} aria-label={thread.kind === "project" ? "Чат проекта" : "Telegram-диалог"}>
+      <div className={styles.chatHeader}>
+        <div className={styles.chatIdentity}>
+          <span className={styles.chatSymbol}><Icon name={thread.kind === "telegram" ? "telegram" : thread.ownerId ? "people" : "spark"} /></span>
+          <div>
+            <h2>{thread.kind === "telegram" ? thread.name : "Диалог по проекту"}</h2>
+            <small>{thread.ownerName ? `${thread.ownerName} · на связи` : "NODO · ИИ-помощник"}</small>
+          </div>
+        </div>
+        <span className={styles.badge}>{thread.kind === "telegram" ? "Telegram" : "Проект"}</span>
+      </div>
+      {thread.handoffRequested && !thread.ownerId && (
+      <p className={styles.handoff}>
+        Ожидаем подключения
+        {thread.kind === "telegram" ? "куратора" : "разработчика"}
+      </p>
+)}
+      {thread.kind === "telegram" && (
+      <p className={styles.handoff}>
+        {thread.username ? `@${thread.username}` : "Без username"}
+        {thread.email ? ` · ${thread.email}` : ""}
+      </p>
+)}
+      <div ref={log} className={styles.chatLog} role="log" aria-label="Сообщения" aria-live="polite" aria-relevant="additions">
+        {messages.length === 0 && <p className={styles.small}>Начните разговор. Здесь сохраняется переписка этого проекта.</p>}
+        {messages.map(message => message.role === "system" ? <p key={message.id} className={styles.systemMessage}>{message.text}</p> : (
+          <article key={message.id} className={styles.message} data-own={message.role === viewer.role && message.author === viewer.name}>
+            <div className={styles.messageMeta}>
+              <span>{message.author}</span>
+              <time dateTime={message.createdAt}>{new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Moscow" }).format(new Date(message.createdAt))}</time>
+            </div>
+            <div className={styles.bubble}>{message.text.length > 480 ? <LongText text={message.text} label={`${message.text.slice(0, 90)}… Читать`} /> : message.text}</div>
+          </article>
+        ))}
+        {drafts.map(draft => (
+          <article key={draft.id} className={styles.draft}>
+            <span className={styles.small}>Черновик задачи · проверьте перед отправкой</span>
+            <h3>{draft.title}</h3>
+            <LongText text={draft.body} label="Показать формулировку" />
+            {viewer.role === "client" ? <button className={styles.primary} type="button" disabled={busy} onClick={() => void run({ type: "draft.confirm", draftId: draft.id })}>Подтвердить и отправить задачу</button> : <p className={styles.small}>Ожидает подтверждения клиента</p>}
+          </article>
+        ))}
+        {quotes.map(quote => (
+          <article key={quote.id} className={styles.quote}>
+            <span className={styles.small}>{quote.status === "paid" ? "Тестовая оплата подтверждена" : "Оценка разработчика"}</span>
+            <h3>{quote.title}</h3>
+            <div className={styles.quoteTotal}>
+              <span className={styles.small}>
+                Задача #
+                {quote.taskNumber}
+              </span>
+              <strong>{formatRubles(quote.totalKopecks)}</strong>
+            </div>
+            {human && <LongText text={`Стоимость разработчика: ${formatRubles(quote.baseKopecks)}\nНаценка 30%: ${formatRubles(quote.markupKopecks)}\nИтого клиенту: ${formatRubles(quote.totalKopecks)}`} label="Расчёт стоимости" />}
+            {quote.status === "paid" ? <span className={styles.badge} data-status="paid">Оплачено · тест</span> : viewer.role === "client" ? <PaymentButton total={quote.totalKopecks} busy={busy} onPay={outcome => run({ type: "quote.pay", quoteId: quote.id, outcome })} /> : <span className={styles.badge} data-status="pending">Ожидает оплаты</span>}
+            {quote.status !== "paid" && <p className={styles.small} style={{ marginTop: 9 }}>Тестовый платёж без списания денег.</p>}
+          </article>
+        ))}
+      </div>
+      {human && (
+        <div className={styles.takeover}>
+          <button className={styles.secondary} type="button" disabled={busy || Boolean(thread.ownerId && thread.ownerId !== viewer.id)} onClick={() => void run({ type: thread.ownerId === viewer.id ? "leave" : "takeover", threadId: thread.id })}>{thread.ownerId === viewer.id ? "Покинуть диалог" : "Подключиться к диалогу"}</button>
+        </div>
+      )}
+      <form className={styles.compose} onSubmit={event => void submit(event)}>
+        <div className={styles.composeField}>
+          <textarea aria-label="Сообщение" placeholder={canWrite ? "Напишите сообщение…" : "Подключитесь, чтобы ответить"} maxLength={thread.kind === "telegram" ? 4000 : 8000} rows={2} disabled={!canWrite || busy} value={text} onChange={event => setText(event.target.value)} />
+          <button className={styles.primary} type="submit" aria-label="Отправить сообщение" disabled={!canWrite || busy || !text.trim()}><Icon name="arrow" /></button>
+        </div>
+        <p className={styles.small}>{human ? "ИИ приостанавливает ответы, пока вы ведёте диалог." : "Можно описать пожелание или попросить позвать разработчика."}</p>
+      </form>
+    </section>
+  );
+}

@@ -3,4 +3,5 @@ export const navigation = [
   { href: "/#services", label: "Задачи", icon: "flow" },
   { href: "/#process", label: "Как работаем", icon: "check" },
   { href: "/#faq", label: "Вопросы", icon: "bot" },
+  { href: "/cabinet/", label: "Кабинет", icon: "people" },
 ] as const;

@@ -6,6 +6,8 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
 import { checkPayments } from "./browser/payments.mjs";
+import { checkPortal, checkPortalAuthentication } from "./browser/portal.mjs";
+import { portalFixture } from "./helpers/portal-fixture.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const screenshots = resolve(root, "test-results/screenshots");
@@ -13,6 +15,14 @@ await mkdir(screenshots, { recursive: true });
 const server = createStaticServer(resolve(root, process.env.SITE_OUTPUT_DIR || "dist"));
 const errors = [];
 let browser;
+let portal;
+let portalWorker;
+const staticHandler = server.listeners("request")[0];
+server.removeAllListeners("request");
+server.on("request", (request, response) => {
+  if (request.url.startsWith("/api/portal/") && portal) void portal.handler(request, response);
+  else void staticHandler(request, response);
+});
 
 try {
   await new Promise((resolve, reject) => {
@@ -20,6 +30,8 @@ try {
     server.listen(0, "127.0.0.1", resolve);
   });
   const origin = `http://127.0.0.1:${server.address().port}`;
+  portal = portalFixture(origin);
+  portalWorker = setInterval(() => void portal.service.workJobs(), 100);
   browser = await chromium.launch({
     headless: true,
     ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}),
@@ -96,10 +108,12 @@ try {
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "@ma11hew_z");
     }
     await checkPayments(page, origin, width, screenshots);
+    await checkPortal(page, origin, width, screenshots);
     await context.close();
   }
 
   await checkMotionPreferences(browser, origin);
+  await checkPortalAuthentication(browser, origin);
 
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();
@@ -112,8 +126,10 @@ try {
   assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, site navigation, mobile menu, motion, no-JS content and mock payments (success, failure, cancel, retry, quotes and themes).");
+  console.log("Passed: 4 viewports, marketing, mock payments, portal roles, chat handoff, confirmed tasks, quote/payment workflow, initial project creation, themes and server authentication.");
 } finally {
   await browser?.close();
+  clearInterval(portalWorker);
   await new Promise((resolve) => server.close(resolve));
+  portal?.close();
 }

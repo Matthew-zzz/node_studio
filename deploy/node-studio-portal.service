@@ -1,0 +1,27 @@
+[Unit]
+Description=NODO Studio portal API and verified source updates
+After=network-online.target node-studio-deploy.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=node-studio-portal
+Group=node-studio-portal
+EnvironmentFile=/etc/node-studio-portal/portal.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/python3 -B /usr/local/lib/node-studio-portal/portal_runtime.py
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+KillMode=mixed
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/node-studio-portal
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

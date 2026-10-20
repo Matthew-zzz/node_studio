@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
-import { SiteEffects } from "@/components/layout/site-effects";
-import { site } from "@/config/site";
 import { createMetadata, siteOrigin } from "@/lib/metadata";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
@@ -25,16 +21,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#10121b", colorScheme: "dark", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const schema = { "@context": "https://schema.org", "@type": "ProfessionalService", name: "NODO Studio", description: site.description, url: siteOrigin, areaServed: { "@type": "Country", name: "Россия" }, sameAs: [site.contact], knowsAbout: ["Веб-разработка", "Автоматизация процессов", "Telegram-боты", "RAG"] };
-
   return (
     <html lang="ru">
       <body>
-        <Header />
-        <main id="main">{children}</main>
-        <Footer />
-        <SiteEffects />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replaceAll("<", "\\u003c") }} />
+        {children}
       </body>
     </html>
   );
