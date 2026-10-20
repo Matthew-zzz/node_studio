@@ -1,4 +1,4 @@
 :HL["/_next/static/css/a309dd3ee318aa97.css","style"]
 :HL["/_next/static/css/cb515877ad745926.css","style"]
 :HL["/_next/static/css/712083d2a249f918.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4112,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4224,"slots":null}}},"staleTime":300,"buildId":"Wpq2qBkU-flU4SnVmvLBa"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"(marketing)","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"MqyZWq1QrS8rP98uPjPXu"}

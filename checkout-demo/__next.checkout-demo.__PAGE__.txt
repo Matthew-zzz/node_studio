@@ -1,0 +1,27 @@
+1:"$Sreact.fragment"
+2:I[2497,["500","static/chunks/500-b13bb91f5a6311b6.js","89","static/chunks/89-80a6b69898585914.js","361","static/chunks/app/checkout-demo/page-de373bd168f53304.js"],"CheckoutPage"]
+3:I[484,[],"OutletBoundary"]
+4:"$Sreact.suspense"
+8:I[484,[],"ViewportBoundary"]
+9:I[484,[],"MetadataBoundary"]
+a:I[6869,[],"IconMark"]
+c:I[7121,[],""]
+d:I[4581,[],""]
+10:I[7267,["500","static/chunks/500-b13bb91f5a6311b6.js","39","static/chunks/app/error-83b025fc91063646.js"],"default"]
+11:I[8500,["500","static/chunks/500-b13bb91f5a6311b6.js","437","static/chunks/437-bc57be6c9aaa3d65.js","522","static/chunks/app/(marketing)/page-2254e4a45727d940.js"],""]
+:HL["/_next/static/css/8f23819378845b82.css","style"]
+:HL["/_next/static/css/a309dd3ee318aa97.css","style"]
+:HL["/_next/static/css/cb515877ad745926.css","style"]
+7:X
+f:X
+f:C
+0:{"buildId":"MqyZWq1QrS8rP98uPjPXu","data":[{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"demo":true}],[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/8f23819378845b82.css","precedence":"next"}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":"$@6","staleTime":"$7","varyParams":null},{"rsc":["$","$1","h",{"children":[null,["$","$L8",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1, viewport-fit=cover"}],["$","meta","2",{"name":"theme-color","content":"#10121b"}],["$","meta","3",{"name":"color-scheme","content":"dark"}]]}],["$","div",null,{"hidden":true,"children":["$","$L9",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Демонстрация оплаты проекта — NODO Studio"}],["$","meta","1",{"name":"description","content":"Создаём сайты, Telegram-ботов и приложения под ваши рабочие задачи. Связываем сервисы, автоматизируем рутину и подключаем ИИ к документам. От обсуждения до запуска — напрямую с разработчиком."}],["$","meta","2",{"name":"referrer","content":"no-referrer"}],["$","meta","3",{"name":"robots","content":"noindex, nofollow"}],["$","link","4",{"rel":"canonical","href":"https://node-studio.ru/checkout-demo/"}],["$","meta","5",{"property":"og:title","content":"NODO Studio — сайты, автоматизация и ИИ для бизнеса"}],["$","meta","6",{"property":"og:description","content":"Создаём сайты, Telegram-ботов и приложения под ваши рабочие задачи. Связываем сервисы, автоматизируем рутину и подключаем ИИ к документам. От обсуждения до запуска — напрямую с разработчиком."}],["$","meta","7",{"property":"og:url","content":"https://node-studio.ru/"}],["$","meta","8",{"property":"og:site_name","content":"NODO Studio"}],["$","meta","9",{"property":"og:locale","content":"ru_RU"}],["$","meta","10",{"property":"og:image","content":"https://node-studio.ru/assets/og-cover.svg"}],["$","meta","11",{"property":"og:image:width","content":"1200"}],["$","meta","12",{"property":"og:image:height","content":"630"}],["$","meta","13",{"property":"og:image:alt","content":"NODO Studio — разработка, автоматизация и ИИ"}],["$","meta","14",{"property":"og:type","content":"website"}],["$","meta","15",{"name":"twitter:card","content":"summary_large_image"}],["$","meta","16",{"name":"twitter:title","content":"NODO Studio — сайты, автоматизация и ИИ для бизнеса"}],["$","meta","17",{"name":"twitter:description","content":"Создаём сайты, Telegram-ботов и приложения под ваши рабочие задачи. Связываем сервисы, автоматизируем рутину и подключаем ИИ к документам. От обсуждения до запуска — напрямую с разработчиком."}],["$","meta","18",{"name":"twitter:image","content":"https://node-studio.ru/assets/og-cover.svg"}],["$","link","19",{"rel":"icon","href":"/assets/favicon.svg","type":"image/svg+xml"}],["$","$La","20",{}]]}]}]}],null]}],"isPartial":"$@b","staleTime":"$7","varyParams":null},{"rsc":["$","$1","c",{"children":[null,["$","$Lc",null,{"parallelRouterKey":"children","template":["$","$Ld",null,{}]}]]}],"isPartial":"$@e","staleTime":"$7","varyParams":"$f"},{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/a309dd3ee318aa97.css","precedence":"next"}],["$","link","1",{"rel":"stylesheet","href":"/_next/static/css/cb515877ad745926.css","precedence":"next"}]],["$","html",null,{"lang":"ru","children":["$","body",null,{"children":["$","$Lc",null,{"parallelRouterKey":"children","error":"$10","errorStyles":[],"errorScripts":null,"template":["$","$Ld",null,{}],"notFound":[["$","main",null,{"id":"main","className":"not-found container","children":[["$","span",null,{"className":"eyebrow","children":"404 / СТРАНИЦА НЕ НАЙДЕНА"}],["$","h1",null,{"children":["Кажется, здесь",["$","br",null,{}],"ещё ничего нет."]}],["$","p",null,{"children":"Зато на главной уже есть работающие проекты."}],["$","$L11",null,{"className":"button button-primary","href":"/","children":"Вернуться на главную →"}]]}],[]]}]}]}]]}],"isPartial":"$@12","staleTime":"$7","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@13","rootVaryParams":null,"needsRuntimeRequest":"$@14"}
+5:null
+7:300
+14:true
+7:C
+13:0
+b:"$undefined"
+e:"$undefined"
+12:"$undefined"
+6:"$undefined"
