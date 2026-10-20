@@ -108,7 +108,12 @@ try {
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "@ma11hew_z");
     }
     await checkPayments(page, origin, width, screenshots);
-    await checkPortal(page, origin, width, screenshots);
+    try { await checkPortal(page, origin, width, screenshots); }
+    catch (error) {
+      await page.screenshot({ path: resolve(screenshots, `${width}-portal-failure.png`), fullPage: true });
+      console.error("Portal failure context:", await page.locator("main").innerText());
+      throw error;
+    }
     await context.close();
   }
 

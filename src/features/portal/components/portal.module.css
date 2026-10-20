@@ -4,7 +4,7 @@
   --p-green: #3f816b; --p-red: #af4d60; --p-shadow: 0 12px 50px #302a4b06;
   --text: var(--p-text); --muted: var(--p-muted); --accent: var(--p-accent);
   min-height: 100svh; background: var(--p-bg); color: var(--p-text); font: 14px/1.6 Arial, Helvetica, sans-serif;
-  color-scheme: light; letter-spacing: -.1px;
+  color-scheme: light; letter-spacing: -.1px; overflow-wrap: anywhere;
 }
 .root[data-theme="dark"] {
   --p-bg: #14141b; --p-panel: #1c1c26; --p-inset: #24232f; --p-line: #30303e;

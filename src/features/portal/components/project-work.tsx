@@ -11,7 +11,7 @@ import { formatRubles, parseRubles } from "@/features/payments/model/payment";
 import styles from "./portal.module.css";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
-  return <select value={value} onChange={event => change(event.target.value as WorkStatus)}>{Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>;
+  return <select aria-label="Статус" value={value} onChange={event => change(event.target.value as WorkStatus)}>{Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>;
 }
 
 function StageEditor({ projectId, stage, controller }: { projectId: string; stage?: WorkItem; controller: PortalController }) {
