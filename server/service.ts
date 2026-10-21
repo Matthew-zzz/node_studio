@@ -10,11 +10,15 @@ import { visibleSnapshot } from "../src/features/portal/model/access.ts";
 import { createPaymentQuote } from "../src/features/payments/model/payment.ts";
 import { TelegramAgent } from "./agent/service.ts";
 import { formatTelegramHtml } from "../src/features/portal/model/telegram-html.ts";
+import { ErrorJournal } from "./error-journal.ts";
+import { updateErrorContext, withErrorContext } from "./error-context.ts";
+import type { ErrorContext } from "./error-context.ts";
+import type { ErrorQuery } from "../src/features/portal/model/errors.ts";
 
 export const projectGreeting = "Я помогу разобраться по проекту и сформулировать задачу. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
 
-interface SyncInfo { at: string; pages: number; more: boolean; error: string | null }
+interface SyncInfo { at: string; pages: number; more: boolean; error: string | null; failure?: unknown; retryAt?: number; failures?: number }
 interface Job { id: string; kind: string; payload: string; attempts: number }
 
 export class PortalService {
@@ -22,6 +26,7 @@ export class PortalService {
   readonly integrations: Integrations;
   readonly config: PortalConfig;
   readonly agent: TelegramAgent;
+  readonly errors: ErrorJournal;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -29,6 +34,7 @@ export class PortalService {
   constructor(store: PortalStore, integrations: Integrations, config: PortalConfig) {
     this.store = store; this.integrations = integrations; this.config = config;
     this.agent = new TelegramAgent(store, integrations, config);
+    this.errors = new ErrorJournal(store, config.revision);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -47,6 +53,7 @@ export class PortalService {
     this.role(viewer, ["client", "developer"]);
     const project = this.store.get("projects", projectId);
     if (!project || (viewer.role === "client" && project.clientId !== viewer.id)) throw new PortalError(404, "Проект не найден.");
+    updateErrorContext({ projectId: project.id, projectName: project.name });
     return project;
   }
 
@@ -72,6 +79,7 @@ export class PortalService {
     return this.exclusive(`github:${project.id}`, async () => {
       const previous = this.synced.get(project.id);
       if (!force && previous && !previous.error && previous.pages >= pages && Date.now() - Date.parse(previous.at) < 15_000) return;
+      if (!force && previous?.error && Date.now() < (previous.retryAt ?? 0)) throw previous.failure;
       try {
         const issues = await this.integrations.issues(project.repo);
         const commits = [];
@@ -89,7 +97,8 @@ export class PortalService {
         if (initial) this.store.put("projects", { ...this.store.get("projects", project.id)!, brief: initial.body });
         this.synced.set(project.id, { at: now(), pages, more, error: null });
       } catch (error) {
-        this.synced.set(project.id, { at: previous?.at ?? "", pages: previous?.pages ?? 0, more: previous?.more ?? false, error: error instanceof PortalError ? error.message : "Не удалось обновить GitHub. Показаны последние полученные данные." });
+        const failures = (previous?.failures ?? 0) + 1;
+        this.synced.set(project.id, { at: previous?.at ?? "", pages: previous?.pages ?? 0, more: previous?.more ?? false, error: "Не удалось обновить данные GitHub. Администратор уведомлён. Показаны последние полученные данные.", failure: error, failures, retryAt: Date.now() + Math.min(300_000, 30_000 * 2 ** (failures - 1)) });
         throw error;
       }
     });
@@ -102,9 +111,10 @@ export class PortalService {
     const allowed = projects.filter(project => viewer.role === "developer" || (viewer.role === "client" && project.clientId === viewer.id));
     const selected = allowed.find(project => project.id === selectedId) ?? allowed[0];
     if (!viewer.mustChangePassword && selected && ["developer", "client"].includes(viewer.role)) {
-      await this.sync(selected, Math.min(Math.max(pages, 1), 1000)).catch(() => undefined);
+      const report = (project: PortalProject, error: unknown) => this.errors.capture(error, { actor: viewer, source: "integration", projectId: project.id, projectName: project.name, operation: "github.sync", requestStatus: 200 });
+      await this.sync(selected, Math.min(Math.max(pages, 1), 1000)).catch(error => report(selected, error));
       if (viewer.role === "developer") {
-        for (const project of allowed.filter(project => project.id !== selected.id)) await this.sync(project).catch(() => undefined);
+        for (const project of allowed.filter(project => project.id !== selected.id)) await this.sync(project).catch(error => report(project, error));
       }
     }
     const info = selected && this.synced.get(selected.id);
@@ -131,6 +141,8 @@ export class PortalService {
   }
 
   agentState(session: Session) { this.administrator(session); return this.agent.state(); }
+  errorState(session: Session, query: Partial<ErrorQuery>) { this.administrator(session); return this.errors.query(query); }
+  errorAction(session: Session, body: Record<string, unknown>) { const viewer = this.administrator(session); this.errors.resolve(body.id, body.resolved, viewer.name); }
   agentDocument(session: Session, documentId: unknown) { this.administrator(session); return this.agent.document(documentId); }
   agentExport(session: Session) { this.administrator(session); return { settings: this.agent.settings(), documents: this.store.all("agentDocuments") }; }
   async agentAction(session: Session, body: Record<string, unknown>) {
@@ -331,6 +343,7 @@ export class PortalService {
       const sender = object(message.from);
       thread = this.store.put("conversations", { id: threadId, kind: "telegram", projectId: "", name: typeof sender.first_name === "string" ? sender.first_name.slice(0, 100) : "Клиент", username: typeof sender.username === "string" ? sender.username : "", email: "", telegramId, ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
     }
+    updateErrorContext({ actor: { id: `telegram:${telegramId}`, name: thread.name, email: thread.email, role: "telegram" } });
     if (typeof message.text !== "string") {
       if (!thread.ownerId) this.append(thread, settings.name, "system", "Пока я принимаю только текст. Опишите пожелания сообщением.");
       return;
@@ -397,7 +410,8 @@ export class PortalService {
         if (!job) break;
         this.store.db.prepare("UPDATE jobs SET running=1 WHERE id=?").run(job.id);
         const payload = JSON.parse(job.payload) as Record<string, string>;
-        try {
+        const context = this.jobContext(job, payload);
+        await withErrorContext(context, async () => { try {
           if (job.kind === "telegram.inbound") await this.telegramInbound(payload.update!);
           if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!, payload.html);
           if (job.kind === "agent.index") await this.agent.index(payload.documentId!);
@@ -413,7 +427,8 @@ export class PortalService {
           }
           if (job.kind === "assistant") await this.answer(payload.threadId!, payload.messageId!);
           this.store.db.prepare("DELETE FROM jobs WHERE id=?").run(job.id);
-        } catch {
+        } catch (error) {
+          this.errors.capture(error, { source: "background" });
           this.store.db.prepare("UPDATE jobs SET running=0,attempts=attempts+1,available=? WHERE id=?").run(Date.now() + Math.min(3_600_000, 5000 * 2 ** job.attempts), job.id);
           if (job.attempts >= 7 && ["provision", "mail"].includes(job.kind)) {
             const order = this.store.get("orders", payload.orderId!);
@@ -427,9 +442,17 @@ export class PortalService {
             }
           }
           console.error(`Portal job ${job.kind} will retry (${job.attempts + 1}/8).`);
-        }
+        } });
       }
     } finally { this.working = false; }
+  }
+
+  private jobContext(job: Job, payload: Record<string, string>): ErrorContext {
+    const thread = payload.threadId ? this.store.get("conversations", payload.threadId) : payload.chatId ? this.store.all("conversations").find(item => item.telegramId === payload.chatId) : undefined;
+    const order = payload.orderId ? this.store.get("orders", payload.orderId) : undefined;
+    const project = this.store.get("projects", payload.projectId ?? thread?.projectId ?? order?.projectId ?? "");
+    const actor = (payload._actorId ? this.store.user(payload._actorId) : undefined) ?? (project ? this.store.user(project.clientId) : undefined) ?? (order ? this.store.findUser(order.email) : undefined);
+    return { actor: actor ?? (thread?.kind === "telegram" ? { id: `telegram:${thread.telegramId}`, name: thread.name, email: thread.email, role: "telegram" } : null), projectId: project?.id ?? "", projectName: project?.name ?? order?.projectName ?? "", requestId: payload._requestId ?? id(), method: "JOB", operation: job.kind, path: "", source: "background", report: (error, extra) => this.errors.capture(error, extra) };
   }
 
   private async answer(threadId: string, messageId: string) {
@@ -467,7 +490,8 @@ export class PortalService {
       result = { reply: formatted.text, html: formatted.html, handoff: true, sources: [] };
     } else {
       try { result = await this.agent.generate(messages.filter(message => !message.id.startsWith("greeting:")), settings); if (result.handoff) status = "handoff"; }
-      catch {
+      catch (error) {
+        this.errors.capture(error, { source: "background", operation: "telegram.assistant" });
         status = "error"; const formatted = formatTelegramHtml(settings.fallbackMessage, settings.maxReplyChars);
         result = { reply: formatted.text, html: formatted.html, handoff: true, sources: [] };
       }

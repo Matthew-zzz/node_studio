@@ -17,6 +17,7 @@ const successMessages: Partial<Record<PortalAction["type"], string>> = {
 
 export function usePortal() {
   const gateway = useMemo(() => createApiGateway(), []);
+  useEffect(() => { gateway.activate(); return () => gateway.dispose(); }, [gateway]);
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -93,7 +94,7 @@ export function usePortal() {
     setSnapshot(next); channel.current?.postMessage("changed");
   }
   return {
-    snapshot, loading, busy, refresh, agent: gateway.agent,
+    snapshot, loading, busy, refresh, agent: gateway.agent, errors: gateway.errors,
     run: (action: PortalAction) => perform(() => gateway.action(action), successMessages[action.type]),
     select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
     acceptProject: (projectId: string) => perform(async () => {

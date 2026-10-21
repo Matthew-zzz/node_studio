@@ -1,4 +1,5 @@
 import { PortalError, id, now } from "../store.ts";
+import { reportHandledError } from "../error-context.ts";
 import type { PortalStore } from "../store.ts";
 import { integer, object, text } from "../validation.ts";
 import type { Integrations } from "../integrations.ts";
@@ -173,7 +174,7 @@ export class TelegramAgent {
           const similarity = cosine(vector!, JSON.parse(chunk.embedding) as number[]);
           if (similarity >= settings.rag.minSimilarity) scores.set(chunk.id, (scores.get(chunk.id) ?? 0) * 0.35 + similarity * 0.65);
         }
-      } catch { warnings.push("Смысловой поиск недоступен; использован поиск по словам."); }
+      } catch (error) { reportHandledError(error, { operation: "agent.rag", source: "integration" }); warnings.push("Смысловой поиск недоступен; использован поиск по словам."); }
     } else if (settings.rag.mode === "hybrid" && chunks.length) warnings.push("Смысловой индекс ещё не готов; использован поиск по словам.");
     let remaining = settings.rag.maxContextChars;
     const sources: KnowledgeHit[] = [];

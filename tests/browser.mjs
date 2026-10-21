@@ -8,6 +8,7 @@ import { checkMotionPreferences } from "./browser/motion.mjs";
 import { checkNotifications } from "./browser/notifications.mjs";
 import { checkProjectWorkspace } from "./browser/project-workspace.mjs";
 import { checkAgentAdmin } from "./browser/agent-admin.mjs";
+import { checkErrorJournal } from "./browser/errors.mjs";
 import { checkPortal, checkPortalAuthentication, checkProfileSwitching, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
@@ -124,6 +125,7 @@ try {
     await checkProjectWorkspace(browser, origin, width, screenshots, portal);
     await checkProfileSwitching(browser, origin, width, screenshots);
     await checkAgentAdmin(browser, origin, width, screenshots, portal);
+    await checkErrorJournal(browser, origin, width, screenshots, portal);
   }
 
   await checkMotionPreferences(browser, origin);

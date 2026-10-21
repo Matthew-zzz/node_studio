@@ -7,6 +7,7 @@ import type {
   ChatMessage, TaskDraft, PortalQuote, ProjectOrder,
 } from "../src/features/portal/model/types.ts";
 import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "../src/features/portal/model/agent.ts";
+import { errorContext } from "./error-context.ts";
 
 export interface Records {
   projects: PortalProject;
@@ -83,6 +84,13 @@ export class PortalStore {
         content TEXT NOT NULL, embedding TEXT, embedding_model TEXT NOT NULL DEFAULT ''
       );
       CREATE INDEX IF NOT EXISTS agent_chunks_document ON agent_chunks(document_id);
+      CREATE TABLE IF NOT EXISTS error_events (
+        id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, last_seen TEXT NOT NULL,
+        resolved INTEGER NOT NULL DEFAULT 0, payload TEXT NOT NULL CHECK(json_valid(payload)), search_text TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS error_events_fingerprint ON error_events(fingerprint,resolved);
+      CREATE INDEX IF NOT EXISTS error_events_recent ON error_events(resolved,last_seen DESC);
+      CREATE TABLE IF NOT EXISTS error_receipts (id TEXT PRIMARY KEY,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS login_limits (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, since INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS deliveries (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS jobs (
@@ -231,6 +239,8 @@ export class PortalStore {
   }
 
   enqueue(kind: string, payload: Record<string, string>, jobId = id()) {
-    this.db.prepare("INSERT OR IGNORE INTO jobs(id,kind,payload,available) VALUES(?,?,?,?)").run(jobId, kind, JSON.stringify(payload), Date.now());
+    const context = errorContext();
+    const metadata = { ...(context.actor && context.actor.role !== "telegram" ? { _actorId: context.actor.id } : {}), ...(context.requestId ? { _requestId: context.requestId } : {}) };
+    this.db.prepare("INSERT OR IGNORE INTO jobs(id,kind,payload,available) VALUES(?,?,?,?)").run(jobId, kind, JSON.stringify({ ...metadata, ...payload }), Date.now());
   }
 }

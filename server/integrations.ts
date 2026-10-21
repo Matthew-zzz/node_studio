@@ -4,6 +4,8 @@ import type { PortalConfig } from "./config.ts";
 import type { ChatMessage, PortalCommit, WorkItem, WorkStatus } from "../src/features/portal/model/types.ts";
 import type { AgentPreferences, KnowledgeHit } from "../src/features/portal/model/agent.ts";
 import { escapeHtml, formatTelegramHtml } from "../src/features/portal/model/telegram-html.ts";
+import { responseError, transportError, UpstreamError, providerFor, upstreamPath } from "./upstream-error.ts";
+import { reportHandledError } from "./error-context.ts";
 
 export interface AssistantReply { reply: string; title: string; body: string; handoff: boolean }
 export interface Integrations {
@@ -41,13 +43,17 @@ export function issueToWork(issue: GitHubIssue): WorkItem {
 
 /** Only this adapter can reach external APIs. The assistant has no GitHub methods or repository context. */
 export function createIntegrations(config: PortalConfig, request: typeof fetch = fetch): Integrations {
+  async function external(url: string, init: RequestInit, expected: number[] = []): Promise<Response> {
+    let response: Response;
+    try { response = await request(url, { ...init, signal: AbortSignal.timeout(45_000), redirect: "error" }); }
+    catch (error) { throw transportError(url, error); }
+    if (!response.ok && !expected.includes(response.status)) throw await responseError(url, response);
+    return response;
+  }
   async function json<T>(url: string, init: RequestInit): Promise<T> {
-    const response = await request(url, { ...init, signal: AbortSignal.timeout(45_000), redirect: "error" });
-    if (!response.ok) {
-      // Never include upstream bodies/URLs: they can contain tokens or customer data.
-      throw new PortalError(502, `Внешний сервис временно недоступен (${response.status}).`);
-    }
-    return await response.json() as T;
+    const response = await external(url, init);
+    try { return await response.json() as T; }
+    catch { throw new UpstreamError({ code: "UPSTREAM_INVALID_RESPONSE", title: "Внешний сервис вернул неверный ответ", explanation: "Ответ не удалось разобрать как JSON.", recommendation: "Проверьте состояние сервиса и повторите запрос.", provider: providerFor(url), upstreamStatus: response.status, upstreamPath: upstreamPath(url), upstreamRequestId: "" }); }
   }
   function repoPath(repo: string) {
     if (!new RegExp(`^${config.githubOwner.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/[a-zA-Z0-9_.-]+$`).test(repo)) throw new PortalError(400, "Неизвестный репозиторий.");
@@ -81,9 +87,8 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
     async commits(repo, page) {
       const path = `${repoPath(repo)}/commits?per_page=100&page=${page}`;
       if (!config.githubToken) throw new PortalError(503, "GitHub ещё не подключён.");
-      const response = await request(`https://api.github.com${path}`, { headers: { Authorization: `Bearer ${config.githubToken}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }, signal: AbortSignal.timeout(30_000), redirect: "error" });
+      const response = await external(`https://api.github.com${path}`, { headers: { Authorization: `Bearer ${config.githubToken}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" } }, [409]);
       if (response.status === 409) return []; // Empty repositories have no initial commit yet.
-      if (!response.ok) throw new PortalError(502, "Не удалось получить историю GitHub.");
       const entries = await response.json() as GitHubCommit[];
       return entries.map(entry => ({ sha: entry.sha, projectId: "", title: entry.commit.message.split("\n")[0] ?? "Коммит", author: entry.commit.author.name, createdAt: entry.commit.author.date }));
     },
@@ -92,7 +97,7 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
       if (owner.login.toLowerCase() !== config.githubOwner.toLowerCase()) throw new PortalError(503, "Токен GitHub принадлежит другому владельцу.");
       const full = `${config.githubOwner}/${name}`;
       // Deterministic name makes retries after a timeout safe.
-      const response = await request(`https://api.github.com${repoPath(full)}`, { headers: { Authorization: `Bearer ${config.githubToken}`, Accept: "application/vnd.github+json" }, signal: AbortSignal.timeout(30_000), redirect: "error" });
+      const response = await external(`https://api.github.com${repoPath(full)}`, { headers: { Authorization: `Bearer ${config.githubToken}`, Accept: "application/vnd.github+json" } }, [404]);
       if (response.status === 404) await gh("/user/repos", "POST", { name, private: true, auto_init: false, has_issues: true });
       else if (!response.ok) throw new PortalError(502, "Не удалось проверить репозиторий.");
       else {
@@ -159,13 +164,15 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
       if (!config.telegramToken) throw new PortalError(503, "Telegram ещё не подключён.");
       const formatted = formatTelegramHtml(html ?? escapeHtml(message));
       async function send(content: string) {
-        const response = await request(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: content, parse_mode: "HTML", link_preview_options: { is_disabled: true } }), signal: AbortSignal.timeout(45_000), redirect: "error" });
+        const response = await external(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: content, parse_mode: "HTML", link_preview_options: { is_disabled: true } }) }, [400]);
+        const diagnosticResponse = response.clone();
         const data = await response.json().catch(() => ({})) as { ok?: boolean; description?: string };
-        return { response, data };
+        return { response: diagnosticResponse, data };
       }
       let result = await send(formatted.html);
-      if (result.response.status === 400 && /parse entities|unsupported start tag|can't find end/i.test(result.data.description ?? "")) result = await send(escapeHtml(formatted.text));
-      if (!result.response.ok || !result.data.ok) throw new PortalError(502, `Telegram временно недоступен (${result.response.status}).`);
+      if (result.response.status === 400 && /parse entities|unsupported start tag|can't find end/i.test(result.data.description ?? "")) { reportHandledError(await responseError(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, result.response), { source: "integration" }); result = await send(escapeHtml(formatted.text)); }
+      if (!result.response.ok || !result.data.ok) throw await responseError(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, result.response);
+      await result.response.body?.cancel();
     },
     async mail(email, content, deliveryId) {
       if (!config.mailKey || !config.mailFrom) throw new PortalError(503, "Почта ещё не подключена.");

@@ -1,6 +1,8 @@
 import type { Checkout, PortalAction, PortalSnapshot } from "@/features/portal/model/types";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, AgentTestMessage, AgentTestResult, KnowledgeDocument } from "@/features/portal/model/agent";
+import type { ErrorPage, ErrorQuery } from "@/features/portal/model/errors";
+import { createRequestReporter } from "@/features/portal/lib/request-reporter";
 
 export interface AgentGateway {
   state(): Promise<AgentAdminState>;
@@ -12,6 +14,9 @@ export interface AgentGateway {
 
 export interface PortalGateway {
   agent: AgentGateway;
+  errors: { list(query: ErrorQuery): Promise<ErrorPage>; resolve(id: string, resolved: boolean): Promise<void> };
+  dispose(): void;
+  activate(): void;
   snapshot(projectId?: string, pages?: number): Promise<PortalSnapshot>;
   action(action: PortalAction): Promise<void>;
   login(email: string, password: string): Promise<PortalSnapshot>;
@@ -25,10 +30,13 @@ export interface PortalGateway {
 
 export function createApiGateway(): PortalGateway {
   let csrf = "";
+  let viewerId = ""; let identityReady = false;
+  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); });
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
     const authenticating = ["login", "logout", "password", "profiles/add", "profiles/switch"].includes(path);
     const requestId = ++sequence;
+    const requestViewerId = viewerId;
     const requestGeneration = authenticating ? ++generation : generation;
     let response: Response;
     try {
@@ -36,24 +44,34 @@ export function createApiGateway(): PortalGateway {
         credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(120_000),
         ...(body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(body) }),
       });
-    } catch { throw new Error("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова."); }
-    if (response.status === 404 || response.status === 502 || response.status === 503) {
-      const value = await response.json().catch(() => null) as { error?: string } | null;
-      throw new Error(value?.error || "Сервис временно недоступен. Повторите попытку позже или напишите в поддержку.");
+    } catch (error) {
+      reporter.record(path, body === undefined ? "GET" : "POST", error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : "network", 0, requestViewerId);
+      throw new Error("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова.");
     }
-    const value = await response.json().catch(() => null) as { error?: string } | null;
+    const value = await response.json().catch(() => null) as { error?: string; errorId?: string; viewer?: PortalSnapshot["viewer"] } | null;
+    if (!response.ok && !value?.errorId) reporter.record(path, body === undefined ? "GET" : "POST", "http", response.status, requestViewerId);
+    else if (response.ok && (!value || typeof value !== "object")) { reporter.record(path, body === undefined ? "GET" : "POST", "invalid_response", response.status, requestViewerId); throw new Error("Сервер вернул неожиданный ответ. Повторите попытку позже."); }
     if (!response.ok) {
+      void reporter.flush();
       if (response.status === 401 && path.startsWith("snapshot")) return EMPTY_SNAPSHOT as T;
       throw new Error(value?.error || "Не удалось выполнить запрос.");
     }
     // A late snapshot from a previous profile must not replace the active CSRF token.
     if (requestGeneration === generation && requestId > csrfSequence && value && "csrf" in value && typeof value.csrf === "string") {
       csrf = value.csrf; csrfSequence = requestId;
+      viewerId = value.viewer?.id ?? ""; identityReady = true;
     }
     if (authenticating && requestGeneration === generation) { generation++; if (path === "logout") csrf = ""; }
+    void reporter.flush();
     return value as T;
   }
   return {
+    activate() { reporter.activate(); },
+    dispose() { reporter.dispose(); },
+    errors: {
+      list(query) { return request(`admin/errors?${new URLSearchParams({ state: query.state, provider: query.provider, search: query.search, page: String(query.page) })}`); },
+      resolve(id, resolved) { return request("admin/errors", { id, resolved }); },
+    },
     agent: {
       state() { return request("admin/agent"); },
       command(command) { return request("admin/agent", command); },
