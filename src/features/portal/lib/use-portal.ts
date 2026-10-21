@@ -93,7 +93,7 @@ export function usePortal() {
     setSnapshot(next); channel.current?.postMessage("changed");
   }
   return {
-    snapshot, loading, busy, refresh,
+    snapshot, loading, busy, refresh, agent: gateway.agent,
     run: (action: PortalAction) => perform(() => gateway.action(action), successMessages[action.type]),
     select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
     acceptProject: (projectId: string) => perform(async () => {

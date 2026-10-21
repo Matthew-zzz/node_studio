@@ -6,6 +6,7 @@ import type {
   Viewer, Role, PortalProject, WorkItem, PortalCommit, Conversation,
   ChatMessage, TaskDraft, PortalQuote, ProjectOrder,
 } from "../src/features/portal/model/types.ts";
+import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "../src/features/portal/model/agent.ts";
 
 export interface Records {
   projects: PortalProject;
@@ -17,6 +18,10 @@ export interface Records {
   drafts: TaskDraft;
   quotes: PortalQuote;
   orders: ProjectOrder;
+  agentSettings: AgentSettings;
+  agentDocuments: KnowledgeDocument;
+  agentRevisions: AgentRevision;
+  agentRuns: AgentRun;
 }
 
 export class PortalError extends Error {
@@ -73,6 +78,11 @@ export class PortalStore {
         updated_at TEXT NOT NULL, payload TEXT NOT NULL CHECK(json_valid(payload)), PRIMARY KEY(kind,id)
       );
       CREATE INDEX IF NOT EXISTS records_project ON records(kind,project_id);
+      CREATE TABLE IF NOT EXISTS agent_chunks (
+        id TEXT PRIMARY KEY, document_id TEXT NOT NULL, ordinal INTEGER NOT NULL,
+        content TEXT NOT NULL, embedding TEXT, embedding_model TEXT NOT NULL DEFAULT ''
+      );
+      CREATE INDEX IF NOT EXISTS agent_chunks_document ON agent_chunks(document_id);
       CREATE TABLE IF NOT EXISTS login_limits (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, since INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS deliveries (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS jobs (

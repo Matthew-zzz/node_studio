@@ -304,7 +304,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await login(page, origin, "client");
   await openProject(page, width, projectName);
   await login(page, origin, "admin");
-  await page.getByRole("heading", { name: "Здесь будет управление студией", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "ИИ-агент Telegram", exact: true }).waitFor();
   assert.equal(await chat.count(), 0);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${width}px authenticated account: no overflow`);
   console.log(`Portal ${width}px: authenticated role workflows, server payments, private projects and handoff passed.`);

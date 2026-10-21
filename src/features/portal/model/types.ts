@@ -65,6 +65,7 @@ export interface ChatMessage {
   readonly author: string;
   readonly role: Role | "assistant" | "system";
   readonly text: string;
+  readonly html?: string;
   readonly createdAt: string;
 }
 

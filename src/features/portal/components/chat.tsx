@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { PaymentButton } from "@/features/portal/components/payment-button";
 import { Empty, LongText } from "@/features/portal/components/ui";
+import { TelegramText } from "@/features/portal/components/telegram-text";
 import { formatRubles } from "@/features/payments/model/payment";
 import type { Conversation } from "@/features/portal/model/types";
 import type { PortalController } from "@/features/portal/lib/use-portal";
@@ -52,13 +53,13 @@ export function Chat({ thread, controller }: { thread: Conversation | undefined;
 )}
       <div ref={log} className={styles.chatLog} role="log" aria-label="Сообщения" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && <p className={styles.small}>Начните разговор. Здесь сохраняется переписка этого проекта.</p>}
-        {messages.map(message => message.role === "system" ? <p key={message.id} className={styles.systemMessage}>{message.text}</p> : (
+        {messages.map(message => message.role === "system" ? <div key={message.id} className={styles.systemMessage}>{message.html ? <TelegramText html={message.html} /> : message.text}</div> : (
           <article key={message.id} className={styles.message} data-own={message.role === viewer.role && message.author === viewer.name}>
             <div className={styles.messageMeta}>
               <span>{message.author}</span>
               <time dateTime={message.createdAt}>{new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Moscow" }).format(new Date(message.createdAt))}</time>
             </div>
-            <div className={styles.bubble}>{message.text.length > 480 ? <LongText text={message.text} label={`${message.text.slice(0, 90)}… Читать`} /> : message.text}</div>
+            <div className={styles.bubble}>{message.html ? <TelegramText html={message.html} collapsible /> : message.text.length > 480 ? <LongText text={message.text} label={`${message.text.slice(0, 90)}… Читать`} /> : message.text}</div>
           </article>
         ))}
         {drafts.map(draft => (

@@ -37,7 +37,8 @@ export function portalFixture(origin = "http://localhost:3000") {
       const updated = { ...existing, ...changes, updatedAt: new Date().toISOString() }; issues.set(repo, list.map(issue => issue.number === number ? updated : issue)); return updated;
     },
     async assistant(messages, kind) { return { reply: "Проверьте формулировку.", title: kind === "project" ? "Подготовленная задача" : "", body: kind === "project" ? messages.at(-1).text : "", handoff: false }; },
-    async telegram(chatId, text) { sent.push({ chatId, text }); },
+    async embed(inputs) { return inputs.map(() => [1, 0, 0]); },
+    async telegram(chatId, text, html) { sent.push({ chatId, text, html }); },
     async mail(email, content, deliveryId) { sent.push({ email, content, deliveryId }); },
   };
   const service = new PortalService(store, integrations, config);

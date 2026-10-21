@@ -1,0 +1,7 @@
+.rich { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rich :is(b,strong) { font-weight: 600; }
+.rich a { color: var(--p-accent); text-decoration: underline; text-underline-offset: 3px; }
+.rich code { font: .92em/1.6 monospace; border-radius: 4px; background: var(--p-inset); padding: 2px 5px; }
+.rich pre { display: block; padding: 12px; margin: 10px 0; overflow-x: auto; background: var(--p-inset); border-radius: 9px; white-space: pre-wrap; }
+.rich pre code { padding: 0; }
+.rich blockquote { display: block; border-left: 2px solid var(--p-accent); margin: 10px 0; padding: 8px 13px; background: var(--p-inset); border-radius: 0 7px 7px 0; }

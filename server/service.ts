@@ -8,6 +8,8 @@ import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
 import type { Conversation, PortalProject, PortalSnapshot, ProjectOrder, Role, Viewer, WorkItem } from "../src/features/portal/model/types.ts";
 import { visibleSnapshot } from "../src/features/portal/model/access.ts";
 import { createPaymentQuote } from "../src/features/payments/model/payment.ts";
+import { TelegramAgent } from "./agent/service.ts";
+import { formatTelegramHtml } from "../src/features/portal/model/telegram-html.ts";
 
 export const projectGreeting = "Я помогу разобраться по проекту и сформулировать задачу. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
@@ -19,12 +21,14 @@ export class PortalService {
   readonly store: PortalStore;
   readonly integrations: Integrations;
   readonly config: PortalConfig;
+  readonly agent: TelegramAgent;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
 
   constructor(store: PortalStore, integrations: Integrations, config: PortalConfig) {
     this.store = store; this.integrations = integrations; this.config = config;
+    this.agent = new TelegramAgent(store, integrations, config);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -114,10 +118,32 @@ export class PortalService {
     return visibleSnapshot(data, viewer, selected?.id);
   }
 
-  private append(thread: Conversation, author: string, role: "client" | "developer" | "curator" | "assistant" | "system", message: string, messageId = id()) {
-    const result = this.store.put("messages", { id: messageId, threadId: thread.id, author, role, text: message, createdAt: now() });
-    if (thread.kind === "telegram" && role !== "client") this.store.enqueue("telegram.send", { chatId: thread.telegramId, text: message }, `send:${messageId}`);
+  private append(thread: Conversation, author: string, role: "client" | "developer" | "curator" | "assistant" | "system", message: string, messageId = id(), html?: string) {
+    const result = this.store.put("messages", { id: messageId, threadId: thread.id, author, role, text: message, ...(html ? { html } : {}), createdAt: now() });
+    if (thread.kind === "telegram" && role !== "client") this.store.enqueue("telegram.send", { chatId: thread.telegramId, text: message, ...(html ? { html } : {}) }, `send:${messageId}`);
     return result;
+  }
+
+  private administrator(session: Session): Viewer {
+    const viewer = this.store.user(session.viewer.id);
+    if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
+    this.role(viewer, ["admin"]); return viewer;
+  }
+
+  agentState(session: Session) { this.administrator(session); return this.agent.state(); }
+  agentDocument(session: Session, documentId: unknown) { this.administrator(session); return this.agent.document(documentId); }
+  agentExport(session: Session) { this.administrator(session); return { settings: this.agent.settings(), documents: this.store.all("agentDocuments") }; }
+  async agentAction(session: Session, body: Record<string, unknown>) {
+    const viewer = this.administrator(session);
+    switch (text(body.type, 40)) {
+      case "settings.save": return this.agent.saveSettings(body.settings, body.version, viewer);
+      case "settings.restore": return this.agent.restore(body.revisionId, body.version, viewer);
+      case "document.save": return this.agent.saveDocument(body.document, viewer);
+      case "document.archive": return this.agent.archiveDocument(body.documentId, body.version, body.archived, viewer);
+      case "reindex": return this.agent.reindex();
+      case "preview": return this.agent.preview(body);
+      default: throw new PortalError(400, "Неизвестное действие агента.");
+    }
   }
 
   async action(session: Session, value: unknown): Promise<void> {
@@ -299,22 +325,29 @@ export class PortalService {
     if (this.store.get("messages", messageId)) return;
     if (chat.type !== "private") return;
     const telegramId = String(chat.id); const threadId = `telegram:${telegramId}`;
-    let thread = this.store.get("conversations", threadId);
+    let thread = this.store.get("conversations", threadId); const firstMessage = !thread;
+    const settings = this.agent.settings();
     if (!thread) {
       const sender = object(message.from);
       thread = this.store.put("conversations", { id: threadId, kind: "telegram", projectId: "", name: typeof sender.first_name === "string" ? sender.first_name.slice(0, 100) : "Клиент", username: typeof sender.username === "string" ? sender.username : "", email: "", telegramId, ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
-      this.append(thread, "Node ИИ", "assistant", telegramGreeting);
     }
     if (typeof message.text !== "string") {
-      this.append(thread, "Node", "system", "Пока я принимаю только текст. Опишите пожелания сообщением.");
+      if (!thread.ownerId) this.append(thread, settings.name, "system", "Пока я принимаю только текст. Опишите пожелания сообщением.");
       return;
     }
     const content = text(message.text, 8000);
     const entry = this.append(thread, thread.name, "client", content, messageId);
-    const handoff = /(?:человек|разработчик|куратор|поддержк)/i.test(content);
+    const handoff = !settings.enabled || (settings.capabilities.handoff && (/^\/human(?:\s|$)|^(?:куратор|оператор|человек)[.!?\s]*$/i.test(content) || /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови|свяжи|поговорить).{0,60}(?:человек|разработчик|куратор|оператор|поддержк)/i.test(content)));
+    if ((firstMessage || /^\/start(?:\s|$)/i.test(content)) && !thread.ownerId && !handoff) {
+      const greeting = formatTelegramHtml(settings.greeting, settings.maxReplyChars);
+      this.append(thread, settings.name, "assistant", greeting.text, `greeting:${messageId}`, greeting.html);
+    }
     this.store.put("conversations", { ...thread, handoffRequested: thread.handoffRequested || handoff, revision: (thread.revision ?? 0) + 1, updatedAt: now() });
-    if (handoff && !thread.ownerId) this.append(thread, "Node", "system", "Запрос передан куратору. Он подключится к этому диалогу.");
-    if (!thread.ownerId && !handoff && content !== "/start") this.store.enqueue("assistant", { threadId, messageId: entry.id });
+    if (handoff && !thread.ownerId) {
+      const reply = formatTelegramHtml(settings.enabled ? settings.handoffMessage : settings.fallbackMessage, settings.maxReplyChars);
+      this.append(thread, settings.name, "system", reply.text, `handoff:${messageId}`, reply.html);
+    }
+    if (!thread.ownerId && !handoff && !/^\/start(?:\s|$)/i.test(content)) this.store.enqueue("assistant", { threadId, messageId: entry.id });
   }
 
   private seal(content: string) {
@@ -366,7 +399,8 @@ export class PortalService {
         const payload = JSON.parse(job.payload) as Record<string, string>;
         try {
           if (job.kind === "telegram.inbound") await this.telegramInbound(payload.update!);
-          if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!);
+          if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!, payload.html);
+          if (job.kind === "agent.index") await this.agent.index(payload.documentId!);
           if (job.kind === "github.sync") {
             const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true);
           }
@@ -401,6 +435,7 @@ export class PortalService {
   private async answer(threadId: string, messageId: string) {
     const thread = this.store.get("conversations", threadId);
     if (!thread || thread.ownerId || thread.handoffRequested || this.store.get("messages", `reply:${messageId}`)) return;
+    if (thread.kind === "telegram") { await this.answerTelegram(thread, messageId); return; }
     if (!this.integrations.ready.ai) {
       this.append(thread, "Node", "system", "ИИ пока не подключён. Сообщение сохранено; можно попросить подключить человека.", `reply:${messageId}`);
       return;
@@ -415,6 +450,37 @@ export class PortalService {
       this.append(thread, "Node ИИ", "assistant", reply.reply, `reply:${messageId}`);
       if (reply.handoff) this.store.put("conversations", { ...latest, handoffRequested: true, updatedAt: now() });
       if (thread.kind === "project" && reply.title && reply.body) this.store.put("drafts", { id: `draft:${messageId}`, threadId, projectId: thread.projectId, title: reply.title, body: reply.body, confirmed: false, createdAt: now() });
+    });
+  }
+
+  private async answerTelegram(thread: Conversation, messageId: string) {
+    const settings = this.agent.settings(); const fingerprint = this.agent.fingerprint(); const started = Date.now();
+    const messages = this.store.all("messages").filter(message => message.threadId === thread.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const lastClient = messages.filter(message => message.role === "client").at(-1);
+    if (lastClient?.id !== messageId) return;
+    const replies = messages.filter(message => message.role === "assistant" && !message.id.startsWith("greeting:") && Date.parse(message.createdAt) >= Date.now() - 3_600_000).length;
+    let status: "answered" | "handoff" | "paused" | "limited" | "error" = "answered";
+    let result: { reply: string; html: string; handoff: boolean; sources: { documentId: string }[] };
+    if (!settings.enabled || replies >= settings.repliesPerHour || !this.integrations.ready.ai) {
+      status = !settings.enabled ? "paused" : replies >= settings.repliesPerHour ? "limited" : "error";
+      const formatted = formatTelegramHtml(settings.fallbackMessage, settings.maxReplyChars);
+      result = { reply: formatted.text, html: formatted.html, handoff: true, sources: [] };
+    } else {
+      try { result = await this.agent.generate(messages.filter(message => !message.id.startsWith("greeting:")), settings); if (result.handoff) status = "handoff"; }
+      catch {
+        status = "error"; const formatted = formatTelegramHtml(settings.fallbackMessage, settings.maxReplyChars);
+        result = { reply: formatted.text, html: formatted.html, handoff: true, sources: [] };
+      }
+    }
+    const latest = this.store.get("conversations", thread.id);
+    if (!latest || latest.ownerId || latest.handoffRequested || latest.revision !== thread.revision) return;
+    if (fingerprint !== this.agent.fingerprint()) { this.store.enqueue("assistant", { threadId: thread.id, messageId }); return; }
+    this.store.transaction(() => {
+      this.append(latest, settings.name, "assistant", result.reply, `reply:${messageId}`, result.html);
+      const email = settings.capabilities.collectContact ? lastClient.text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0] : undefined;
+      this.store.put("conversations", { ...latest, ...(email ? { email: email.toLowerCase() } : {}), handoffRequested: result.handoff, updatedAt: now() });
+      this.store.put("agentRuns", { id: `run:${messageId}`, model: settings.model, status, durationMs: Date.now() - started, sourceIds: [...new Set(result.sources.map(source => source.documentId))], createdAt: now() });
+      this.store.db.prepare("DELETE FROM records WHERE kind='agentRuns' AND id NOT IN (SELECT id FROM records WHERE kind='agentRuns' ORDER BY updated_at DESC,id DESC LIMIT 200)").run();
     });
   }
 }

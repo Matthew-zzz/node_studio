@@ -10,6 +10,9 @@ import { ProjectOrders, TelegramInbox } from "@/features/portal/components/curat
 import { DeveloperQueue } from "@/features/portal/components/developer";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
 import { ProjectWorkspace } from "@/features/portal/components/project-workspace";
+import { AgentAdmin } from "@/features/portal/components/agent/admin";
+import { isAgentView } from "@/features/portal/model/agent";
+import type { AgentView } from "@/features/portal/model/agent";
 import { Empty, ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { usePortal } from "@/features/portal/lib/use-portal";
 import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
@@ -19,12 +22,13 @@ import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/po
 import type { ProjectView } from "@/features/portal/model/project-views";
 import styles from "./portal.module.css";
 
-type View = ProjectView | "queue" | "inbox" | "orders" | "settings";
+type View = ProjectView | AgentView | "queue" | "inbox" | "orders" | "settings";
 const views: Record<View, { label: string; icon: IconName }> = {
+  agent: { label: "ИИ-агент", icon: "bot" }, "agent-prompts": { label: "Промпты", icon: "document" }, "agent-knowledge": { label: "База знаний", icon: "database" }, "agent-playground": { label: "Проверка агента", icon: "spark" }, "agent-history": { label: "История настроек", icon: "clock" },
   overview: { label: PROJECT_VIEW_LABELS.overview, icon: "service" }, tasks: { label: PROJECT_VIEW_LABELS.tasks, icon: "document" }, history: { label: PROJECT_VIEW_LABELS.history, icon: "code" }, chat: { label: PROJECT_VIEW_LABELS.chat, icon: "bot" },
   queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Создание проектов", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
 };
-const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: [] };
+const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: ["agent", "agent-prompts", "agent-knowledge", "agent-playground", "agent-history", "settings"] };
 
 export function Portal() {
   const controller = usePortal(); const { theme, setTheme } = usePortalTheme();
@@ -80,11 +84,11 @@ export function Portal() {
   const acceptProject = async (id: string, tab: "overview" | "chat") => {
     if (await controller.acceptProject(id)) { setLayout(null); navigate(tab); }
   };
-  const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : viewer.role === "admin" ? "Администратор" : projectView ? project?.name ?? "Мои проекты" : views[activeView].label;
+  const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? project?.name ?? "Мои проекты" : views[activeView].label;
   const navigation = (
     <>
       <WorkspaceBrand />
-      {viewer.role !== "admin" && !viewer.mustChangePassword && (
+      {!viewer.mustChangePassword && (
       <div>
         <p className={styles.sideCaption}>Рабочее пространство</p>
         <nav className={styles.nav} aria-label="Разделы кабинета">
@@ -169,9 +173,9 @@ export function Portal() {
               </div>
               {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : "Ожидаем GitHub"}</span>}
             </div>
-            {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : viewer.role === "admin" ? <section className={styles.panel}><Empty title="Здесь будет управление студией" text="Раздел администратора подготовлен. Возможности добавим на следующем этапе." icon="service" /></section> : (
+            {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
               <>
-                {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+                {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <ProjectWorkspace
                     key={`${viewer.id}:${project.id}`}
                     project={project}

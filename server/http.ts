@@ -11,11 +11,11 @@ export function equalSecret(actual: string, expected: string): boolean {
   return right.length > 0 && left.length === right.length && timingSafeEqual(left, right);
 }
 
-async function readBody(request: IncomingMessage): Promise<Buffer> {
+async function readBody(request: IncomingMessage, limit = 131_072): Promise<Buffer> {
   const parts: Buffer[] = []; let size = 0;
   for await (const part of request) {
     size += part.length;
-    if (size > 131_072) throw new PortalError(413, "Слишком длинное сообщение.");
+    if (size > limit) throw new PortalError(413, "Слишком длинное сообщение.");
     parts.push(Buffer.from(part));
   }
   return Buffer.concat(parts);
@@ -43,7 +43,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
       let raw: Buffer = Buffer.alloc(0); let body: Record<string, unknown> = {};
       if (request.method === "POST") {
         if (!request.headers["content-type"]?.startsWith("application/json")) throw new PortalError(415, "Ожидался JSON.");
-        raw = await readBody(request);
+        raw = await readBody(request, path.startsWith("/api/portal/admin/agent") ? 524_288 : 131_072);
         try { body = object(JSON.parse(raw.toString("utf8"))); } catch { throw new PortalError(400, "Некорректный JSON."); }
       }
       if (isWebhook && request.method === "POST") {
@@ -80,6 +80,9 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
       const session = service.store.session(sessionToken);
       if (!session && request.method === "GET" && path === "/api/portal/snapshot") { send(200, EMPTY_SNAPSHOT); return; }
       if (!session) throw new PortalError(401, "Войдите в кабинет.");
+      if (request.method === "GET" && path === "/api/portal/admin/agent") { send(200, service.agentState(session)); return; }
+      if (request.method === "GET" && path === "/api/portal/admin/agent/document") { send(200, service.agentDocument(session, url.searchParams.get("id"))); return; }
+      if (request.method === "GET" && path === "/api/portal/admin/agent/export") { send(200, service.agentExport(session)); return; }
       if (request.method === "GET" && path === "/api/portal/snapshot") {
         const pages = Number(url.searchParams.get("pages") || 1);
         if (!Number.isInteger(pages) || pages < 1 || pages > 1000) throw new PortalError(400, "Некорректная страница истории.");
@@ -87,6 +90,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
       }
       if (request.method !== "POST") throw new PortalError(404, "Страница не найдена.");
       if (!equalSecret(String(request.headers["x-csrf-token"] ?? ""), session.csrf)) throw new PortalError(403, "Обновите страницу и повторите запрос.");
+      if (path === "/api/portal/admin/agent") { send(200, await service.agentAction(session, body)); return; }
       if (path === "/api/portal/profiles/add" || path === "/api/portal/profiles/switch") {
         const result = path.endsWith("/add")
           ? service.store.login(text(body.email, 254), passwordInput(body.password), address, session)

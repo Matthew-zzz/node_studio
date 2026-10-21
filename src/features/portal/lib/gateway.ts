@@ -1,7 +1,17 @@
 import type { Checkout, PortalAction, PortalSnapshot } from "@/features/portal/model/types";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
+import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, AgentTestMessage, AgentTestResult, KnowledgeDocument } from "@/features/portal/model/agent";
+
+export interface AgentGateway {
+  state(): Promise<AgentAdminState>;
+  command(command: AgentCommand): Promise<AgentAdminState>;
+  preview(settings: AgentPreferences, messages: AgentTestMessage[]): Promise<AgentTestResult>;
+  document(id: string): Promise<KnowledgeDocument>;
+  export(): Promise<{ settings: AgentSettings; documents: KnowledgeDocument[] }>;
+}
 
 export interface PortalGateway {
+  agent: AgentGateway;
   snapshot(projectId?: string, pages?: number): Promise<PortalSnapshot>;
   action(action: PortalAction): Promise<void>;
   login(email: string, password: string): Promise<PortalSnapshot>;
@@ -44,6 +54,13 @@ export function createApiGateway(): PortalGateway {
     return value as T;
   }
   return {
+    agent: {
+      state() { return request("admin/agent"); },
+      command(command) { return request("admin/agent", command); },
+      preview(settings, messages) { return request("admin/agent", { type: "preview", settings, messages }); },
+      document(id) { return request(`admin/agent/document?id=${encodeURIComponent(id)}`); },
+      export() { return request("admin/agent/export"); },
+    },
     snapshot(projectId = "", pages = 1) { return request(`snapshot?project=${encodeURIComponent(projectId)}&pages=${pages}`); },
     action(action) { return request("action", action); },
     login(email, password) { return request("login", { email, password }); },
