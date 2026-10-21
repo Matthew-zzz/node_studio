@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPaymentQuote, parseRubles } from "../src/features/payments/model/payment.ts";
-import { simulatePayment } from "../src/features/payments/lib/mock-payment.ts";
 
 test("wish quote adds 30% in kopecks; primary project retains its base price", () => {
   const wish = createPaymentQuote("wish-1", 1_000_000, "wish");
@@ -29,32 +28,4 @@ test("invalid, negative, unsafe and over-precision amounts cannot create a quote
   }
   assert.throws(() => createPaymentQuote("", 100, "wish"), RangeError);
   assert.throws(() => createPaymentQuote("invalid-kind", 100, "other"), RangeError);
-});
-
-test("mock success preserves the quote and is explicitly marked as a simulation", async () => {
-  const quote = createPaymentQuote("test-order", 10_000, "wish");
-  const result = await simulatePayment(quote, "succeeded", new AbortController().signal, 0);
-  assert.equal(result.provider, "mock");
-  assert.equal(result.status, "succeeded");
-  assert.equal(result.quote, quote);
-  assert.equal(result.quote.totalKopecks, 13_000, "markup is not applied a second time");
-  assert.ok(Object.isFrozen(result.quote));
-});
-
-test("a failed payment does not become a success", async () => {
-  const quote = createPaymentQuote("failure", 100, "project");
-  const result = await simulatePayment(quote, "failed", new AbortController().signal, 0);
-  assert.equal(result.status, "failed");
-});
-
-test("cancelling an in-flight mock prevents a late successful confirmation", async () => {
-  const controller = new AbortController();
-  const pending = simulatePayment(createPaymentQuote("cancel", 100, "wish"), "succeeded", controller.signal);
-  const rejected = assert.rejects(pending, { name: "AbortError" });
-  controller.abort();
-  await rejected;
-  await assert.rejects(
-    simulatePayment(createPaymentQuote("already-canceled", 100, "wish"), "succeeded", controller.signal),
-    { name: "AbortError" },
-  );
 });

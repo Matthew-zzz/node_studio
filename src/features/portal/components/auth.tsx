@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { WorkspaceBrand, ThemeSwitch } from "@/features/portal/components/ui";
@@ -44,13 +43,6 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
           <p>После согласования и полной оплаты проекта студия отправит доступ на вашу почту. Если письмо не пришло, напишите в поддержку.</p>
         </details>
       </div>
-      <aside className={styles.previewEntry} aria-label="Тестовые кабинеты">
-        <div>
-          <strong>Познакомьтесь с кабинетами</strong>
-          <p>Клиент, разработчик и куратор. Без регистрации.</p>
-        </div>
-        <Link className={styles.secondary} href="/cabinet-demo/">Открыть кабинеты ↗</Link>
-      </aside>
     </main>
   );
 }

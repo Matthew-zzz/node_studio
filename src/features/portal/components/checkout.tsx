@@ -4,14 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { PaymentButton } from "@/features/portal/components/payment-button";
 import { ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { createApiGateway } from "@/features/portal/lib/gateway";
-import { createDemoGateway } from "@/features/portal/lib/demo-gateway";
 import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { formatRubles } from "@/features/payments/model/payment";
 import type { Checkout } from "@/features/portal/model/types";
 import styles from "./portal.module.css";
 
-export function CheckoutPage({ demo = false }: { demo?: boolean }) {
-  const gateway = useMemo(() => demo ? createDemoGateway() : createApiGateway(), [demo]);
+export function CheckoutPage() {
+  const gateway = useMemo(() => createApiGateway(), []);
   const { theme, setTheme } = usePortalTheme();
   const [checkout, setCheckout] = useState<Checkout | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -38,10 +37,7 @@ export function CheckoutPage({ demo = false }: { demo?: boolean }) {
           <ThemeSwitch theme={theme} onChange={setTheme} />
         </div>
         <section className={`${styles.panel} ${styles.authCard}`}>
-          <span className={styles.kicker}>
-            {demo ? "Демонстрация · " : ""}
-            Основная разработка
-          </span>
+          <span className={styles.kicker}>Основная разработка</span>
           <h1>{checkout?.projectName ?? "Оплата проекта"}</h1>
           <p>Тестовая оплата без списания денег.</p>
           {error && <p className={styles.notice} role="alert">{error}</p>}
@@ -49,7 +45,7 @@ export function CheckoutPage({ demo = false }: { demo?: boolean }) {
           <>
             <p className={styles.dialogTotal}>{formatRubles(checkout.totalKopecks)}</p>
             <p className={styles.subtitle}>Согласованная стоимость проекта</p>
-            {checkout.status !== "pending" ? <p className={styles.subtitle} role="status">Тестовая оплата подтверждена. Студия подготовит доступ к проекту.</p> : <div style={{ marginTop: 25 }}><PaymentButton total={checkout.totalKopecks} busy={busy} onPay={pay} /></div>}
+            {checkout.status !== "pending" ? <p className={styles.subtitle} role="status">Тестовая оплата подтверждена. Студия подготовит доступ к проекту.</p> : checkout.provider === "mock" ? <div style={{ marginTop: 25 }}><PaymentButton total={checkout.totalKopecks} busy={busy} onPay={pay} /></div> : <p className={styles.subtitle} role="status">Оплата временно недоступна. Напишите в поддержку студии.</p>}
           </>
 )}
           {!checkout && !error && <p className={styles.small} role="status">Загружаем оплату…</p>}

@@ -51,6 +51,7 @@ test("email adapter provides idempotency and missing integration settings fail e
   await adapter.mail("client@example.test", "Access message", "delivery-1");
   assert.equal(headers["Idempotency-Key"], "delivery-1"); assert.deepEqual(body.to, ["client@example.test"]);
   const unconfigured = createIntegrations(readConfig({}), async () => { throw new Error("Should not call upstream"); });
+  assert.equal(unconfigured.ready.payments, "disabled");
   await assert.rejects(unconfigured.assistant([], "project"), { status: 503 });
   await assert.rejects(unconfigured.mail("client@example.test", "text", "id"), { status: 503 });
   await assert.rejects(unconfigured.issues("Matthew-zzz/project"), { status: 503 });

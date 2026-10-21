@@ -5,7 +5,7 @@ import type { ChatMessage, PortalCommit, WorkItem, WorkStatus } from "../src/fea
 
 export interface AssistantReply { reply: string; title: string; body: string; handoff: boolean }
 export interface Integrations {
-  ready: { github: boolean; telegram: boolean; ai: boolean; mail: boolean; payments: "mock" };
+  ready: { github: boolean; telegram: boolean; ai: boolean; mail: boolean; payments: "mock" | "disabled" };
   issues(repo: string): Promise<WorkItem[]>;
   commits(repo: string, page: number): Promise<PortalCommit[]>;
   createRepository(name: string): Promise<string>;
@@ -73,7 +73,7 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
     }
   }
   return {
-    ready: { github: Boolean(config.githubToken), telegram: Boolean(config.telegramToken && config.telegramWebhookSecret), ai: Boolean(config.aiKey && config.aiModel), mail: Boolean(config.mailKey && config.mailFrom && config.encryptionKey), payments: "mock" },
+    ready: { github: Boolean(config.githubToken), telegram: Boolean(config.telegramToken && config.telegramWebhookSecret), ai: Boolean(config.aiKey && config.aiModel), mail: Boolean(config.mailKey && config.mailFrom && config.encryptionKey), payments: config.mockPayments ? "mock" : "disabled" },
     async issues(repo) { return (await allIssues(repo)).map(issueToWork); },
     async commits(repo, page) {
       const path = `${repoPath(repo)}/commits?per_page=100&page=${page}`;

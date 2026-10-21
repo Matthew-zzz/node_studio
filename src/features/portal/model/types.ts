@@ -123,7 +123,7 @@ export interface PortalSnapshot {
     readonly telegram: boolean;
     readonly ai: boolean;
     readonly mail: boolean;
-    readonly payments: "mock";
+    readonly payments: "mock" | "disabled";
   };
 }
 
@@ -139,7 +139,7 @@ export interface NewOrder {
 export const EMPTY_SNAPSHOT: PortalSnapshot = {
   viewer: null, csrf: "", selectedProjectId: "", projects: [], tasks: [], stages: [], commits: [],
   conversations: [], messages: [], drafts: [], quotes: [], orders: [], hasMoreCommits: false, syncedAt: null,
-  syncError: null, integrations: { github: false, telegram: false, ai: false, mail: false, payments: "mock" },
+  syncError: null, integrations: { github: false, telegram: false, ai: false, mail: false, payments: "disabled" },
 };
 
 export type PortalAction =
@@ -158,7 +158,7 @@ export interface Checkout {
   readonly projectName: string;
   readonly totalKopecks: number;
   readonly status: ProjectOrder["status"];
-  readonly provider: "mock";
+  readonly provider: "mock" | "disabled";
 }
 
 export const ROLE_LABELS: Record<Role, string> = {

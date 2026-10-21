@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
-import type { PortalAction, Role } from "@/features/portal/model/types";
+import type { PortalAction } from "@/features/portal/model/types";
 import { createApiGateway } from "@/features/portal/lib/gateway";
-import { createDemoGateway } from "@/features/portal/lib/demo-gateway";
 
-export function usePortal(demo: boolean) {
-  const gateway = useMemo(() => demo ? createDemoGateway() : createApiGateway(), [demo]);
+export function usePortal() {
+  const gateway = useMemo(() => createApiGateway(), []);
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -27,7 +26,7 @@ export function usePortal(demo: boolean) {
   }, [gateway]);
   useEffect(() => {
     void refresh();
-    const timer = setInterval(() => { if (!document.hidden && !pending.current) void refresh(); }, 15000);
+    const timer = setInterval(() => { if (!document.hidden && !pending.current) void refresh(); }, 5000);
     const visible = () => { if (!document.hidden && !pending.current) void refresh(); };
     window.addEventListener("focus", visible);
     return () => { invalidate(); clearInterval(timer); window.removeEventListener("focus", visible); };
@@ -45,11 +44,9 @@ export function usePortal(demo: boolean) {
     run: (action: PortalAction) => perform(() => gateway.action(action)),
     select: async (projectId: string) => { selected.current = projectId; pages.current = 1; await refresh(); },
     more: async () => { pages.current++; await refresh(); },
-    login: (email: string, password: string) => perform(async () => { setSnapshot(await gateway.login(email, password)); }),
+    login: (email: string, password: string) => perform(async () => { const next = await gateway.login(email, password); selected.current = ""; pages.current = 1; setSnapshot(next); }),
     password: (current: string, replacement: string) => perform(async () => { setSnapshot(await gateway.password(current, replacement)); }),
-    logout: () => perform(async () => { await gateway.logout(); selected.current = ""; setSnapshot(EMPTY_SNAPSHOT); }),
-    role: (role: Role) => perform(async () => { await gateway.role?.(role); selected.current = ""; pages.current = 1; }),
-    reset: () => perform(async () => { await gateway.reset?.(); selected.current = ""; pages.current = 1; }),
+    logout: () => perform(async () => { await gateway.logout(); selected.current = ""; pages.current = 1; setSnapshot(EMPTY_SNAPSHOT); }),
   };
 }
 

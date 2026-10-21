@@ -5,8 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
-import { checkPayments } from "./browser/payments.mjs";
-import { checkPortal, checkPortalAuthentication, checkWorkspacePreferences } from "./browser/portal.mjs";
+import { checkPortal, checkPortalAuthentication, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -38,6 +37,11 @@ try {
   });
 
   for (const width of [1440, 768, 390, 320]) {
+    clearInterval(portalWorker);
+    portal.close();
+    portal = portalFixture(origin);
+    preparePortalFixture(portal);
+    portalWorker = setInterval(() => void portal.service.workJobs(), 100);
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(error.message));
@@ -107,8 +111,7 @@ try {
       await page.waitForFunction(() => document.querySelector(".toast").textContent.includes("скопирован"));
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "@ma11hew_z");
     }
-    await checkPayments(page, origin, width, screenshots);
-    try { await checkPortal(page, origin, width, screenshots); }
+    try { await checkPortal(page, origin, width, screenshots, portal); }
     catch (error) {
       await page.screenshot({ path: resolve(screenshots, `${width}-portal-failure.png`), fullPage: true });
       console.error("Portal failure context:", await page.locator("main").innerText());
@@ -132,7 +135,7 @@ try {
   assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, marketing, mock payments, portal roles, chat handoff, confirmed tasks, quote/payment workflow, initial project creation, themes and server authentication.");
+  console.log("Passed: 4 viewports, marketing, authenticated role accounts, server-backed payment stub, chat handoff, confirmed tasks, initial project creation, themes and no public demo routes.");
 } finally {
   await browser?.close();
   clearInterval(portalWorker);

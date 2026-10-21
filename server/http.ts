@@ -72,7 +72,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         const token = text(body.token, 64);
         if (path.endsWith("/pay")) service.payOrder(token, body.outcome);
         const order = service.checkout(token);
-        send(200, { projectName: order.projectName, totalKopecks: order.totalKopecks, status: order.status, provider: "mock" }); return;
+        send(200, { projectName: order.projectName, totalKopecks: order.totalKopecks, status: order.status, provider: config.mockPayments ? "mock" : "disabled" }); return;
       }
       const sessionToken = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) ?? "";
       const session = service.store.session(sessionToken);

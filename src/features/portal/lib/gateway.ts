@@ -1,4 +1,4 @@
-import type { Checkout, PortalAction, PortalSnapshot, Role } from "@/features/portal/model/types";
+import type { Checkout, PortalAction, PortalSnapshot } from "@/features/portal/model/types";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 
 export interface PortalGateway {
@@ -9,8 +9,6 @@ export interface PortalGateway {
   password(current: string, replacement: string): Promise<PortalSnapshot>;
   checkout(token: string): Promise<Checkout>;
   payOrder(token: string, outcome: "succeeded" | "failed"): Promise<Checkout>;
-  role?(role: Role): Promise<void>;
-  reset?(): Promise<void>;
 }
 
 export function createApiGateway(): PortalGateway {
@@ -25,7 +23,7 @@ export function createApiGateway(): PortalGateway {
     } catch { throw new Error("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова."); }
     if (response.status === 404 || response.status === 502 || response.status === 503) {
       const value = await response.json().catch(() => null) as { error?: string } | null;
-      throw new Error(value?.error || "Сервер кабинета ещё не подключён. Пока можно посмотреть демонстрацию.");
+      throw new Error(value?.error || "Сервис временно недоступен. Повторите попытку позже или напишите в поддержку.");
     }
     const value = await response.json().catch(() => null) as { error?: string } | null;
     if (!response.ok) {

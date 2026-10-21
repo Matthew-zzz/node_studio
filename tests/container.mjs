@@ -27,8 +27,11 @@ async function login(email, password) {
 
 try {
   compose("up", "--detach", "--no-build", "--wait", "--wait-timeout", "90");
-  for (const route of ["/", "/projects/autoparts/", "/cabinet/", "/cabinet-demo/", "/checkout/"]) {
+  for (const route of ["/", "/projects/autoparts/", "/cabinet/", "/checkout/"]) {
     const response = await fetchApplication(route); assert.equal(response.status, 200, route); assert.ok((await response.text()).includes("<html"));
+  }
+  for (const route of ["/cabinet-demo/", "/checkout-demo/", "/payment-demo/"]) {
+    const response = await fetchApplication(route); assert.equal(response.status, 404, route); await response.arrayBuffer();
   }
   const health = await fetchApplication("/api/portal/health").then(response => response.json());
   assert.equal(health.status, "ok"); assert.equal(health.revision, process.env.SOURCE_REVISION || "local");
@@ -50,6 +53,9 @@ try {
   });
   assert.equal(changed.status, 200);
   assert.equal((await changed.json()).viewer.mustChangePassword, false);
+  const account = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
+  assert.equal(account.projects.length, 0, "a fresh installation does not seed customer projects");
+  assert.equal(account.messages.length, 0, "a fresh installation does not seed customer messages");
   compose("up", "--detach", "--no-build", "--force-recreate", "--wait", "--wait-timeout", "90");
   console.log("Docker container replaced; checking persistent account and session.");
   assert.equal((await login(developer.email, password)).snapshot.viewer.mustChangePassword, false, "recreating the container preserves the account");

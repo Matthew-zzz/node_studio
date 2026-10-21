@@ -81,7 +81,7 @@ export function Chat({ thread, controller }: { thread: Conversation | undefined;
               <strong>{formatRubles(quote.totalKopecks)}</strong>
             </div>
             {human && <LongText text={`Стоимость разработчика: ${formatRubles(quote.baseKopecks)}\nНаценка 30%: ${formatRubles(quote.markupKopecks)}\nИтого клиенту: ${formatRubles(quote.totalKopecks)}`} label="Расчёт стоимости" />}
-            {quote.status === "paid" ? <span className={styles.badge} data-status="paid">Оплачено · тест</span> : viewer.role === "client" ? <PaymentButton total={quote.totalKopecks} busy={busy} onPay={outcome => run({ type: "quote.pay", quoteId: quote.id, outcome })} /> : <span className={styles.badge} data-status="pending">Ожидает оплаты</span>}
+            {quote.status === "paid" ? <span className={styles.badge} data-status="paid">Оплачено · тест</span> : viewer.role === "client" ? snapshot.integrations.payments === "mock" ? <PaymentButton total={quote.totalKopecks} busy={busy} onPay={outcome => run({ type: "quote.pay", quoteId: quote.id, outcome })} /> : <p className={styles.small}>Оплата временно недоступна. Напишите в поддержку студии.</p> : <span className={styles.badge} data-status="pending">Ожидает оплаты</span>}
             {quote.status !== "paid" && <p className={styles.small} style={{ marginTop: 9 }}>Тестовый платёж без списания денег.</p>}
           </article>
         ))}

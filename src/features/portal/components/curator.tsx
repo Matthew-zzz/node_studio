@@ -84,7 +84,7 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
 
 const orderStatus = { pending: "Ожидает оплаты", paid: "Оплачено · тест", provisioning: "Создаём проект…", ready: "Доступ выдан", needs_setup: "Нужна настройка подключений" };
 
-export function ProjectOrders({ controller, demo }: { controller: PortalController; demo: boolean }) {
+export function ProjectOrders({ controller }: { controller: PortalController }) {
   const [name, setName] = useState(""); const [client, setClient] = useState(""); const [email, setEmail] = useState("");
   const [username, setUsername] = useState(""); const [brief, setBrief] = useState(""); const [amount, setAmount] = useState(""); const [validation, setValidation] = useState("");
   const kopecks = parseRubles(amount);
@@ -165,9 +165,9 @@ export function ProjectOrders({ controller, demo }: { controller: PortalControll
             </p>
             <LongText text={order.brief} label="Согласованное ТЗ" />
             <div className={styles.formActions}>
-              {order.status === "pending" && <a className={styles.orderLink} href={`/${demo ? "checkout-demo" : "checkout"}/#${encodeURIComponent(order.checkoutToken)}`} target="_blank" rel="noopener noreferrer">Открыть ссылку на оплату ↗</a>}
+              {order.status === "pending" && <a className={styles.orderLink} href={`/checkout/#${encodeURIComponent(order.checkoutToken)}`} target="_blank" rel="noopener noreferrer">Открыть ссылку на оплату ↗</a>}
               {["paid", "needs_setup"].includes(order.status) && <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "order.provision", orderId: order.id })}>Создать проект и выдать доступ</button>}
-              {order.status === "ready" && <span className={styles.small}>{demo ? "Демонстрационный проект создан. Письмо не отправляется." : "Репозиторий создан, первое ТЗ передано разработчику, доступ отправлен на почту."}</span>}
+              {order.status === "ready" && <span className={styles.small}>Репозиторий создан, первое ТЗ передано разработчику, доступ отправлен на почту.</span>}
             </div>
           </article>
         ))}
