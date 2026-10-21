@@ -5,6 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import type { IconName } from "@/components/ui/icon";
 import { STATUS_LABELS } from "@/features/portal/model/types";
 import type { WorkStatus } from "@/features/portal/model/types";
+import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import styles from "./portal.module.css";
 
 export function WorkspaceBrand() {
@@ -17,8 +18,19 @@ export function WorkspaceBrand() {
   );
 }
 
-export function ThemeButton({ theme, toggle }: { theme: string; toggle: () => void }) {
-  return <button className={styles.iconButton} type="button" aria-label={theme === "light" ? "Включить тёмную тему" : "Включить светлую тему"} onClick={toggle}><span aria-hidden="true">{theme === "light" ? "☾" : "☼"}</span></button>;
+export function ThemeSwitch({ theme, onChange }: { theme: PortalTheme; onChange: (theme: PortalTheme) => void }) {
+  return (
+    <div className={styles.themeSwitch} role="group" aria-label="Оформление кабинета">
+      <button type="button" aria-label="Включить светлую тему" aria-pressed={theme === "light"} onClick={() => onChange("light")}>
+        <span aria-hidden="true">☼</span>
+        <span>Светлая</span>
+      </button>
+      <button type="button" aria-label="Включить тёмную тему" aria-pressed={theme === "dark"} onClick={() => onChange("dark")}>
+        <span aria-hidden="true">☾</span>
+        <span>Тёмная</span>
+      </button>
+    </div>
+  );
 }
 
 export function Empty({ title, text, icon = "flow" }: { title: string; text: string; icon?: IconName }) {

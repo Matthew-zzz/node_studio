@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { WorkspaceBrand, ThemeButton } from "@/features/portal/components/ui";
+import { WorkspaceBrand, ThemeSwitch } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
+import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import styles from "./portal.module.css";
 
-export function Login({ controller, theme, toggleTheme }: { controller: PortalController; theme: string; toggleTheme: () => void }) {
+export function Login({ controller, theme, setTheme }: { controller: PortalController; theme: PortalTheme; setTheme: (theme: PortalTheme) => void }) {
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,7 +18,7 @@ export function Login({ controller, theme, toggleTheme }: { controller: PortalCo
     <main id="main" className={styles.authPage}>
       <div className={styles.authTop}>
         <WorkspaceBrand />
-        <ThemeButton theme={theme} toggle={toggleTheme} />
+        <ThemeSwitch theme={theme} onChange={setTheme} />
       </div>
       <section className={`${styles.panel} ${styles.authCard}`}>
         <span className={styles.kicker}>Рабочее пространство студии</span>
@@ -42,8 +43,14 @@ export function Login({ controller, theme, toggleTheme }: { controller: PortalCo
           <summary>Как получить доступ</summary>
           <p>После согласования и полной оплаты проекта студия отправит доступ на вашу почту. Если письмо не пришло, напишите в поддержку.</p>
         </details>
-        <Link href="/cabinet-demo/">Посмотреть демонстрацию кабинета</Link>
       </div>
+      <aside className={styles.previewEntry} aria-label="Тестовые кабинеты">
+        <div>
+          <strong>Познакомьтесь с кабинетами</strong>
+          <p>Клиент, разработчик и куратор. Без регистрации.</p>
+        </div>
+        <Link className={styles.secondary} href="/cabinet-demo/">Открыть кабинеты ↗</Link>
+      </aside>
     </main>
   );
 }

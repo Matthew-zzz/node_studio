@@ -7,10 +7,12 @@ import type { IconName } from "@/components/ui/icon";
 import { Login, PasswordForm } from "@/features/portal/components/auth";
 import { Chat } from "@/features/portal/components/chat";
 import { ProjectOrders, TelegramInbox } from "@/features/portal/components/curator";
+import { DeveloperQueue } from "@/features/portal/components/developer";
 import { CommitHistory, ProjectBrief, Stages, Tasks } from "@/features/portal/components/project-work";
-import { Empty, ThemeButton, WorkBadge, WorkspaceBrand } from "@/features/portal/components/ui";
-import { usePortal, usePortalTheme } from "@/features/portal/lib/use-portal";
-import type { PortalController } from "@/features/portal/lib/use-portal";
+import { Empty, ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
+import { WorkspaceSwitcher } from "@/features/portal/components/workspace-switcher";
+import { usePortal } from "@/features/portal/lib/use-portal";
+import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { ROLE_LABELS } from "@/features/portal/model/types";
 import type { Role } from "@/features/portal/model/types";
 import styles from "./portal.module.css";
@@ -22,72 +24,22 @@ const views: Record<View, { label: string; icon: IconName }> = {
 };
 const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: [] };
 
-function DeveloperQueue({ controller, openProject }: { controller: PortalController; openProject: (id: string) => void }) {
-  const tasks = controller.snapshot.tasks.filter(task => !["done", "canceled"].includes(task.status));
-  const handoffs = controller.snapshot.conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
-  return (
-    <div className={styles.stack}>
-      {handoffs.length > 0 && (
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <h2>Клиенты ждут ответа</h2>
-          <span className={styles.small}>{handoffs.length}</span>
-        </div>
-        {handoffs.map(thread => (
-          <div className={styles.queueItem} key={thread.id}>
-            <div>
-              <h3>{thread.name}</h3>
-              <p className={styles.small}>Запрошено подключение разработчика</p>
-            </div>
-            <button className={styles.secondary} type="button" onClick={() => openProject(thread.projectId)}>Открыть диалог</button>
-          </div>
-))}
-      </section>
-)}
-      <section className={styles.panel} aria-label="Общая очередь задач">
-        <div className={styles.panelHeader}>
-          <h2>Задачи всех проектов</h2>
-          <span className={styles.small}>
-            {tasks.length}
-            {' '}
-            в очереди
-          </span>
-        </div>
-        {tasks.length === 0 && <Empty title="Очередь свободна" text="Новые задачи появятся после подтверждения клиентом." icon="check" />}
-        {tasks.map(task => {
-          const project = controller.snapshot.projects.find(project => project.id === task.projectId);
-          const quote = controller.snapshot.quotes.find(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && quote.status !== "superseded");
-          return (
-            <article className={styles.queueItem} key={task.id}>
-              <div>
-                <span className={styles.small}>
-                  {project?.name}
-                  {' '}
-                  · #
-                  {task.number}
-                </span>
-                <h3>{task.title}</h3>
-                <div className={styles.meta}>
-                  <WorkBadge status={task.status} />
-                  <span>{task.included ? "В оплаченном ТЗ" : quote?.status === "paid" ? "Оплачено · тест" : quote ? "Ожидает оплаты" : "Нужна оценка"}</span>
-                </div>
-              </div>
-              <button type="button" className={styles.secondary} onClick={() => openProject(task.projectId)}>Открыть</button>
-            </article>
-          );
-        })}
-      </section>
+export function Portal({ demo = false }: { demo?: boolean }) {
+  const controller = usePortal(demo); const { theme, setTheme } = usePortalTheme();
+  const [view, setView] = useState<View | null>(null);
+  const { snapshot, busy } = controller; const viewer = snapshot.viewer;
+  if (!viewer && controller.loading) return (
+    <div className={styles.root} data-theme={theme}>
+      <main id="main" className={styles.loadingPage}>
+        <WorkspaceBrand />
+        <h1>Личный кабинет</h1>
+        <p role="status">Открываем рабочее пространство…</p>
+      </main>
     </div>
   );
-}
-
-export function Portal({ demo = false }: { demo?: boolean }) {
-  const controller = usePortal(demo); const { theme, toggleTheme } = usePortalTheme();
-  const [view, setView] = useState<View>("overview");
-  const { snapshot, busy } = controller; const viewer = snapshot.viewer;
-  if (!viewer) return <div className={styles.root} data-theme={theme}><Login controller={controller} theme={theme} toggleTheme={toggleTheme} /></div>;
+  if (!viewer) return <div className={styles.root} data-theme={theme}><Login controller={controller} theme={theme} setTheme={setTheme} /></div>;
   const available = roleViews[viewer.role];
-  const activeView = available.includes(view) ? view : available[0] ?? "overview";
+  const activeView = view && available.includes(view) ? view : available[0] ?? "overview";
   const project = snapshot.projects.find(project => project.id === snapshot.selectedProjectId);
   const projectView = ["overview", "tasks", "history", "chat"].includes(activeView) && viewer.role !== "admin";
   const thread = snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project?.id);
@@ -97,17 +49,7 @@ export function Portal({ demo = false }: { demo?: boolean }) {
     <div className={styles.root} data-theme={theme} data-testid="portal" data-role={viewer.role}>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       {demo && (
-      <div className={styles.demoBar}>
-        <div>
-          <strong>Демонстрация</strong>
-          <span> · сценарные данные в вашем браузере</span>
-        </div>
-        <div className={styles.demoControls}>
-          <select aria-label="Роль в демонстрации" disabled={busy} value={viewer.role} onChange={event => { const role = event.target.value as Role; setView(roleViews[role][0] ?? "overview"); void controller.role(role); }}>{Object.entries(ROLE_LABELS).map(([role, label]) => <option key={role} value={role}>{label}</option>)}</select>
-          <button type="button" className={styles.textButton} disabled={busy} onClick={() => { setView("overview"); void controller.reset(); }}>Сбросить демо</button>
-          <Link href="/cabinet/">Вход</Link>
-        </div>
-      </div>
+      <WorkspaceSwitcher role={viewer.role} busy={busy} onChange={role => { setView(roleViews[role][0] ?? "overview"); void controller.role(role); }} onReset={() => { setView("overview"); void controller.reset(); }} />
 )}
       <div className={styles.shell}>
         <aside className={styles.sidebar} aria-label="Рабочее пространство">
@@ -163,7 +105,7 @@ export function Portal({ demo = false }: { demo?: boolean }) {
               <span>{ROLE_LABELS[viewer.role]}</span>
             </div>
             <div className={styles.topActions}>
-              <ThemeButton theme={theme} toggle={toggleTheme} />
+              <ThemeSwitch theme={theme} onChange={setTheme} />
               {!demo && <button type="button" className={styles.textButton} disabled={busy} onClick={() => void controller.logout()}>Выйти</button>}
             </div>
           </header>
@@ -191,7 +133,7 @@ export function Portal({ demo = false }: { demo?: boolean }) {
                 </label>
 )}
                 <nav className={styles.tabs} aria-label="Вкладки кабинета">{available.map(key => <button type="button" key={key} className={key === "chat" ? styles.mobileChatTab : undefined} aria-current={activeView === key ? "page" : undefined} onClick={() => setView(key)}>{key === "overview" ? "Обзор" : views[key].label}</button>)}</nav>
-                {activeView === "settings" ? demo ? <section className={styles.panel}><Empty title="Настройки учётной записи" text="В настоящем кабинете здесь можно изменить пароль. В демонстрации пароли не используются." icon="people" /></section> : <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} demo={demo} /> : activeView === "queue" ? <DeveloperQueue controller={controller} openProject={id => openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+                {activeView === "settings" ? demo ? <section className={styles.panel}><Empty title="Настройки учётной записи" text="В настоящем кабинете здесь можно изменить пароль. В демонстрации пароли не используются." icon="people" /></section> : <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} demo={demo} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onOpenTask={id => openProject(id)} onOpenChat={id => openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <>
                     {snapshot.syncError && (
                     <div className={styles.notice} role="status">

@@ -6,7 +6,7 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
 import { checkPayments } from "./browser/payments.mjs";
-import { checkPortal, checkPortalAuthentication } from "./browser/portal.mjs";
+import { checkPortal, checkPortalAuthentication, checkWorkspacePreferences } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -119,6 +119,7 @@ try {
 
   await checkMotionPreferences(browser, origin);
   await checkPortalAuthentication(browser, origin);
+  await checkWorkspacePreferences(browser, origin);
 
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();

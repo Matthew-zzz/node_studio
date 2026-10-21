@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 import type { PortalAction, Role } from "@/features/portal/model/types";
 import { createApiGateway } from "@/features/portal/lib/gateway";
@@ -51,22 +51,6 @@ export function usePortal(demo: boolean) {
     role: (role: Role) => perform(async () => { await gateway.role?.(role); selected.current = ""; pages.current = 1; }),
     reset: () => perform(async () => { await gateway.reset?.(); selected.current = ""; pages.current = 1; }),
   };
-}
-
-const THEME_KEY = "nodo.portal.theme";
-let memoryTheme: "light" | "dark" = "light";
-function readTheme(): "light" | "dark" { try { const saved = localStorage.getItem(THEME_KEY); return saved === "dark" ? "dark" : saved === "light" ? "light" : memoryTheme; } catch { return memoryTheme; } }
-function subscribe(listener: () => void) {
-  window.addEventListener("storage", listener); window.addEventListener("nodo-theme", listener);
-  return () => { window.removeEventListener("storage", listener); window.removeEventListener("nodo-theme", listener); };
-}
-export function usePortalTheme() {
-  const theme = useSyncExternalStore(subscribe, readTheme, () => "light");
-  return { theme, toggleTheme() {
-    memoryTheme = theme === "light" ? "dark" : "light";
-    try { localStorage.setItem(THEME_KEY, memoryTheme); } catch { /* Theme persistence is optional. */ }
-    window.dispatchEvent(new Event("nodo-theme"));
-  } };
 }
 
 export type PortalController = ReturnType<typeof usePortal>;

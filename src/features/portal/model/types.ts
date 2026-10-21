@@ -162,7 +162,7 @@ export interface Checkout {
 }
 
 export const ROLE_LABELS: Record<Role, string> = {
-  client: "Клиент", developer: "Разработчик", curator: "Поддержка", admin: "Администратор",
+  client: "Клиент", developer: "Разработчик", curator: "Куратор", admin: "Администратор",
 };
 
 export const STATUS_LABELS: Record<WorkStatus, string> = {

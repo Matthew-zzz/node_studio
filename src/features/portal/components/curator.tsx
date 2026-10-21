@@ -5,26 +5,79 @@ import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
+import type { Conversation } from "@/features/portal/model/types";
 import { formatRubles, parseRubles } from "@/features/payments/model/payment";
 import styles from "./portal.module.css";
 
+type InboxFilter = "all" | "waiting" | "mine";
+
 export function TelegramInbox({ controller }: { controller: PortalController }) {
   const [selected, setSelected] = useState("");
-  const threads = [...controller.snapshot.conversations].sort((a, b) => Number(b.handoffRequested) - Number(a.handoffRequested) || b.updatedAt.localeCompare(a.updatedAt));
-  const thread = threads.find(thread => thread.id === selected) ?? threads[0];
-  if (threads.length === 0) return <section className={styles.panel}><Empty title="Пока тихо" text="Здесь появятся обращения в Telegram-бот студии." icon="telegram" /></section>;
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<InboxFilter>("all");
+  const conversations = controller.snapshot.conversations;
+  const viewerId = controller.snapshot.viewer?.id;
+  const waiting = conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
+  const mine = conversations.filter(thread => thread.ownerId === viewerId);
+  const sorted = [...conversations].sort((a, b) => Number(b.handoffRequested && !b.ownerId) - Number(a.handoffRequested && !a.ownerId) || b.updatedAt.localeCompare(a.updatedAt));
+  function matches(thread: Conversation, nextFilter: InboxFilter, nextSearch: string) {
+    const query = nextSearch.trim().replace(/^@/, "").toLocaleLowerCase("ru");
+    return (nextFilter === "all" || (nextFilter === "waiting" ? waiting : mine).includes(thread))
+      && `${thread.name} ${thread.username} ${thread.email}`.toLocaleLowerCase("ru").includes(query);
+  }
+  function changeSelection(nextFilter: InboxFilter, nextSearch: string) {
+    setFilter(nextFilter); setSearch(nextSearch);
+    setSelected(sorted.find(thread => matches(thread, nextFilter, nextSearch))?.id ?? "");
+  }
+  const threads = sorted.filter(thread => matches(thread, filter, search));
+  // Claiming a waiting conversation moves it to "mine" without interrupting the open chat.
+  const thread = conversations.find(thread => thread.id === selected) ?? threads[0];
   return (
-    <div className={styles.inbox}>
-      <section className={`${styles.panel} ${styles.inboxList}`} aria-label="Очередь обращений">
-        {threads.map(item => (
-          <button type="button" className={styles.inboxItem} key={item.id} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => setSelected(item.id)}>
-            <strong>{item.name}</strong>
-            <p>{controller.snapshot.messages.filter(message => message.threadId === item.id).at(-1)?.text ?? "Новый диалог"}</p>
-            {item.handoffRequested && !item.ownerId ? <span className={styles.badge} data-status="pending">Ждёт человека</span> : item.ownerId ? <span className={styles.badge}>{item.ownerName}</span> : <span className={styles.badge}>С ИИ-помощником</span>}
+    <div className={styles.stack}>
+      <section className={`${styles.panel} ${styles.inboxTools}`} aria-label="Поиск обращений">
+        <div className={styles.filters} role="group" aria-label="Фильтр диалогов">
+          <button type="button" aria-label="Все диалоги" aria-pressed={filter === "all"} onClick={() => changeSelection("all", search)}>
+            Все
+            <span>{conversations.length}</span>
           </button>
-        ))}
+          <button type="button" aria-label="Ждут куратора" aria-pressed={filter === "waiting"} onClick={() => changeSelection("waiting", search)}>
+            Ждут куратора
+            <span>{waiting.length}</span>
+          </button>
+          <button type="button" aria-label="Мои диалоги" aria-pressed={filter === "mine"} onClick={() => changeSelection("mine", search)}>
+            Мои
+            <span>{mine.length}</span>
+          </button>
+        </div>
+        <label className={styles.searchField}>
+          Поиск диалогов
+          <input type="search" value={search} onChange={event => changeSelection(filter, event.target.value)} placeholder="Имя, @username или почта" />
+        </label>
       </section>
-      <Chat key={thread?.id} thread={thread} controller={controller} />
+      {thread ? (
+        <div className={styles.inbox}>
+          <section className={`${styles.panel} ${styles.inboxList}`} aria-label="Очередь обращений">
+            {threads.length === 0 && <p className={styles.inboxHint}>В этой очереди больше нет обращений. Открытый диалог остаётся у вас.</p>}
+            {threads.map(item => (
+              <button type="button" className={styles.inboxItem} key={item.id} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => setSelected(item.id)}>
+                <strong>{item.name}</strong>
+                <span className={styles.small}>
+                  @
+                  {item.username.replace(/^@/, "")}
+                </span>
+                <p>{controller.snapshot.messages.filter(message => message.threadId === item.id).at(-1)?.text ?? "Новый диалог"}</p>
+                {item.handoffRequested && !item.ownerId ? <span className={styles.badge} data-status="pending">Ждёт человека</span> : item.ownerId ? <span className={styles.badge}>{item.ownerName}</span> : <span className={styles.badge}>С ИИ-помощником</span>}
+              </button>
+            ))}
+          </section>
+          <Chat key={thread?.id} thread={thread} controller={controller} />
+        </div>
+      ) : (
+        <section className={styles.panel}>
+          <Empty title={conversations.length ? "Диалоги не найдены" : "Пока тихо"} text={conversations.length ? "Измените запрос или выберите другую очередь." : "Здесь появятся обращения в Telegram-бот студии."} icon={conversations.length ? "search" : "telegram"} />
+          {conversations.length > 0 && <button className={styles.secondary} type="button" onClick={() => changeSelection("all", "")}>Сбросить фильтры</button>}
+        </section>
+      )}
     </div>
   );
 }

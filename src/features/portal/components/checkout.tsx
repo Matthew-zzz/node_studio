@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PaymentButton } from "@/features/portal/components/payment-button";
-import { ThemeButton, WorkspaceBrand } from "@/features/portal/components/ui";
+import { ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { createApiGateway } from "@/features/portal/lib/gateway";
 import { createDemoGateway } from "@/features/portal/lib/demo-gateway";
-import { usePortalTheme } from "@/features/portal/lib/use-portal";
+import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { formatRubles } from "@/features/payments/model/payment";
 import type { Checkout } from "@/features/portal/model/types";
 import styles from "./portal.module.css";
 
 export function CheckoutPage({ demo = false }: { demo?: boolean }) {
   const gateway = useMemo(() => demo ? createDemoGateway() : createApiGateway(), [demo]);
-  const { theme, toggleTheme } = usePortalTheme();
+  const { theme, setTheme } = usePortalTheme();
   const [checkout, setCheckout] = useState<Checkout | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
@@ -35,7 +35,7 @@ export function CheckoutPage({ demo = false }: { demo?: boolean }) {
       <main id="main" className={styles.authPage}>
         <div className={styles.authTop}>
           <WorkspaceBrand />
-          <ThemeButton theme={theme} toggle={toggleTheme} />
+          <ThemeSwitch theme={theme} onChange={setTheme} />
         </div>
         <section className={`${styles.panel} ${styles.authCard}`}>
           <span className={styles.kicker}>
