@@ -53,7 +53,7 @@ export function Portal() {
   const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
   const activeView = developer && projectViews.includes(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
   const projectView = projectViews.includes(activeView) && viewer.role !== "admin";
-  const globalViews = developer ? available.filter(key => !projectViews.includes(key)) : available;
+  const globalViews = available.filter(key => !projectViews.includes(key));
   const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : snapshot.projects;
   const thread = snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project?.id);
   const navigate = (next: View) => { setView(next); mobileMenu.current?.close(); };
@@ -82,9 +82,9 @@ export function Portal() {
 )}
       {sidebarProjects.length > 0 && (
       <div>
-        <p className={styles.sideCaption}>{developer ? "В работе" : `Проекты · ${sidebarProjects.length}`}</p>
-        <nav className={`${styles.nav} ${developer ? styles.projectTree : styles.projectNav}`} aria-label={developer ? "Проекты в работе" : "Выбор проекта"}>
-          {sidebarProjects.map(item => developer ? (
+        <p className={styles.sideCaption}>{developer ? "В работе" : "Мои проекты"}</p>
+        <nav className={`${styles.nav} ${styles.projectTree}`} aria-label={developer ? "Проекты в работе" : "Мои проекты"}>
+          {sidebarProjects.map(item => (
             <details key={item.id} className={styles.projectBranch} open={item.id === project?.id && projectView}>
               <summary>
                 <Icon name="site" />
@@ -100,11 +100,6 @@ export function Portal() {
                 ))}
               </div>
             </details>
-          ) : (
-            <button type="button" key={item.id} disabled={busy} aria-current={item.id === project?.id && projectView ? "page" : undefined} onClick={() => void openProject(item.id)}>
-              <span className={styles.projectDot} />
-              <span>{item.name}</span>
-            </button>
 ))}
         </nav>
       </div>
@@ -161,8 +156,8 @@ export function Portal() {
               <>
                 {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <>
-                    <div key={project.id} className={developer ? styles.projectContent : styles.columns} data-chat={activeView === "chat"}>
-                      {(!developer || activeView !== "chat") && (
+                    <div key={project.id} className={styles.projectContent}>
+                      {activeView !== "chat" && (
                       <div className={styles.stack}>
                         {activeView === "history" ? <CommitHistory controller={controller} /> : activeView === "tasks" ? (
                           <>
@@ -178,7 +173,7 @@ export function Portal() {
 )}
                       </div>
 )}
-                      {(!developer || activeView === "chat") && <Chat key={thread?.id} thread={thread} controller={controller} />}
+                      {activeView === "chat" && <Chat key={thread?.id} thread={thread} controller={controller} />}
                     </div>
                   </>
                 )}

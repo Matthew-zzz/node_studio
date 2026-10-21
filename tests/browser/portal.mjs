@@ -95,22 +95,25 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
 }
 
 async function openChat(page, width) {
-  if (width <= 650 || await page.getByTestId("portal").getAttribute("data-role") === "developer") await navigate(page, width, "Чат");
+  await navigate(page, width, "Чат");
 }
 
-async function openDeveloperProject(page, width, projectId, section = "Обзор проекта") {
+async function openProject(page, width, projectId, section = "Обзор проекта") {
   if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
-  const projects = page.getByRole("navigation", { name: "Проекты в работе", exact: true });
-  const branch = projects.locator("details").filter({ has: page.locator("summary").filter({ hasText: new RegExp(`^${projectId}›$`) }) });
+  const developer = await page.getByTestId("portal").getAttribute("data-role") === "developer";
+  const projects = page.getByRole("navigation", { name: developer ? "Проекты в работе" : "Мои проекты", exact: true });
+  const branch = projects.locator("details").filter({ has: page.getByText(projectId, { exact: true }) });
   if (!await branch.evaluate(element => element.open)) await branch.locator("summary").click();
   await branch.getByRole("button", { name: section, exact: true }).click();
+  if (width <= 650) await page.getByRole("dialog", { name: "Меню кабинета", exact: true }).waitFor({ state: "hidden" });
   await page.getByRole("heading", { name: projectId, level: 1, exact: true }).waitFor();
 }
 
 async function navigate(page, width, label) {
   if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
-  const projectSection = ["Обзор проекта", "Задачи", "История", "Чат"].includes(label) && await page.getByTestId("portal").getAttribute("data-role") === "developer";
-  const navigation = page.getByRole("navigation", { name: projectSection ? "Проекты в работе" : "Разделы кабинета", exact: true });
+  const projectSection = ["Обзор проекта", "Задачи", "История", "Чат"].includes(label);
+  const developer = await page.getByTestId("portal").getAttribute("data-role") === "developer";
+  const navigation = page.getByRole("navigation", { name: projectSection ? developer ? "Проекты в работе" : "Мои проекты" : "Разделы кабинета", exact: true });
   await navigation.getByRole("button", { name: label, exact: true }).filter({ visible: true }).click();
   assert.equal(await page.locator('main nav[aria-label="Вкладки кабинета"]').count(), 0);
   if (width <= 650) await page.getByRole("dialog", { name: "Меню кабинета", exact: true }).waitFor({ state: "hidden" });
@@ -132,10 +135,22 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
     assert.equal(await menu.count(), 0);
     assert.ok(await open.evaluate(element => document.activeElement === element), "closing the sidebar restores keyboard focus");
   }
-  assert.equal(await page.getByRole("button", { name: "three", exact: true }).count(), 0, "client projects remain private");
+  if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+  const clientMenu = page.getByRole("navigation", { name: "Мои проекты", exact: true });
+  assert.deepEqual(await clientMenu.locator("summary > span:first-of-type").allTextContents(), ["one", "two"], "only this client's projects appear in the sidebar");
+  assert.deepEqual(await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button").allTextContents(), ["Настройки"]);
+  assert.deepEqual(await page.getByRole("group", { name: "Разделы проекта one", exact: true }).getByRole("button").allTextContents(), ["Обзор проекта", "Задачи", "История", "Чат"]);
+  if (width <= 650) await page.keyboard.press("Escape");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-client.png`), fullPage: true });
   const chat = page.getByRole("region", { name: "Чат проекта", exact: true });
+  assert.equal(await chat.count(), 0, "client chat has its own project section");
+  await openProject(page, width, "two", "Чат");
+  await chat.getByText("Личная переписка two", { exact: true }).waitFor();
+  assert.equal(await chat.getByText("Личная переписка one", { exact: true }).count(), 0);
+  await openProject(page, width, "one", "Задачи");
+  await page.getByRole("region", { name: "Задачи проекта", exact: true }).waitFor();
+  assert.equal(await chat.count(), 0);
   await openChat(page, width);
   await chat.getByLabel("Сообщение", { exact: true }).fill("Добавить поиск товаров по названию");
   await chat.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
@@ -171,7 +186,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   if (width <= 650) await page.keyboard.press("Escape");
   await page.reload(); await root.waitFor();
   assert.equal(await queuedProject("one").count(), 0, "selection is restored from the server after reload");
-  await openDeveloperProject(page, width, "one", "Задачи");
+  await openProject(page, width, "one", "Задачи");
   const task = page.getByRole("region", { name: "Задачи проекта", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name: new RegExp(title) }) });
   await task.locator("summary").filter({ hasText: "Управление задачей" }).click();
   await task.getByLabel("Ваша стоимость, ₽", { exact: true }).fill("1000");
@@ -197,9 +212,13 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.getByRole("button", { name: "Включить тёмную тему", exact: true }).click();
   await page.reload(); await root.waitFor();
   assert.equal(await root.getAttribute("data-theme"), "dark");
+  await navigate(page, width, "История");
+  if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+  await page.screenshot({ path: resolve(screenshots, `${width}-client-project-menu-dark.png`), fullPage: true });
+  if (width <= 650) await page.keyboard.press("Escape");
 
   await login(page, origin, "developer");
-  await openDeveloperProject(page, width, "one", "Задачи");
+  await openProject(page, width, "one", "Задачи");
   await task.locator("summary").filter({ hasText: "Управление задачей" }).click();
   await task.getByLabel("Статус", { exact: true }).selectOption("in_progress");
   await task.getByRole("button", { name: "Обновить", exact: true }).click();
@@ -210,7 +229,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await chat.getByLabel("Сообщение", { exact: true }).fill("Изменения приняты в работу.");
   await chat.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
   await page.reload(); await root.waitFor();
-  await openDeveloperProject(page, width, "one", "Чат");
+  await openProject(page, width, "one", "Чат");
   await chat.getByText("Изменения приняты в работу.", { exact: true }).waitFor();
   await chat.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
   await chat.getByRole("button", { name: "Подключиться к диалогу", exact: true }).waitFor();
@@ -224,7 +243,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   const stageEditor = page.getByRole("region", { name: "Этапы проекта", exact: true }).locator("details").filter({ has: page.locator("summary").filter({ hasText: /^Добавить этап$/ }) });
   await stageEditor.locator("summary").click();
   await stageEditor.getByLabel("Название", { exact: true }).fill("Черновик только для проекта one");
-  await openDeveloperProject(page, width, "three", "Чат");
+  await openProject(page, width, "three", "Чат");
   await chat.getByText("Личная переписка three", { exact: true }).waitFor();
   assert.equal(await chat.getByText("Личная переписка one", { exact: true }).count(), 0);
   await navigate(page, width, "Общая очередь");
@@ -234,7 +253,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   assert.equal(await stageEditor.getByLabel("Название", { exact: true }).inputValue(), "", "unsaved forms cannot move into a different project");
   await navigate(page, width, "Общая очередь");
   await queue.getByRole("heading", { name: "Очередь свободна", exact: true }).waitFor();
-  await openDeveloperProject(page, width, "one", "Обзор проекта");
+  await openProject(page, width, "one", "Обзор проекта");
 
   await login(page, origin, "curator");
   assert.equal(await page.getByRole("region", { name: "Задачи проекта", exact: true }).count(), 0);
@@ -283,9 +302,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await navigate(page, width, "Создание проектов");
   await page.getByText("Доступ выдан", { exact: true }).waitFor();
   await login(page, origin, "client");
-  if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
-  await page.getByRole("navigation", { name: "Выбор проекта" }).getByRole("button", { name: projectName, exact: true }).click();
-  await page.getByRole("heading", { name: projectName, level: 1, exact: true }).waitFor();
+  await openProject(page, width, projectName);
   await login(page, origin, "admin");
   await page.getByRole("heading", { name: "Здесь будет управление студией", exact: true }).waitFor();
   assert.equal(await chat.count(), 0);
