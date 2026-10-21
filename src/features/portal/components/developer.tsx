@@ -55,11 +55,6 @@ export function DeveloperQueue({ controller, onOpenTask, onOpenChat }: Developer
       <section className={styles.panel} aria-label="Общая очередь задач">
         <div className={styles.panelHeader}>
           <h2>Задачи всех проектов</h2>
-          <span className={styles.small}>
-            {tasks.length}
-            {' '}
-            в очереди
-          </span>
         </div>
         <div className={styles.queueTools}>
           <div className={styles.filters} role="group" aria-label="Фильтр задач">
@@ -70,10 +65,9 @@ export function DeveloperQueue({ controller, onOpenTask, onOpenChat }: Developer
               </button>
             ))}
           </div>
-          <label className={styles.searchField}>
-            Поиск задач
-            <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Задача, проект или клиент" />
-          </label>
+          <div className={styles.searchField}>
+            <input type="search" aria-label="Поиск задач" value={search} onChange={event => setSearch(event.target.value)} placeholder="Задача, проект или клиент" />
+          </div>
         </div>
         {visible.length === 0 && <Empty title={tasks.length ? "Ничего не найдено" : "Очередь свободна"} text={tasks.length ? "Попробуйте другой запрос или сбросьте фильтры." : "Новые задачи появятся после подтверждения клиентом."} icon={tasks.length ? "search" : "check"} />}
         {visible.length === 0 && tasks.length > 0 && <button className={styles.secondary} type="button" onClick={() => { setSearch(""); setFilter("all"); }}>Сбросить фильтры</button>}
