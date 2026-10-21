@@ -24,6 +24,7 @@ const views: Record<View, { label: string; icon: IconName }> = {
   queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Создание проектов", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
 };
 const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: [] };
+const projectViews: View[] = ["overview", "tasks", "history", "chat"];
 
 export function Portal() {
   const controller = usePortal(); const { theme, setTheme } = usePortalTheme();
@@ -47,12 +48,21 @@ export function Portal() {
   );
   if (!viewer) return <div className={styles.root} data-theme={theme}><Login controller={controller} theme={theme} setTheme={setTheme} /></div>;
   const available = roleViews[viewer.role];
-  const activeView = view && available.includes(view) ? view : available[0] ?? "overview";
   const project = snapshot.projects.find(project => project.id === snapshot.selectedProjectId);
-  const projectView = ["overview", "tasks", "history", "chat"].includes(activeView) && viewer.role !== "admin";
+  const developer = viewer.role === "developer";
+  const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
+  const activeView = developer && projectViews.includes(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
+  const projectView = projectViews.includes(activeView) && viewer.role !== "admin";
+  const globalViews = developer ? available.filter(key => !projectViews.includes(key)) : available;
+  const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : snapshot.projects;
   const thread = snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project?.id);
   const navigate = (next: View) => { setView(next); mobileMenu.current?.close(); };
-  const openProject = (id: string, tab: View = "tasks") => { navigate(tab); void controller.select(id); };
+  const openProject = async (id: string, tab: View = "overview") => {
+    if (await controller.select(id)) navigate(tab);
+  };
+  const acceptProject = async (id: string, tab: "overview" | "chat") => {
+    if (await controller.acceptProject(id)) navigate(tab);
+  };
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : viewer.role === "admin" ? "Администратор" : projectView ? project?.name ?? "Мои проекты" : views[activeView].label;
   const navigation = (
     <>
@@ -61,8 +71,8 @@ export function Portal() {
       <div>
         <p className={styles.sideCaption}>Рабочее пространство</p>
         <nav className={styles.nav} aria-label="Разделы кабинета">
-          {available.map(key => (
-            <button type="button" key={key} aria-current={activeView === key ? "page" : undefined} onClick={() => navigate(key)}>
+          {globalViews.map(key => (
+            <button type="button" key={key} disabled={busy} aria-current={activeView === key ? "page" : undefined} onClick={() => navigate(key)}>
               <Icon name={views[key].icon} />
               {views[key].label}
             </button>
@@ -70,15 +80,28 @@ export function Portal() {
         </nav>
       </div>
 )}
-      {snapshot.projects.length > 0 && (
+      {sidebarProjects.length > 0 && (
       <div>
-        <p className={styles.sideCaption}>
-          Проекты ·
-          {snapshot.projects.length}
-        </p>
-        <nav className={`${styles.nav} ${styles.projectNav}`} aria-label="Выбор проекта">
-          {snapshot.projects.map(item => (
-            <button type="button" key={item.id} aria-current={item.id === project?.id && projectView ? "page" : undefined} onClick={() => openProject(item.id, "overview")}>
+        <p className={styles.sideCaption}>{developer ? "В работе" : `Проекты · ${sidebarProjects.length}`}</p>
+        <nav className={`${styles.nav} ${developer ? styles.projectTree : styles.projectNav}`} aria-label={developer ? "Проекты в работе" : "Выбор проекта"}>
+          {sidebarProjects.map(item => developer ? (
+            <details key={item.id} className={styles.projectBranch} open={item.id === project?.id && projectView}>
+              <summary>
+                <Icon name="site" />
+                <span>{item.name}</span>
+                <span className={styles.projectChevron} aria-hidden="true">›</span>
+              </summary>
+              <div className={styles.projectSections} role="group" aria-label={`Разделы проекта ${item.name}`}>
+                {projectViews.map(key => (
+                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && activeView === key ? "page" : undefined} onClick={() => void openProject(item.id, key)}>
+                    <Icon name={views[key].icon} />
+                    {views[key].label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ) : (
+            <button type="button" key={item.id} disabled={busy} aria-current={item.id === project?.id && projectView ? "page" : undefined} onClick={() => void openProject(item.id)}>
               <span className={styles.projectDot} />
               <span>{item.name}</span>
             </button>
@@ -128,7 +151,7 @@ export function Portal() {
           <main id="main" className={styles.content} aria-busy={busy}>
             <div className={styles.pageHeader}>
               <div>
-                <span className={styles.kicker}>{viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "curator" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
+                <span className={styles.kicker}>{projectView ? views[activeView].label : viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "curator" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
                 <h1>{pageTitle}</h1>
                 <p className={styles.subtitle}>{projectView ? project?.description : viewer.role === "curator" ? "Переписка с клиентами и подготовка новых проектов" : viewer.role === "developer" ? "Все проекты и задачи в одном месте" : ""}</p>
               </div>
@@ -136,9 +159,10 @@ export function Portal() {
             </div>
             {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : viewer.role === "admin" ? <section className={styles.panel}><Empty title="Здесь будет управление студией" text="Раздел администратора подготовлен. Возможности добавим на следующем этапе." icon="service" /></section> : (
               <>
-                {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onOpenTask={id => openProject(id)} onOpenChat={id => openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+                {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <>
-                    <div className={styles.columns} data-chat={activeView === "chat"}>
+                    <div key={project.id} className={developer ? styles.projectContent : styles.columns} data-chat={activeView === "chat"}>
+                      {(!developer || activeView !== "chat") && (
                       <div className={styles.stack}>
                         {activeView === "history" ? <CommitHistory controller={controller} /> : activeView === "tasks" ? (
                           <>
@@ -153,7 +177,8 @@ export function Portal() {
   </>
 )}
                       </div>
-                      <Chat key={thread?.id} thread={thread} controller={controller} />
+)}
+                      {(!developer || activeView === "chat") && <Chat key={thread?.id} thread={thread} controller={controller} />}
                     </div>
                   </>
                 )}

@@ -82,7 +82,7 @@ export class PortalService {
         this.store.replace("stages", project.id, issues.filter(item => item.kind === "stage").map(item => ({ ...item, id: `${project.id}:${item.number}`, projectId: project.id })));
         this.store.replace("commits", project.id, commits);
         const initial = issues.find(issue => issue.kind === "initial");
-        if (initial) this.store.put("projects", { ...project, brief: initial.body });
+        if (initial) this.store.put("projects", { ...this.store.get("projects", project.id)!, brief: initial.body });
         this.synced.set(project.id, { at: now(), pages, more, error: null });
       } catch (error) {
         this.synced.set(project.id, { at: previous?.at ?? "", pages: previous?.pages ?? 0, more: previous?.more ?? false, error: error instanceof PortalError ? error.message : "Не удалось обновить GitHub. Показаны последние полученные данные." });
@@ -126,6 +126,16 @@ export class PortalService {
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     this.role(viewer, ["client", "developer", "curator"]);
     const type = text(action.type, 40);
+    if (type === "project.accept") {
+      this.role(viewer, ["developer"]);
+      this.store.transaction(() => {
+        const project = this.project(viewer, text(action.projectId, 100));
+        if (project.status !== "active") throw new PortalError(409, "Дождитесь создания проекта.");
+        if (project.developerId && project.developerId !== viewer.id) throw new PortalError(409, "Проект уже взят другим разработчиком.");
+        if (!project.developerId) this.store.put("projects", { ...project, developerId: viewer.id, acceptedAt: now() });
+      });
+      return;
+    }
     if (["message", "takeover", "leave"].includes(type)) {
       const threadId = text(action.threadId, 100);
       const thread = this.thread(viewer, threadId);

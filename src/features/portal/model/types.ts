@@ -19,6 +19,8 @@ export interface PortalProject {
   readonly repo: string;
   readonly brief: string;
   readonly status: "active" | "provisioning";
+  readonly developerId?: string;
+  readonly acceptedAt?: string;
   readonly createdAt: string;
 }
 
@@ -144,6 +146,7 @@ export const EMPTY_SNAPSHOT: PortalSnapshot = {
 };
 
 export type PortalAction =
+  | { type: "project.accept"; projectId: string }
   | { type: "message"; threadId: string; text: string }
   | { type: "takeover" | "leave"; threadId: string }
   | { type: "draft.confirm"; draftId: string }

@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
-import type { PortalAction } from "@/features/portal/model/types";
+import type { PortalAction, PortalSnapshot } from "@/features/portal/model/types";
 import { createApiGateway } from "@/features/portal/lib/gateway";
 import { notify } from "@/lib/notifications";
 
 const successMessages: Partial<Record<PortalAction["type"], string>> = {
+  "project.accept": "Проект добавлен в работу.",
   takeover: "Вы подключились к диалогу.", leave: "Диалог снова передан ИИ-помощнику.",
   "draft.confirm": "Задача отправлена разработчику.", "stage.save": "Этап сохранён.",
   "task.status": "Статус задачи обновлён.", "task.include": "Задача включена в оплаченное ТЗ.",
@@ -26,11 +27,11 @@ export function usePortal() {
   const channel = useRef<BroadcastChannel | null>(null);
   const viewerId = useRef("");
   const invalidate = useCallback(() => { sequence.current++; }, []);
-  const refresh = useCallback(async function refreshSnapshot(): Promise<void> {
+  const refresh = useCallback(async function refreshSnapshot(): Promise<PortalSnapshot | null> {
     const requestId = ++sequence.current;
     try {
       const next = await gateway.snapshot(selected.current, pages.current);
-      if (sequence.current !== requestId) return;
+      if (sequence.current !== requestId) return null;
       const issue = next.syncError ?? "";
       const issueKey = issue ? `${next.selectedProjectId}:${issue}` : "";
       if (issueKey && issueKey !== backgroundError.current) backgroundNotification.current = notify.error(issue, { action: { label: "Повторить", onClick: event => { event.preventDefault(); backgroundError.current = ""; void refreshSnapshot(); } } });
@@ -41,12 +42,14 @@ export function usePortal() {
       viewerId.current = next.viewer?.id ?? "";
       setSnapshot(next.viewer ? next : EMPTY_SNAPSHOT);
       if (next.viewer) selected.current = next.selectedProjectId;
+      return next;
     } catch (error) {
       if (sequence.current === requestId) {
         const message = error instanceof Error ? error.message : "Не удалось обновить данные.";
         if (backgroundError.current !== message) backgroundNotification.current = notify.error(message, { action: { label: "Повторить", onClick: event => { event.preventDefault(); backgroundError.current = ""; void refreshSnapshot(); } } });
         backgroundError.current = message;
       }
+      return null;
     } finally { if (sequence.current === requestId) setLoading(false); }
   }, [gateway]);
   useEffect(() => {
@@ -68,11 +71,13 @@ export function usePortal() {
     return () => { connection.close(); channel.current = null; };
   }, [refresh, invalidate]);
 
-  async function perform(action: () => Promise<void>, success?: string): Promise<boolean> {
+  async function perform(action: () => Promise<void>, success?: string, projectId?: string): Promise<boolean> {
     if (pending.current) return false;
     pending.current = true; setBusy(true); sequence.current++;
     try {
-      await action(); await refresh();
+      await action();
+      const next = await refresh();
+      if (projectId && next?.selectedProjectId !== projectId) return false;
       if (actionNotification.current !== undefined) { notify.dismiss(actionNotification.current); actionNotification.current = undefined; }
       if (success) notify.success(success);
       return true;
@@ -90,7 +95,11 @@ export function usePortal() {
   return {
     snapshot, loading, busy, refresh,
     run: (action: PortalAction) => perform(() => gateway.action(action), successMessages[action.type]),
-    select: async (projectId: string) => { selected.current = projectId; pages.current = 1; await refresh(); },
+    select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
+    acceptProject: (projectId: string) => perform(async () => {
+      await gateway.action({ type: "project.accept", projectId });
+      selected.current = projectId; pages.current = 1;
+    }, successMessages["project.accept"], projectId),
     more: async () => { pages.current++; await refresh(); },
     login: (email: string, password: string) => perform(() => authenticate(() => gateway.login(email, password))),
     addProfile: (email: string, password: string) => perform(() => authenticate(() => gateway.addProfile(email, password)), "Профиль добавлен."),

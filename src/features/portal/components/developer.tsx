@@ -1,36 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Empty, WorkBadge } from "@/features/portal/components/ui";
+import { Empty } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 
-type QueueFilter = "all" | "estimate" | "in_progress" | "payment";
-const filters: { id: QueueFilter; label: string }[] = [
-  { id: "all", label: "Все задачи" },
-  { id: "estimate", label: "Нужна оценка" },
-  { id: "in_progress", label: "В работе" },
-  { id: "payment", label: "Ждём оплату" },
-];
-
 interface DeveloperQueueProps {
   controller: PortalController;
-  onOpenTask: (projectId: string) => void;
+  onAcceptProject: (projectId: string, tab: "overview" | "chat") => void;
   onOpenChat: (projectId: string) => void;
 }
 
-export function DeveloperQueue({ controller, onOpenTask, onOpenChat }: DeveloperQueueProps) {
-  const [filter, setFilter] = useState<QueueFilter>("all");
+export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: DeveloperQueueProps) {
   const [search, setSearch] = useState("");
-  const { snapshot } = controller;
-  const tasks = snapshot.tasks.filter(task => !["done", "canceled"].includes(task.status)).map(task => {
-    const project = snapshot.projects.find(project => project.id === task.projectId);
-    const quote = snapshot.quotes.find(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && quote.status !== "superseded");
-    return { task, project, quote, needsEstimate: task.kind === "wish" && !task.included && !quote, needsPayment: !task.included && quote?.status === "pending" };
-  });
-  const matchesFilter = (row: typeof tasks[number], selected: QueueFilter) => selected === "all" || (selected === "estimate" ? row.needsEstimate : selected === "payment" ? row.needsPayment : row.task.status === "in_progress");
+  const { snapshot, busy } = controller;
+  const projects = snapshot.projects.filter(project => project.status === "active" && !project.developerId);
   const query = search.trim().toLocaleLowerCase("ru");
-  const visible = tasks.filter(row => matchesFilter(row, filter) && `${row.task.title} ${row.task.number} ${row.project?.name ?? ""} ${row.project?.clientName ?? ""}`.toLocaleLowerCase("ru").includes(query));
+  const visible = projects.filter(project => `${project.name} ${project.clientName} ${project.clientEmail}`.toLocaleLowerCase("ru").includes(query));
   const handoffs = snapshot.conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
 
   return (
@@ -39,54 +25,40 @@ export function DeveloperQueue({ controller, onOpenTask, onOpenChat }: Developer
         <section className={styles.panel} aria-label="Ожидают разработчика">
           <div className={styles.panelHeader}>
             <h2>Клиенты ждут ответа</h2>
-            <span className={styles.small}>{handoffs.length}</span>
           </div>
-          {handoffs.map(thread => (
-            <div className={styles.queueItem} key={thread.id}>
-              <div>
-                <h3>{thread.name}</h3>
-                <p className={styles.small}>Запрошено подключение разработчика</p>
+          {handoffs.map(thread => {
+            const accepted = snapshot.projects.some(project => project.id === thread.projectId && project.developerId === snapshot.viewer?.id);
+            return (
+              <div className={styles.queueItem} key={thread.id}>
+                <div>
+                  <h3>{thread.name}</h3>
+                  <p className={styles.small}>Запрошено подключение разработчика</p>
+                </div>
+                <button className={styles.secondary} type="button" disabled={busy} onClick={() => accepted ? onOpenChat(thread.projectId) : onAcceptProject(thread.projectId, "chat")}>
+                  {accepted ? "Открыть диалог" : "Взять проект и открыть чат"}
+                </button>
               </div>
-              <button className={styles.secondary} type="button" onClick={() => onOpenChat(thread.projectId)}>Открыть диалог</button>
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
-      <section className={styles.panel} aria-label="Общая очередь задач">
-        <div className={styles.panelHeader}>
-          <h2>Задачи всех проектов</h2>
-        </div>
-        <div className={styles.queueTools}>
-          <div className={styles.filters} role="group" aria-label="Фильтр задач">
-            {filters.map(item => (
-              <button key={item.id} type="button" aria-label={item.label} aria-pressed={filter === item.id} onClick={() => setFilter(item.id)}>
-                {item.label}
-                <span>{tasks.filter(row => matchesFilter(row, item.id)).length}</span>
-              </button>
-            ))}
-          </div>
+      <section className={styles.panel} aria-label="Общая очередь проектов">
+        <div className={`${styles.panelHeader} ${styles.projectQueueHeader}`}>
+          <h2>Доступные проекты</h2>
           <div className={styles.searchField}>
-            <input type="search" aria-label="Поиск задач" value={search} onChange={event => setSearch(event.target.value)} placeholder="Задача, проект или клиент" />
+            <input type="search" aria-label="Поиск проектов" value={search} onChange={event => setSearch(event.target.value)} placeholder="Проект или клиент" />
           </div>
         </div>
-        {visible.length === 0 && <Empty title={tasks.length ? "Ничего не найдено" : "Очередь свободна"} text={tasks.length ? "Попробуйте другой запрос или сбросьте фильтры." : "Новые задачи появятся после подтверждения клиентом."} icon={tasks.length ? "search" : "check"} />}
-        {visible.length === 0 && tasks.length > 0 && <button className={styles.secondary} type="button" onClick={() => { setSearch(""); setFilter("all"); }}>Сбросить фильтры</button>}
-        {visible.map(({ task, project, quote, needsEstimate }) => (
-          <article className={styles.queueItem} key={task.id}>
-            <div>
-              <span className={styles.small}>
-                {project?.name}
-                {' '}
-                · #
-                {task.number}
-              </span>
-              <h3>{task.title}</h3>
-              <div className={styles.meta}>
-                <WorkBadge status={task.status} />
-                <span>{task.included ? "В оплаченном ТЗ" : quote?.status === "paid" ? "Оплачено · тест" : needsEstimate ? "Нужна оценка" : "Ожидает оплаты"}</span>
-              </div>
+        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Новые проекты появятся после оплаты и создания. Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
+        {visible.length === 0 && projects.length > 0 && <button className={styles.secondary} type="button" onClick={() => setSearch("")}>Сбросить поиск</button>}
+        {visible.map(project => (
+          <article className={styles.queueItem} key={project.id}>
+            <div className={styles.queueDescription}>
+              <span className={styles.small}>{project.clientName}</span>
+              <h3>{project.name}</h3>
+              <p className={styles.projectDescription}>{project.description}</p>
             </div>
-            <button type="button" className={styles.secondary} onClick={() => onOpenTask(task.projectId)}>Открыть</button>
+            <button type="button" className={styles.primary} disabled={busy} onClick={() => onAcceptProject(project.id, "overview")}>Взять в работу</button>
           </article>
         ))}
       </section>

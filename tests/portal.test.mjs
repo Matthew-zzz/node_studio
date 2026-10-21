@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Readable } from "node:stream";
 import test from "node:test";
+import { PortalService } from "../server/service.ts";
+import { PortalStore } from "../server/store.ts";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 
 test("server filters each role and isolates projects belonging to different clients", async () => {
@@ -29,6 +34,57 @@ test("authorization is enforced on actions, independent of UI and submitted role
     await assert.rejects(f.service.action(f.login("client").session, { type: "message", threadId: "chat-three", text: "Hi" }), { status: 404 });
     await assert.rejects(f.service.action(f.login("temporary").session, { type: "message", threadId: "chat-one", text: "Hi" }), { status: 403 });
   } finally { f.close(); }
+});
+
+test("only a developer can take an active project; claiming is idempotent and survives GitHub sync", async () => {
+  const f = portalFixture();
+  try {
+    const action = { type: "project.accept", projectId: "one", developerId: "forged" };
+    for (const role of ["client", "other", "curator", "admin", "temporary"]) {
+      await assert.rejects(f.service.action(f.login(role).session, action), { status: 403 });
+    }
+    const developer = f.login("developer").session;
+    await assert.rejects(f.service.action(developer, { ...action, projectId: "missing" }), { status: 404 });
+    f.store.put("projects", { ...f.store.get("projects", "two"), status: "provisioning" });
+    await assert.rejects(f.service.action(developer, { ...action, projectId: "two" }), { status: 409 });
+    f.store.put("projects", { ...f.store.get("projects", "three"), developerId: "another-developer" });
+    await assert.rejects(f.service.action(developer, { ...action, projectId: "three" }), { status: 409 });
+
+    const before = structuredClone(f.issues.get("Matthew-zzz/fixture-one"));
+    const staleProject = f.store.get("projects", "one");
+    await Promise.all([1, 2].map(() => f.service.action(developer, action)));
+    const accepted = f.store.get("projects", "one");
+    assert.equal(accepted.developerId, developer.viewer.id, "the authenticated developer is used instead of submitted ownership");
+    assert.ok(accepted.acceptedAt);
+    await f.service.action(developer, action);
+    assert.equal(f.store.get("projects", "one").acceptedAt, accepted.acceptedAt);
+    await f.service.sync(staleProject, 1, true);
+    assert.equal(f.store.get("projects", "one").developerId, developer.viewer.id, "an in-flight GitHub sync cannot overwrite the assignment");
+    const snapshot = await f.service.snapshot(f.login("developer").session, "one");
+    assert.equal(snapshot.projects.find(project => project.id === "one").developerId, developer.viewer.id);
+    assert.deepEqual(f.issues.get("Matthew-zzz/fixture-one"), before, "taking a project does not replace GitHub task statuses");
+  } finally { f.close(); }
+});
+
+test("project assignment survives reopening the database and a new developer session", async () => {
+  const f = portalFixture();
+  const directory = await mkdtemp(join(tmpdir(), "node-projects-"));
+  const database = join(directory, "portal.sqlite");
+  let store = new PortalStore(database);
+  try {
+    const developer = store.createUser("developer@example.test", "Developer", "developer", fixturePassword, false);
+    const client = store.createUser("client@example.test", "Client", "client", fixturePassword, false);
+    store.put("projects", { ...f.store.get("projects", "one"), clientId: client.id });
+    let service = new PortalService(store, f.integrations, f.config);
+    await service.action(store.login(developer.email, fixturePassword, "test").session, { type: "project.accept", projectId: "one" });
+    const acceptedAt = store.get("projects", "one").acceptedAt;
+    store.close();
+    store = new PortalStore(database);
+    service = new PortalService(store, f.integrations, f.config);
+    const snapshot = await service.snapshot(store.login(developer.email, fixturePassword, "test").session);
+    assert.equal(snapshot.projects[0].developerId, developer.id);
+    assert.equal(snapshot.projects[0].acceptedAt, acceptedAt);
+  } finally { store.close(); f.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
 test("temporary passwords must change; changing a password revokes other sessions", async () => {
