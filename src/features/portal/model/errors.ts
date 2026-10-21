@@ -9,6 +9,7 @@ export interface ErrorEvent {
   status: number | null; upstreamStatus: number | null;
   requestStatus?: number;
   actor: ErrorActor | null; projectId: string; projectName: string;
+  subprojectId?: string; subprojectName?: string;
   requestId: string; method: string; path: string; operation: string;
   upstreamPath: string; upstreamRequestId: string; revision: string;
   trace?: string[]; clientOccurredAt?: string;

@@ -1,0 +1,13 @@
+.repository { border: 1px solid var(--p-line); border-radius: 10px; padding: 16px; margin: 0; display: grid; gap: 14px; min-width: 0; }
+.manager { margin-top: 22px; }
+.repository legend { padding: 0 7px; color: var(--p-muted); font-size: 11px; }
+.repository label { display: grid; gap: 8px; font-size: 12px; }
+.repository > button { justify-self: start; }
+.source { display: grid; gap: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.source a { color: var(--p-accent); font-size: 11px; }
+.selector { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+.selector > label { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--p-muted); white-space: nowrap; min-width: 0; }
+.selector select { width: min(230px, 100%); padding-block: 7px; font-size: 12px; }
+.subprojects { margin-left: 8px; border-left: 1px solid var(--p-line); padding-left: 8px; }
+.subprojects > p { font-size: 10px; color: var(--p-muted); padding: 13px 10px 5px; }
+@media (max-width: 650px) { .selector { width: 100%; } .selector > label { width: 100%; } .selector select { flex: 1; } }

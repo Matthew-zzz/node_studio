@@ -22,6 +22,7 @@ import type { Role } from "@/features/portal/model/types";
 import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/portal/model/project-views";
 import type { ProjectView } from "@/features/portal/model/project-views";
 import styles from "./portal.module.css";
+import management from "./project-manager.module.css";
 
 type View = ProjectView | AgentView | "errors" | "queue" | "inbox" | "orders" | "settings";
 const views: Record<View, { label: string; icon: IconName }> = {
@@ -36,6 +37,7 @@ export function Portal() {
   const controller = usePortal(); const { theme, setTheme } = usePortalTheme();
   const [view, setView] = useState<View | null>(null);
   const [layout, setLayout] = useState<{ viewerId: string; projectId: string; secondary: ProjectView } | null>(null);
+  const [source, setSource] = useState<{ viewerId: string; projectId: string; id: string } | null>(null);
   const mobileMenu = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 651px)");
@@ -57,6 +59,8 @@ export function Portal() {
   const available = roleViews[viewer.role];
   const project = snapshot.projects.find(project => project.id === snapshot.selectedProjectId);
   const developer = viewer.role === "developer";
+  const subprojectId = developer && source?.viewerId === viewer.id && source.projectId === project?.id && project.subprojects?.some(part => part.id === source.id) ? source.id : null;
+  const selectSubproject = (id: string | null) => setSource(id && project ? { viewerId: viewer.id, projectId: project.id, id } : null);
   const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
   const activeView = developer && isProjectView(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
   const projectView = isProjectView(activeView) && viewer.role !== "admin";
@@ -79,14 +83,14 @@ export function Portal() {
     if (activeView === "chat") { selectSecondary("chat"); navigate("overview"); }
     else selectSecondary("chat");
   };
-  const openProject = async (id: string, tab: ProjectView = "overview") => {
-    if (id === project?.id) selectPrimary(tab);
-    else if (await controller.select(id)) { setLayout(null); navigate(tab); }
+  const openProject = async (id: string, tab: ProjectView = "overview", repositoryId: string | null = null) => {
+    if (id === project?.id) { selectSubproject(repositoryId); selectPrimary(tab); }
+    else if (await controller.select(id)) { setSource(repositoryId ? { viewerId: viewer.id, projectId: id, id: repositoryId } : null); setLayout(null); navigate(tab); }
   };
   const acceptProject = async (id: string, tab: "overview" | "chat") => {
     if (await controller.acceptProject(id)) { setLayout(null); navigate(tab); }
   };
-  const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? project?.name ?? "Мои проекты" : views[activeView].label;
+  const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? subprojectId ? `${project?.name} / ${project?.subprojects?.find(part => part.id === subprojectId)?.name}` : project?.name ?? "Мои проекты" : views[activeView].label;
   const navigation = (
     <>
       <WorkspaceBrand />
@@ -116,11 +120,31 @@ export function Portal() {
               </summary>
               <div className={styles.projectSections} role="group" aria-label={`Разделы проекта ${item.name}`}>
                 {PROJECT_VIEWS.map(key => (
-                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && activeView === key ? "page" : undefined} data-secondary={item.id === project?.id && secondaryView === key} onClick={() => void openProject(item.id, key)}>
+                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && !subprojectId && activeView === key ? "page" : undefined} data-secondary={item.id === project?.id && secondaryView === key} onClick={() => void openProject(item.id, key)}>
                     <Icon name={views[key].icon} />
                     {views[key].label}
                   </button>
                 ))}
+                {developer && Boolean(item.subprojects?.length) && (
+                  <div className={management.subprojects} role="group" aria-label={`Подпроекты проекта ${item.name}`}>
+                    <p>Подпроекты</p>
+                    {item.subprojects?.map(part => (
+                      <div key={part.id}>
+                        <button type="button" disabled={busy} aria-expanded={item.id === project?.id && subprojectId === part.id} onClick={() => void openProject(item.id, "overview", part.id)}>
+                          <Icon name="code" />
+                          {part.name}
+                        </button>
+                        {item.id === project?.id && subprojectId === part.id && (
+                          <div role="group" aria-label={`Разделы подпроекта ${part.name}`}>
+                            {PROJECT_VIEWS.filter(key => key !== "chat").map(key => (
+                              <button type="button" key={key} disabled={busy} aria-current={activeView === key ? "page" : undefined} onClick={() => void openProject(item.id, key, part.id)}>{views[key].label}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </details>
 ))}
@@ -177,11 +201,13 @@ export function Portal() {
             </div>
             {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
               <>
-                {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+                {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <ProjectWorkspace
                     key={`${viewer.id}:${project.id}`}
                     project={project}
                     controller={controller}
+                    subprojectId={subprojectId}
+                    onSelectSubproject={selectSubproject}
                     primary={isProjectView(activeView) ? activeView : "overview"}
                     secondary={secondaryView}
                     onSelectPrimary={selectPrimary}

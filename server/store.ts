@@ -57,7 +57,7 @@ function viewer(row: UserRow): Viewer {
 /** Typed repository boundary; records are separate indexed rows, not a shared JSON file. */
 export class PortalStore {
   readonly db: DatabaseSync;
-  constructor(path: string) {
+  constructor(path: string, options: { recoverJobs?: boolean } = {}) {
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(path);
     this.db.exec(`
@@ -103,7 +103,7 @@ export class PortalStore {
       this.db.exec("ALTER TABLE sessions ADD COLUMN group_id TEXT NOT NULL DEFAULT ''");
     }
     this.db.exec("UPDATE sessions SET group_id=token_hash WHERE group_id=''; CREATE INDEX IF NOT EXISTS sessions_group ON sessions(group_id)");
-    this.db.prepare("UPDATE jobs SET running=0").run();
+    if (options.recoverJobs !== false) this.db.prepare("UPDATE jobs SET running=0").run();
   }
 
   close() { this.db.close(); }
@@ -134,9 +134,10 @@ export class PortalStore {
     return record;
   }
 
-  replace<K extends "tasks" | "stages" | "commits">(kind: K, projectId: string, records: Records[K][]) {
+  replace<K extends "tasks" | "stages" | "commits">(kind: K, projectId: string, records: Records[K][], subprojectId?: string) {
     this.transaction(() => {
-      this.db.prepare("DELETE FROM records WHERE kind=? AND project_id=?").run(kind, projectId);
+      if (subprojectId !== undefined) this.db.prepare("DELETE FROM records WHERE kind=? AND project_id=? AND coalesce(json_extract(payload,'$.subprojectId'),'main')=?").run(kind, projectId, subprojectId);
+      else this.db.prepare("DELETE FROM records WHERE kind=? AND project_id=?").run(kind, projectId);
       records.forEach(record => this.put(kind, record));
     });
   }

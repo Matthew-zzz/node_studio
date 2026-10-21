@@ -2,20 +2,26 @@ import type { PortalSnapshot, Viewer } from "./types";
 
 /** The API applies this projection before serializing; hidden data never reaches a client. */
 export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selectedId = ""): PortalSnapshot {
-  const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], selectedProjectId: "" };
+  const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], selectedProjectId: "", repositoryStatus: {} };
   if (viewer.mustChangePassword || viewer.role === "admin") return blank;
   if (viewer.role === "curator") {
     const conversations = source.conversations.filter(thread => thread.kind === "telegram");
     const ids = new Set(conversations.map(thread => thread.id));
     return { ...blank, conversations, messages: source.messages.filter(message => ids.has(message.threadId)), orders: source.orders };
   }
-  const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id);
+  const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id).map(project => {
+    if (viewer.role !== "client") return project;
+    const publicProject = { ...project, repo: "" };
+    delete publicProject.subprojects;
+    return publicProject;
+  });
   const ids = new Set(projects.map(project => project.id));
   const selectedProjectId = projects.find(project => project.id === selectedId)?.id ?? projects[0]?.id ?? "";
   const conversations = source.conversations.filter(thread => thread.kind === "project" && ids.has(thread.projectId));
   const threads = new Set(conversations.map(thread => thread.id));
   return {
     ...source, viewer, projects, selectedProjectId, orders: [], conversations,
+    repositoryStatus: viewer.role === "developer" ? source.repositoryStatus ?? {} : {},
     tasks: source.tasks.filter(task => ids.has(task.projectId)),
     stages: source.stages.filter(stage => ids.has(stage.projectId)),
     commits: source.commits.filter(commit => commit.projectId === selectedProjectId),

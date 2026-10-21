@@ -3,6 +3,7 @@ import type { ErrorActor, ErrorSource } from "../src/features/portal/model/error
 
 export interface ErrorContext {
   actor?: ErrorActor | null; projectId?: string; projectName?: string;
+  subprojectId?: string; subprojectName?: string;
   requestId?: string; method?: string; path?: string; operation?: string; source?: ErrorSource;
   requestStatus?: number;
   report?: (error: unknown, context?: ErrorContext) => string | null;

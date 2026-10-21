@@ -54,6 +54,12 @@ function ErrorDetails({ event, busy, onResolve }: { event: ErrorEvent; busy: boo
             <dt>Источник</dt>
             <dd>{ERROR_SOURCE_LABELS[event.source]}</dd>
           </div>
+          {event.subprojectName && (
+            <div>
+              <dt>Подпроект</dt>
+              <dd>{event.subprojectName}</dd>
+            </div>
+          )}
           <div>
             <dt>Запрос</dt>
             <dd><code>{`${event.method} ${event.path || event.operation}`}</code></dd>

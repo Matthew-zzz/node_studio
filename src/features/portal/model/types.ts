@@ -17,6 +17,8 @@ export interface PortalProject {
   readonly clientName: string;
   readonly clientEmail: string;
   readonly repo: string;
+  readonly subprojects?: readonly ProjectRepository[];
+  readonly origin?: "order" | "import";
   readonly brief: string;
   readonly status: "active" | "provisioning";
   readonly developerId?: string;
@@ -24,9 +26,12 @@ export interface PortalProject {
   readonly createdAt: string;
 }
 
+export interface ProjectRepository { readonly id: string; readonly name: string; readonly repo: string; readonly createdAt: string }
+
 export interface WorkItem {
   readonly id: string;
   readonly projectId: string;
+  readonly subprojectId?: string;
   readonly number: number;
   readonly title: string;
   readonly body: string;
@@ -39,6 +44,7 @@ export interface WorkItem {
 export interface PortalCommit {
   readonly sha: string;
   readonly projectId: string;
+  readonly subprojectId?: string;
   readonly title: string;
   readonly author: string;
   readonly createdAt: string;
@@ -83,6 +89,7 @@ export interface PortalQuote {
   readonly id: string;
   readonly projectId: string;
   readonly taskNumber: number;
+  readonly subprojectId?: string;
   readonly title: string;
   readonly baseKopecks: number;
   readonly markupKopecks: number;
@@ -122,6 +129,7 @@ export interface PortalSnapshot {
   readonly hasMoreCommits: boolean;
   readonly syncedAt: string | null;
   readonly syncError: string | null;
+  readonly repositoryStatus?: Readonly<Record<string, { hasMore: boolean; at: string | null; error: string | null }>>;
   readonly integrations: {
     readonly github: boolean;
     readonly telegram: boolean;
@@ -147,14 +155,16 @@ export const EMPTY_SNAPSHOT: PortalSnapshot = {
 };
 
 export type PortalAction =
+  | { type: "project.create"; requestId: string; name: string; clientEmail: string; description: string; repositories: { name: string; repo: string }[] }
+  | { type: "project.repository.add"; projectId: string; name: string; repo: string }
   | { type: "project.accept"; projectId: string }
   | { type: "message"; threadId: string; text: string }
   | { type: "takeover" | "leave"; threadId: string }
   | { type: "draft.confirm"; draftId: string }
-  | { type: "stage.save"; projectId: string; number: number; title: string; body: string; status: WorkStatus }
-  | { type: "task.status"; projectId: string; number: number; status: WorkStatus }
-  | { type: "task.include"; projectId: string; number: number }
-  | { type: "quote.create"; projectId: string; number: number; baseKopecks: number }
+  | { type: "stage.save"; projectId: string; number: number; title: string; body: string; status: WorkStatus; subprojectId?: string }
+  | { type: "task.status"; projectId: string; number: number; status: WorkStatus; subprojectId?: string }
+  | { type: "task.include"; projectId: string; number: number; subprojectId?: string }
+  | { type: "quote.create"; projectId: string; number: number; baseKopecks: number; subprojectId?: string }
   | { type: "quote.pay"; quoteId: string; outcome: "succeeded" | "failed" }
   | { type: "order.create"; order: NewOrder }
   | { type: "order.provision"; orderId: string };

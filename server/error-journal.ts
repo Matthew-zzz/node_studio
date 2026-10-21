@@ -4,6 +4,7 @@ import type { PortalStore, Session } from "./store.ts";
 import { errorContext } from "./error-context.ts";
 import type { ErrorContext } from "./error-context.ts";
 import { UpstreamError } from "./upstream-error.ts";
+import { ProjectSyncError } from "./projects.ts";
 import type { BrowserFailure, ErrorEvent, ErrorPage, ErrorProvider, ErrorQuery } from "../src/features/portal/model/errors.ts";
 import { object, text, integer } from "./validation.ts";
 
@@ -23,6 +24,7 @@ export class ErrorJournal {
   capture(error: unknown, overrides: ErrorContext = {}): string | null {
     // Logging must never prevent the original response or background fallback.
     try {
+      if (error instanceof ProjectSyncError) return error.failures.map(failure => this.capture(failure.error, { ...overrides, ...failure.context })).find(Boolean) ?? null;
       const context = { ...errorContext(), ...overrides };
       const status = error instanceof PortalError ? error.status : 500;
       const upstream = error instanceof UpstreamError ? error.diagnosis : null;
@@ -38,6 +40,7 @@ export class ErrorJournal {
         ...(context.requestStatus !== undefined ? { requestStatus: context.requestStatus } : {}),
         actor: context.actor ? { id: context.actor.id, name: context.actor.name, email: context.actor.email, role: context.actor.role } : null,
         projectId: context.projectId ?? "", projectName: context.projectName ?? "",
+        ...(context.subprojectName ? { subprojectName: context.subprojectName } : {}), ...(context.subprojectId ? { subprojectId: context.subprojectId } : {}),
         requestId: context.requestId ?? id(), method: context.method ?? "", path: context.path ? safeApiPath(context.path) : "", operation: context.operation ?? "",
         upstreamPath: upstream?.upstreamPath ?? "", upstreamRequestId: upstream?.upstreamRequestId ?? "", revision: this.revision,
         ...(!(error instanceof PortalError) && error instanceof Error ? { trace: [...new Set(error.stack?.match(/server\/[a-zA-Z0-9_/.-]+\.ts:\d+:\d+/g) ?? [])].slice(0, 8) } : {}),
@@ -48,7 +51,7 @@ export class ErrorJournal {
   }
 
   private save(event: ErrorEvent): string {
-    const fingerprint = createHash("sha256").update(JSON.stringify([event.code, event.provider, event.status, event.upstreamStatus, event.source, event.actor?.id, event.projectId, event.path, event.method, event.operation, event.upstreamPath, event.explanation])).digest("hex");
+    const fingerprint = createHash("sha256").update(JSON.stringify([event.code, event.provider, event.status, event.upstreamStatus, event.source, event.actor?.id, event.projectId, event.path, event.method, event.operation, event.upstreamPath, event.explanation, ...(event.subprojectId ? [event.subprojectId] : [])])).digest("hex");
     const previous = this.store.db.prepare("SELECT payload FROM error_events WHERE fingerprint=? AND resolved=0 ORDER BY last_seen DESC LIMIT 1").get(fingerprint);
     if (previous) {
       const existing = JSON.parse(String(previous.payload)) as ErrorEvent;

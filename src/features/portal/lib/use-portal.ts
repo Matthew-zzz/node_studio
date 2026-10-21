@@ -7,6 +7,7 @@ import { createApiGateway } from "@/features/portal/lib/gateway";
 import { notify } from "@/lib/notifications";
 
 const successMessages: Partial<Record<PortalAction["type"], string>> = {
+  "project.create": "Клиентский проект создан.", "project.repository.add": "Подпроект подключён.",
   "project.accept": "Проект добавлен в работу.",
   takeover: "Вы подключились к диалогу.", leave: "Диалог снова передан ИИ-помощнику.",
   "draft.confirm": "Задача отправлена разработчику.", "stage.save": "Этап сохранён.",

@@ -10,6 +10,7 @@ import { reportHandledError } from "./error-context.ts";
 export interface AssistantReply { reply: string; title: string; body: string; handoff: boolean }
 export interface Integrations {
   ready: { github: boolean; telegram: boolean; ai: boolean; mail: boolean; payments: "mock" | "disabled" };
+  repository(repo: string): Promise<{ fullName: string; issuesEnabled: boolean; writable: boolean }>;
   issues(repo: string): Promise<WorkItem[]>;
   commits(repo: string, page: number): Promise<PortalCommit[]>;
   createRepository(name: string): Promise<string>;
@@ -83,6 +84,10 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
   }
   return {
     ready: { github: Boolean(config.githubToken), telegram: Boolean(config.telegramToken && config.telegramWebhookSecret), ai: Boolean(config.aiKey && config.aiModel), mail: Boolean(config.mailKey && config.mailFrom && config.encryptionKey), payments: config.mockPayments ? "mock" : "disabled" },
+    async repository(repo) {
+      const value = await gh<{ full_name: string; has_issues: boolean; permissions?: { push?: boolean } }>(repoPath(repo));
+      return { fullName: value.full_name, issuesEnabled: value.has_issues, writable: value.permissions?.push !== false };
+    },
     async issues(repo) { return (await allIssues(repo)).map(issueToWork); },
     async commits(repo, page) {
       const path = `${repoPath(repo)}/commits?per_page=100&page=${page}`;

@@ -5,7 +5,9 @@ import { integer, object, status, text } from "./validation.ts";
 import type { Integrations } from "./integrations.ts";
 import type { PortalConfig } from "./config.ts";
 import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
-import type { Conversation, PortalProject, PortalSnapshot, ProjectOrder, Role, Viewer, WorkItem } from "../src/features/portal/model/types.ts";
+import type { Conversation, PortalProject, PortalSnapshot, ProjectOrder, ProjectRepository, Role, Viewer, WorkItem } from "../src/features/portal/model/types.ts";
+import { PROJECT_GREETING, projectRepositories, repositoryKey, sameWorkSource, workItemId } from "../src/features/portal/model/project-repositories.ts";
+import { ProjectRegistry, ProjectSyncError } from "./projects.ts";
 import { visibleSnapshot } from "../src/features/portal/model/access.ts";
 import { createPaymentQuote } from "../src/features/payments/model/payment.ts";
 import { TelegramAgent } from "./agent/service.ts";
@@ -15,7 +17,7 @@ import { updateErrorContext, withErrorContext } from "./error-context.ts";
 import type { ErrorContext } from "./error-context.ts";
 import type { ErrorQuery } from "../src/features/portal/model/errors.ts";
 
-export const projectGreeting = "Я помогу разобраться по проекту и сформулировать задачу. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
+export const projectGreeting = PROJECT_GREETING;
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
 
 interface SyncInfo { at: string; pages: number; more: boolean; error: string | null; failure?: unknown; retryAt?: number; failures?: number }
@@ -27,6 +29,7 @@ export class PortalService {
   readonly config: PortalConfig;
   readonly agent: TelegramAgent;
   readonly errors: ErrorJournal;
+  readonly projects: ProjectRegistry;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -35,6 +38,7 @@ export class PortalService {
     this.store = store; this.integrations = integrations; this.config = config;
     this.agent = new TelegramAgent(store, integrations, config);
     this.errors = new ErrorJournal(store, config.revision);
+    this.projects = new ProjectRegistry(store, integrations, config.githubOwner);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -65,43 +69,62 @@ export class PortalService {
     return thread;
   }
 
-  private work(project: PortalProject, number: number, kind: "tasks" | "stages" = "tasks"): WorkItem {
-    const item = this.store.all(kind, project.id).find(item => item.number === number);
+  private repository(project: PortalProject, sourceId: unknown = "main"): ProjectRepository {
+    const part = projectRepositories(project).find(part => part.id === text(sourceId, 100));
+    if (!part) throw new PortalError(404, "Подпроект не найден.");
+    return part;
+  }
+
+  private work(project: PortalProject, number: number, kind: "tasks" | "stages" = "tasks", sourceId = "main"): WorkItem {
+    const item = this.store.all(kind, project.id).find(item => item.number === number && repositoryKey(item.subprojectId) === sourceId);
     if (!item) throw new PortalError(404, "Задача не найдена. Обновите данные из GitHub.");
     return item;
   }
 
-  private saveWork(projectId: string, work: WorkItem) {
-    return this.store.put(work.kind === "stage" ? "stages" : "tasks", { ...work, id: `${projectId}:${work.number}`, projectId });
+  private saveWork(projectId: string, work: WorkItem, subprojectId?: string) {
+    return this.store.put(work.kind === "stage" ? "stages" : "tasks", { ...work, ...(subprojectId ? { subprojectId } : {}), id: workItemId(projectId, subprojectId ?? work.subprojectId, work.number), projectId });
   }
 
-  async sync(project: PortalProject, pages = 1, force = false): Promise<void> {
+  async sync(project: PortalProject, pages = 1, force = false, subprojectId?: string): Promise<void> {
     return this.exclusive(`github:${project.id}`, async () => {
-      const previous = this.synced.get(project.id);
-      if (!force && previous && !previous.error && previous.pages >= pages && Date.now() - Date.parse(previous.at) < 15_000) return;
-      if (!force && previous?.error && Date.now() < (previous.retryAt ?? 0)) throw previous.failure;
-      try {
-        const issues = await this.integrations.issues(project.repo);
-        const commits = [];
-        let more = false;
-        for (let page = 1; page <= pages; page++) {
-          const batch = await this.integrations.commits(project.repo, page);
-          commits.push(...batch.map(commit => ({ ...commit, projectId: project.id, id: `${project.id}:${commit.sha}` })));
-          more = batch.length === 100;
-          if (!more) break;
-        }
-        this.store.replace("tasks", project.id, issues.filter(item => item.kind !== "stage").map(item => ({ ...item, id: `${project.id}:${item.number}`, projectId: project.id })));
-        this.store.replace("stages", project.id, issues.filter(item => item.kind === "stage").map(item => ({ ...item, id: `${project.id}:${item.number}`, projectId: project.id })));
-        this.store.replace("commits", project.id, commits);
-        const initial = issues.find(issue => issue.kind === "initial");
-        if (initial) this.store.put("projects", { ...this.store.get("projects", project.id)!, brief: initial.body });
-        this.synced.set(project.id, { at: now(), pages, more, error: null });
-      } catch (error) {
-        const failures = (previous?.failures ?? 0) + 1;
-        this.synced.set(project.id, { at: previous?.at ?? "", pages: previous?.pages ?? 0, more: previous?.more ?? false, error: "Не удалось обновить данные GitHub. Администратор уведомлён. Показаны последние полученные данные.", failure: error, failures, retryAt: Date.now() + Math.min(300_000, 30_000 * 2 ** (failures - 1)) });
-        throw error;
-      }
+      const current = this.store.get("projects", project.id) ?? project;
+      const parts = subprojectId ? [this.repository(current, subprojectId)] : projectRepositories(current);
+      const results = await Promise.allSettled(parts.map(part => this.syncRepository(current, part, pages, force)));
+      const states = projectRepositories(current).map(part => this.synced.get(`${project.id}:${part.id}`));
+      const dated = states.map(state => state?.at ?? "").filter(Boolean).sort();
+      this.synced.set(project.id, { at: dated[0] ?? "", pages: Math.min(...states.map(state => state?.pages ?? 0)), more: states.some(state => state?.more), error: states.some(state => state?.error) ? "Не удалось обновить данные GitHub. Администратор уведомлён. Показаны последние полученные данные." : null });
+      const failures = results.flatMap((result, index) => result.status === "rejected" ? [{ error: result.reason, context: { projectId: project.id, projectName: project.name, operation: "github.sync", ...(current.subprojects?.length ? { subprojectId: parts[index]!.id, subprojectName: parts[index]!.name } : {}) } }] : []);
+      if (failures.length) throw new ProjectSyncError(failures);
     });
+  }
+
+  private async syncRepository(project: PortalProject, part: ProjectRepository, pages: number, force: boolean): Promise<void> {
+    const key = `${project.id}:${part.id}`;
+    const previous = this.synced.get(key);
+    if (!force && previous && !previous.error && previous.pages >= pages && Date.now() - Date.parse(previous.at) < 15_000) return;
+    if (!force && previous?.error && Date.now() < (previous.retryAt ?? 0)) throw previous.failure;
+    try {
+      const issues = await this.integrations.issues(part.repo);
+      const commits = [];
+      let more = false;
+      for (let page = 1; page <= pages; page++) {
+        const batch = await this.integrations.commits(part.repo, page);
+        commits.push(...batch.map(commit => ({ ...commit, ...(project.subprojects?.length ? { subprojectId: part.id } : {}), projectId: project.id, id: `${project.id}:${part.id}:${commit.sha}` })));
+        more = batch.length === 100;
+        if (!more) break;
+      }
+      const scope = (item: WorkItem) => ({ ...item, ...(project.subprojects?.length ? { subprojectId: part.id } : {}), id: workItemId(project.id, part.id, item.number), projectId: project.id });
+      this.store.replace("tasks", project.id, issues.filter(item => item.kind !== "stage").map(scope), part.id);
+      this.store.replace("stages", project.id, issues.filter(item => item.kind === "stage").map(scope), part.id);
+      this.store.replace("commits", project.id, commits, part.id);
+      const initial = issues.find(issue => issue.kind === "initial");
+      if (initial && part.id === "main") this.store.put("projects", { ...this.store.get("projects", project.id)!, brief: initial.body });
+      this.synced.set(key, { at: now(), pages, more, error: null });
+    } catch (error) {
+      const failures = (previous?.failures ?? 0) + 1;
+      this.synced.set(key, { at: previous?.at ?? "", pages: previous?.pages ?? 0, more: previous?.more ?? false, error: "Не удалось обновить данные GitHub.", failure: error, failures, retryAt: Date.now() + Math.min(300_000, 30_000 * 2 ** (failures - 1)) });
+      throw error;
+    }
   }
 
   async snapshot(session: Session, selectedId = "", pages = 1): Promise<PortalSnapshot> {
@@ -124,6 +147,7 @@ export class PortalService {
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
       hasMoreCommits: info?.more ?? false, syncedAt: info?.at || null, syncError: info?.error ?? null, integrations: this.integrations.ready,
+      repositoryStatus: selected ? Object.fromEntries(projectRepositories(selected).map(part => { const state = this.synced.get(`${selected.id}:${part.id}`); return [part.id, { hasMore: state?.more ?? false, at: state?.at || null, error: state?.error ?? null }]; })) : {},
     };
     return visibleSnapshot(data, viewer, selected?.id);
   }
@@ -164,6 +188,13 @@ export class PortalService {
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     this.role(viewer, ["client", "developer", "curator"]);
     const type = text(action.type, 40);
+    if (type === "project.create") { await this.projects.create(viewer, action); return; }
+    if (type === "project.repository.add") {
+      this.role(viewer, ["developer"]);
+      const project = this.project(viewer, text(action.projectId, 100));
+      await this.exclusive(`write:${project.id}`, () => this.projects.add(viewer, project, action));
+      this.synced.delete(project.id); return;
+    }
     if (type === "project.accept") {
       this.role(viewer, ["developer"]);
       this.store.transaction(() => {
@@ -208,7 +239,7 @@ export class PortalService {
         if (this.store.get("drafts", draft.id)?.confirmed) return;
         const issue = await this.integrations.createIssue(project.repo, draft.title, draft.body, "wish", `draft:${draft.id}`);
         this.store.transaction(() => {
-          this.saveWork(project.id, issue);
+          this.saveWork(project.id, issue, project.subprojects?.length ? "main" : undefined);
           this.store.put("drafts", { ...draft, confirmed: true });
           const thread = this.thread(viewer, draft.threadId);
           this.append(thread, "Node", "system", `Задача #${issue.number} передана разработчику: ${draft.title}`);
@@ -219,35 +250,37 @@ export class PortalService {
     if (["stage.save", "task.status", "task.include", "quote.create"].includes(type)) {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
+      const part = this.repository(project, action.subprojectId ?? "main");
+      const scopeId = project.subprojects?.length ? part.id : undefined;
       await this.exclusive(`write:${project.id}`, async () => {
-        await this.sync(project, 1, true);
+        await this.sync(project, 1, true, part.id);
         const number = integer(action.number, type === "stage.save" ? 0 : 1);
         if (type === "stage.save") {
           const title = text(action.title, 200); const body = text(action.body, 8000, 0); const nextStatus = status(action.status);
-          if (number) this.work(project, number, "stages");
-          const issue = number ? await this.integrations.updateIssue(project.repo, number, { title, body, status: nextStatus })
-            : await this.integrations.createIssue(project.repo, title, body, "stage", `stage:${id()}`);
-          this.saveWork(project.id, !number && nextStatus !== "new" ? await this.integrations.updateIssue(project.repo, issue.number, { status: nextStatus }) : issue);
+          if (number) this.work(project, number, "stages", part.id);
+          const issue = number ? await this.integrations.updateIssue(part.repo, number, { title, body, status: nextStatus })
+            : await this.integrations.createIssue(part.repo, title, body, "stage", `stage:${id()}`);
+          this.saveWork(project.id, !number && nextStatus !== "new" ? await this.integrations.updateIssue(part.repo, issue.number, { status: nextStatus }) : issue, scopeId);
         } else {
-          const task = this.work(project, number);
+          const task = this.work(project, number, "tasks", part.id);
           if (type === "quote.create") {
             if (task.kind !== "wish" || task.included) throw new PortalError(409, "Для этой задачи отдельная оплата не нужна.");
-            const quotes = this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number);
+            const quotes = this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number && sameWorkSource(quote, task));
             if (quotes.some(quote => quote.status === "paid")) throw new PortalError(409, "Задача уже оплачена.");
             const price = createPaymentQuote(id(), integer(action.baseKopecks), "wish");
             this.store.transaction(() => {
               quotes.filter(quote => quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
-              this.store.put("quotes", { id: price.reference, projectId: project.id, taskNumber: number, title: task.title, baseKopecks: price.baseKopecks, markupKopecks: price.markupKopecks, totalKopecks: price.totalKopecks, status: "pending", createdAt: now() });
+              this.store.put("quotes", { id: price.reference, projectId: project.id, ...(scopeId ? { subprojectId: scopeId } : {}), taskNumber: number, title: task.title, baseKopecks: price.baseKopecks, markupKopecks: price.markupKopecks, totalKopecks: price.totalKopecks, status: "pending", createdAt: now() });
             });
           } else if (type === "task.include") {
-            if (this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && quote.status === "paid")) throw new PortalError(409, "У задачи уже есть оплаченная оценка.");
-            this.saveWork(project.id, await this.integrations.updateIssue(project.repo, number, { included: true }));
-            this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
+            if (this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "paid")) throw new PortalError(409, "У задачи уже есть оплаченная оценка.");
+            this.saveWork(project.id, await this.integrations.updateIssue(part.repo, number, { included: true }), scopeId);
+            this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
           } else {
             const nextStatus = status(action.status);
             if (["in_progress", "done"].includes(nextStatus) && !task.included && task.kind === "wish"
-              && !this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && quote.status === "paid")) throw new PortalError(409, "Дождитесь оплаты или отметьте, что задача входит в оплаченное ТЗ.");
-            this.saveWork(project.id, await this.integrations.updateIssue(project.repo, number, { status: nextStatus }));
+              && !this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "paid")) throw new PortalError(409, "Дождитесь оплаты или отметьте, что задача входит в оплаченное ТЗ.");
+            this.saveWork(project.id, await this.integrations.updateIssue(part.repo, number, { status: nextStatus }), scopeId);
           }
         }
         this.synced.delete(project.id);
@@ -322,10 +355,10 @@ export class PortalService {
 
   receiveGitHub(delivery: string, value: unknown) {
     const event = object(value); const repo = object(event.repository).full_name;
-    const project = this.store.all("projects").find(project => project.repo === repo);
+    const project = this.store.all("projects").find(project => projectRepositories(project).some(part => part.repo === repo));
     if (!project) return;
     this.store.transaction(() => {
-      if (this.store.delivered(`github:${delivery}`)) this.store.enqueue("github.sync", { projectId: project.id });
+      if (this.store.delivered(`github:${delivery}`)) this.store.enqueue("github.sync", { projectId: project.id, subprojectId: projectRepositories(project).find(part => part.repo === repo)!.id });
     });
   }
 
@@ -416,7 +449,7 @@ export class PortalService {
           if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!, payload.html);
           if (job.kind === "agent.index") await this.agent.index(payload.documentId!);
           if (job.kind === "github.sync") {
-            const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true);
+            const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true, payload.subprojectId);
           }
           if (job.kind === "provision") {
             const order = this.store.get("orders", payload.orderId!); if (order && order.status !== "ready") await this.provision(order);

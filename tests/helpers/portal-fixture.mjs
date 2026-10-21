@@ -24,6 +24,7 @@ export function portalFixture(origin = "http://localhost:3000") {
   }
   const integrations = {
     ready: { github: true, telegram: true, ai: true, mail: true, payments: "mock" },
+    async repository(repo) { return { fullName: repo, issuesEnabled: true, writable: true }; },
     async issues(repo) { return structuredClone(issues.get(repo) ?? []); },
     async commits(repo, page) { return structuredClone((commits.get(repo) ?? []).slice((page - 1) * 100, page * 100)); },
     async createRepository(name) { const repo = `Matthew-zzz/${name}`; if (!repositories.includes(repo)) repositories.push(repo); if (!issues.has(repo)) issues.set(repo, []); return repo; },
