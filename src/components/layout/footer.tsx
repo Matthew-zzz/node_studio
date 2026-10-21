@@ -20,7 +20,7 @@ export function Footer() {
           ©
           {new Date().getFullYear()}
           {' '}
-          NODO Studio
+          Node Studio
         </span>
         <Link href="/#main">Наверх ↑</Link>
       </div>

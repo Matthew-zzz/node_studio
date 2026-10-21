@@ -10,9 +10,9 @@ import styles from "./portal.module.css";
 
 export function WorkspaceBrand() {
   return (
-    <Link className={styles.logo} href="/" aria-label="NODO Studio — на главную">
+    <Link className={styles.logo} href="/" aria-label="Node Studio — на главную">
       <span className={styles.logoMark}><Icon name="service" /></span>
-      NODO
+      Node
       <small>workspace</small>
     </Link>
   );

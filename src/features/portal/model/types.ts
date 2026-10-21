@@ -104,6 +104,7 @@ export interface ProjectOrder {
 
 export interface PortalSnapshot {
   readonly viewer: Viewer | null;
+  readonly profiles: readonly Viewer[];
   readonly csrf: string;
   readonly selectedProjectId: string;
   readonly projects: readonly PortalProject[];
@@ -137,7 +138,7 @@ export interface NewOrder {
 }
 
 export const EMPTY_SNAPSHOT: PortalSnapshot = {
-  viewer: null, csrf: "", selectedProjectId: "", projects: [], tasks: [], stages: [], commits: [],
+  viewer: null, profiles: [], csrf: "", selectedProjectId: "", projects: [], tasks: [], stages: [], commits: [],
   conversations: [], messages: [], drafts: [], quotes: [], orders: [], hasMoreCommits: false, syncedAt: null,
   syncError: null, integrations: { github: false, telegram: false, ai: false, mail: false, payments: "disabled" },
 };

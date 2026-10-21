@@ -1,0 +1,111 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { Icon } from "@/components/ui/icon";
+import type { IconName } from "@/components/ui/icon";
+import type { PortalController } from "@/features/portal/lib/use-portal";
+import { ROLE_LABELS } from "@/features/portal/model/types";
+import type { Role } from "@/features/portal/model/types";
+import portal from "./portal.module.css";
+import styles from "./profile-switcher.module.css";
+
+const profileRoles: Role[] = ["curator", "client", "developer"];
+const roleIcons: Record<Role, IconName> = { curator: "telegram", client: "people", developer: "code", admin: "service" };
+
+export function ProfileSwitcher({ controller, onChange }: { controller: PortalController; onChange: () => void }) {
+  const { viewer, profiles } = controller.snapshot;
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const dialog = useRef<HTMLDialogElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const popoverId = useId();
+
+  useEffect(() => {
+    if (open && !dialog.current?.open) dialog.current?.showModal();
+    if (!open && dialog.current?.open) dialog.current.close();
+  }, [open]);
+
+  if (!viewer) return null;
+
+  function addProfile(nextRole: Role | null = null) {
+    popover.current?.hidePopover();
+    controller.clearError(); setRole(nextRole); setEmail(""); setPassword(""); setOpen(true);
+  }
+
+  async function switchProfile(userId: string) {
+    popover.current?.hidePopover();
+    if (userId !== viewer?.id && await controller.switchProfile(userId)) onChange();
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (await controller.addProfile(email, password)) { setPassword(""); setOpen(false); onChange(); }
+  }
+
+  const roles = profiles.some(profile => profile.role === "admin") ? [...profileRoles, "admin" as const] : profileRoles;
+  const list = (
+    <div className={styles.list} role="group" aria-label="Переключение профилей">
+      <p className={styles.caption}>Профили</p>
+      {roles.map(itemRole => {
+        const accounts = profiles.filter(profile => profile.role === itemRole);
+        return accounts.length ? accounts.map(profile => (
+          <button type="button" key={profile.id} className={styles.profile} data-role={itemRole} aria-label={`Переключиться: ${ROLE_LABELS[itemRole]}, ${profile.name}`} aria-pressed={profile.id === viewer.id} disabled={controller.busy} onClick={() => void switchProfile(profile.id)}>
+            <span className={styles.avatar}><Icon name={roleIcons[itemRole]} /></span>
+            <span className={styles.identity}>
+              <strong>{ROLE_LABELS[itemRole]}</strong>
+              <small title={profile.email}>{profile.name}</small>
+            </span>
+            {profile.id === viewer.id && <Icon name="check" className={styles.check} />}
+          </button>
+        )) : (
+          <button type="button" key={itemRole} className={styles.profile} data-role={itemRole} aria-label={`Добавить профиль: ${ROLE_LABELS[itemRole]}`} disabled={controller.busy || profiles.length >= 8} onClick={() => addProfile(itemRole)}>
+            <span className={styles.avatar}><Icon name={roleIcons[itemRole]} /></span>
+            <span className={styles.identity}>
+              <strong>{ROLE_LABELS[itemRole]}</strong>
+              <small>Войти в профиль</small>
+            </span>
+            <Icon name="plus" className={styles.plus} />
+          </button>
+        );
+      })}
+      <button type="button" className={styles.add} disabled={controller.busy || profiles.length >= 8} onClick={() => addProfile()}>
+        <Icon name="plus" />
+        Добавить аккаунт
+      </button>
+    </div>
+  );
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.desktop}>{list}</div>
+      <button type="button" className={styles.mobileTrigger} popoverTarget={popoverId} aria-label="Открыть профили" disabled={controller.busy}>
+        <Icon name={roleIcons[viewer.role]} />
+        <span>{ROLE_LABELS[viewer.role]}</span>
+        <Icon name="people" />
+      </button>
+      <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
+      <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { setOpen(false); setPassword(""); } }}>
+        <span className={portal.kicker}>{role ? ROLE_LABELS[role] : "Рабочее пространство"}</span>
+        <h2 id={titleId}>Добавить профиль</h2>
+        <p className={portal.subtitle}>Войдите в аккаунт один раз, чтобы переключаться без повторного ввода пароля.</p>
+        {controller.error && <p className={portal.notice} role="alert">{controller.error}</p>}
+        <form className={portal.form} onSubmit={event => void submit(event)}>
+          <label>
+            Почта профиля
+            <input type="email" autoComplete="username" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
+          </label>
+          <label>
+            Пароль профиля
+            <input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={event => setPassword(event.target.value)} />
+          </label>
+          <button type="submit" className={portal.primary} disabled={controller.busy}>{controller.busy ? "Входим…" : "Добавить и перейти"}</button>
+          <button type="button" className={portal.textButton} disabled={controller.busy} onClick={() => { setOpen(false); setPassword(""); }}>Отменить</button>
+        </form>
+      </dialog>
+    </div>
+  );
+}

@@ -6,5 +6,5 @@
 - Preserve the `portal-data` volume when updating. Do not use `docker compose down -v` for an existing installation.
 - Never claim a container was updated without checking the Docker API and application health. If the environment denies Docker access, finish and push the implementation, verify the image in CI, and report the remaining deployment limitation.
 - Keep credentials in runtime configuration or the data volume. Do not commit `.env` or generated access files.
-- Keep role and client ownership checks on the server. Do not add public role switching, seeded customer records, or demo routes to the application. Test fixtures belong in tests only.
+- Keep role and client ownership checks on the server. Profile switching requires a successful login to each account and is limited to its authenticated device group. Do not add public role switching, seeded customer records, or demo routes. Test fixtures belong in tests only.
 - Payments use the explicitly requested server-backed stub until a real payment provider is selected. Keep its test labels and server-side ownership, quote amount and payment-state checks.

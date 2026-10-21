@@ -15,7 +15,7 @@ const server = createServer(createApplicationHandler(service, config));
 server.requestTimeout = 120_000;
 server.headersTimeout = 15_000;
 server.maxHeadersCount = 50;
-server.listen(config.port, config.host, () => console.log(`NODO Studio listening on ${config.host}:${config.port}`));
+server.listen(config.port, config.host, () => console.log(`Node Studio listening on ${config.host}:${config.port}`));
 const worker = setInterval(() => void service.workJobs().catch(() => console.error("Portal worker failed.")), 2000);
 worker.unref();
 for (const signal of ["SIGTERM", "SIGINT"] as const) process.on(signal, () => {

@@ -105,7 +105,7 @@ export class PortalService {
     }
     const info = selected && this.synced.get(selected.id);
     const data: PortalSnapshot = {
-      ...EMPTY_SNAPSHOT, viewer, csrf: session.csrf, projects: projects.map(project => this.store.get("projects", project.id)!),
+      ...EMPTY_SNAPSHOT, viewer, profiles: this.store.profiles(session), csrf: session.csrf, projects: projects.map(project => this.store.get("projects", project.id)!),
       tasks: this.store.all("tasks"), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
@@ -136,7 +136,7 @@ export class PortalService {
           const entry = this.append(thread, viewer.name, viewer.role as "client" | "developer" | "curator", message);
           const handoff = viewer.role === "client" && /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови).{0,45}(?:человека|человек|разработчик|куратор|поддержк)/i.test(message);
           this.store.put("conversations", { ...thread, handoffRequested: thread.handoffRequested || handoff, revision: (thread.revision ?? 0) + 1, updatedAt: now() });
-          if (handoff && !thread.ownerId) this.append(thread, "NODO", "system", "Запрос передан. Человек подключится к этому диалогу.");
+          if (handoff && !thread.ownerId) this.append(thread, "Node", "system", "Запрос передан. Человек подключится к этому диалогу.");
           if (viewer.role === "client" && !thread.ownerId && !handoff) this.store.enqueue("assistant", { threadId, messageId: entry.id });
         });
       } else {
@@ -146,7 +146,7 @@ export class PortalService {
           if (type === "takeover" && latest.ownerId && latest.ownerId !== viewer.id) throw new PortalError(409, "Диалог уже ведёт другой сотрудник.");
           if (type === "leave" && latest.ownerId !== viewer.id) throw new PortalError(409, "Этот диалог ведёт другой сотрудник.");
           this.store.put("conversations", { ...latest, ownerId: type === "takeover" ? viewer.id : null, ownerName: type === "takeover" ? viewer.name : null, handoffRequested: false, revision: (latest.revision ?? 0) + 1, updatedAt: now() });
-          this.append(latest, "NODO", "system", type === "takeover" ? `${viewer.name} подключился к диалогу.` : "Диалог снова передан ИИ-помощнику.");
+          this.append(latest, "Node", "system", type === "takeover" ? `${viewer.name} подключился к диалогу.` : "Диалог снова передан ИИ-помощнику.");
         });
       }
       return;
@@ -163,7 +163,7 @@ export class PortalService {
           this.saveWork(project.id, issue);
           this.store.put("drafts", { ...draft, confirmed: true });
           const thread = this.thread(viewer, draft.threadId);
-          this.append(thread, "NODO", "system", `Задача #${issue.number} передана разработчику: ${draft.title}`);
+          this.append(thread, "Node", "system", `Задача #${issue.number} передана разработчику: ${draft.title}`);
         });
       });
       return;
@@ -293,17 +293,17 @@ export class PortalService {
     if (!thread) {
       const sender = object(message.from);
       thread = this.store.put("conversations", { id: threadId, kind: "telegram", projectId: "", name: typeof sender.first_name === "string" ? sender.first_name.slice(0, 100) : "Клиент", username: typeof sender.username === "string" ? sender.username : "", email: "", telegramId, ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
-      this.append(thread, "NODO ИИ", "assistant", telegramGreeting);
+      this.append(thread, "Node ИИ", "assistant", telegramGreeting);
     }
     if (typeof message.text !== "string") {
-      this.append(thread, "NODO", "system", "Пока я принимаю только текст. Опишите пожелания сообщением.");
+      this.append(thread, "Node", "system", "Пока я принимаю только текст. Опишите пожелания сообщением.");
       return;
     }
     const content = text(message.text, 8000);
     const entry = this.append(thread, thread.name, "client", content, messageId);
     const handoff = /(?:человек|разработчик|куратор|поддержк)/i.test(content);
     this.store.put("conversations", { ...thread, handoffRequested: thread.handoffRequested || handoff, revision: (thread.revision ?? 0) + 1, updatedAt: now() });
-    if (handoff && !thread.ownerId) this.append(thread, "NODO", "system", "Запрос передан куратору. Он подключится к этому диалогу.");
+    if (handoff && !thread.ownerId) this.append(thread, "Node", "system", "Запрос передан куратору. Он подключится к этому диалогу.");
     if (!thread.ownerId && !handoff && content !== "/start") this.store.enqueue("assistant", { threadId, messageId: entry.id });
   }
 
@@ -337,10 +337,10 @@ export class PortalService {
       const threadId = `chat:${projectId}`;
       if (!this.store.get("conversations", threadId)) {
         const thread = this.store.put("conversations", { id: threadId, kind: "project", projectId, name: order.projectName, username: order.username, email: order.email, telegramId: "", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
-        this.append(thread, "NODO ИИ", "assistant", projectGreeting);
+        this.append(thread, "Node ИИ", "assistant", projectGreeting);
       }
       this.store.put("orders", { ...order, projectId, status: "provisioning" });
-      this.store.enqueue("mail", { email: order.email, orderId: order.id, content: this.seal(`Ваш проект «${order.projectName}» доступен в кабинете NODO Studio.\n${this.config.origin}/cabinet/\n\n${access}\n\nПоддержка: https://t.me/node_studio_bot`) }, `access:${order.id}`);
+      this.store.enqueue("mail", { email: order.email, orderId: order.id, content: this.seal(`Ваш проект «${order.projectName}» доступен в кабинете Node Studio.\n${this.config.origin}/cabinet/\n\n${access}\n\nПоддержка: https://t.me/node_studio_bot`) }, `access:${order.id}`);
     });
   }
 
@@ -379,7 +379,7 @@ export class PortalService {
             const thread = this.store.get("conversations", payload.threadId!);
             if (thread && !thread.ownerId) {
               this.store.put("conversations", { ...thread, handoffRequested: true });
-              this.append(thread, "NODO", "system", "ИИ временно недоступен. Передали запрос человеку.");
+              this.append(thread, "Node", "system", "ИИ временно недоступен. Передали запрос человеку.");
             }
           }
           console.error(`Portal job ${job.kind} will retry (${job.attempts + 1}/8).`);
@@ -392,7 +392,7 @@ export class PortalService {
     const thread = this.store.get("conversations", threadId);
     if (!thread || thread.ownerId || thread.handoffRequested || this.store.get("messages", `reply:${messageId}`)) return;
     if (!this.integrations.ready.ai) {
-      this.append(thread, "NODO", "system", "ИИ пока не подключён. Сообщение сохранено; можно попросить подключить человека.", `reply:${messageId}`);
+      this.append(thread, "Node", "system", "ИИ пока не подключён. Сообщение сохранено; можно попросить подключить человека.", `reply:${messageId}`);
       return;
     }
     const messages = this.store.all("messages").filter(message => message.threadId === threadId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -402,7 +402,7 @@ export class PortalService {
     const latest = this.store.get("conversations", threadId);
     if (!latest || latest.ownerId || latest.handoffRequested || latest.revision !== thread.revision) return;
     this.store.transaction(() => {
-      this.append(thread, "NODO ИИ", "assistant", reply.reply, `reply:${messageId}`);
+      this.append(thread, "Node ИИ", "assistant", reply.reply, `reply:${messageId}`);
       if (reply.handoff) this.store.put("conversations", { ...latest, handoffRequested: true, updatedAt: now() });
       if (thread.kind === "project" && reply.title && reply.body) this.store.put("drafts", { id: `draft:${messageId}`, threadId, projectId: thread.projectId, title: reply.title, body: reply.body, confirmed: false, createdAt: now() });
     });

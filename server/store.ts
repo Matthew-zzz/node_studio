@@ -25,7 +25,7 @@ export class PortalError extends Error {
 }
 
 type UserRow = { id: string; name: string; email: string; role: Role; password: string; must_change: number };
-export interface Session { viewer: Viewer; csrf: string; tokenHash: string }
+export interface Session { viewer: Viewer; csrf: string; tokenHash: string; groupId: string }
 export const now = () => new Date().toISOString();
 export const id = (): string => randomUUID();
 export const tokenHash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -66,7 +66,7 @@ export class PortalStore {
       CREATE UNIQUE INDEX IF NOT EXISTS one_developer ON users(role) WHERE role='developer';
       CREATE TABLE IF NOT EXISTS sessions (
         token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        csrf TEXT NOT NULL, expires INTEGER NOT NULL
+        csrf TEXT NOT NULL, expires INTEGER NOT NULL, group_id TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS records (
         kind TEXT NOT NULL, id TEXT NOT NULL, project_id TEXT NOT NULL DEFAULT '',
@@ -80,6 +80,11 @@ export class PortalStore {
         attempts INTEGER NOT NULL DEFAULT 0, available INTEGER NOT NULL, running INTEGER NOT NULL DEFAULT 0
       );
     `);
+    // Existing installations keep their sessions; each starts as a separate device group.
+    if (!this.db.prepare("PRAGMA table_info(sessions)").all().some(column => column.name === "group_id")) {
+      this.db.exec("ALTER TABLE sessions ADD COLUMN group_id TEXT NOT NULL DEFAULT ''");
+    }
+    this.db.exec("UPDATE sessions SET group_id=token_hash WHERE group_id=''; CREATE INDEX IF NOT EXISTS sessions_group ON sessions(group_id)");
     this.db.prepare("UPDATE jobs SET running=0").run();
   }
 
@@ -137,7 +142,7 @@ export class PortalStore {
     return row && viewer(row);
   }
 
-  login(email: string, password: string, address: string): { token: string; session: Session } {
+  login(email: string, password: string, address: string, current?: Session): { token: string; session: Session } {
     const key = tokenHash(`${address}:${email.trim().toLowerCase()}`);
     const limit = this.db.prepare("SELECT attempts,since FROM login_limits WHERE key=?").get(key);
     const epoch = Date.now();
@@ -154,22 +159,51 @@ export class PortalStore {
     }
     this.db.prepare("DELETE FROM login_limits WHERE key=?").run(key);
     this.db.prepare("DELETE FROM sessions WHERE expires<?").run(epoch);
+    if (current && !this.db.prepare("SELECT 1 FROM sessions WHERE token_hash=? AND expires>?").get(current.tokenHash, epoch)) {
+      throw new PortalError(401, "Войдите в кабинет.");
+    }
+    const groupId = current?.groupId ?? id();
+    const profiles = current ? this.profiles(current) : [];
+    if (profiles.length >= 8 && !profiles.some(profile => profile.id === row.id)) throw new PortalError(409, "Можно добавить до 8 профилей на одном устройстве.");
+    return this.transaction(() => {
+      this.db.prepare("DELETE FROM sessions WHERE group_id=? AND user_id=?").run(groupId, row.id);
+      return this.createSession(viewer(row), groupId, epoch + 604_800_000);
+    });
+  }
+
+  private createSession(user: Viewer, groupId: string, expires: number): { token: string; session: Session } {
     const token = randomBytes(32).toString("hex");
     const csrf = randomBytes(24).toString("hex");
-    this.db.prepare("INSERT INTO sessions(token_hash,user_id,csrf,expires) VALUES(?,?,?,?)")
-      .run(tokenHash(token), row.id, csrf, epoch + 604_800_000);
-    return { token, session: { viewer: viewer(row), csrf, tokenHash: tokenHash(token) } };
+    this.db.prepare("INSERT INTO sessions(token_hash,user_id,csrf,expires,group_id) VALUES(?,?,?,?,?)")
+      .run(tokenHash(token), user.id, csrf, expires, groupId);
+    return { token, session: { viewer: user, csrf, tokenHash: tokenHash(token), groupId } };
   }
 
   session(token: string): Session | undefined {
     if (!/^[a-f0-9]{64}$/.test(token)) return;
     const hash = tokenHash(token);
-    const row = this.db.prepare(`SELECT users.*,sessions.csrf FROM sessions JOIN users ON users.id=sessions.user_id
-      WHERE token_hash=? AND expires>?`).get(hash, Date.now()) as (UserRow & { csrf: string }) | undefined;
-    return row && { viewer: viewer(row), csrf: row.csrf, tokenHash: hash };
+    const row = this.db.prepare(`SELECT users.*,sessions.csrf,sessions.group_id FROM sessions JOIN users ON users.id=sessions.user_id
+      WHERE token_hash=? AND expires>?`).get(hash, Date.now()) as (UserRow & { csrf: string; group_id: string }) | undefined;
+    return row && { viewer: viewer(row), csrf: row.csrf, tokenHash: hash, groupId: row.group_id };
   }
 
-  logout(session: Session) { this.db.prepare("DELETE FROM sessions WHERE token_hash=?").run(session.tokenHash); }
+  profiles(session: Session): Viewer[] {
+    return (this.db.prepare(`SELECT users.* FROM sessions JOIN users ON users.id=sessions.user_id
+      WHERE group_id=? AND expires>? ORDER BY users.role,users.name,users.id`).all(session.groupId, Date.now()) as UserRow[]).map(viewer);
+  }
+
+  switchProfile(session: Session, userId: string): { token: string; session: Session } {
+    const row = this.db.prepare(`SELECT users.*,sessions.token_hash,sessions.expires FROM sessions JOIN users ON users.id=sessions.user_id
+      WHERE group_id=? AND user_id=? AND expires>?`).get(session.groupId, userId, Date.now()) as (UserRow & { token_hash: string; expires: number }) | undefined;
+    if (!row) throw new PortalError(404, "Сессия профиля завершена. Добавьте его заново с почтой и паролем.");
+    return this.transaction(() => {
+      this.db.prepare("DELETE FROM sessions WHERE token_hash=?").run(row.token_hash);
+      // Switching rotates the token and CSRF but never extends the original login lifetime.
+      return this.createSession(viewer(row), session.groupId, row.expires);
+    });
+  }
+
+  logout(session: Session) { this.db.prepare("DELETE FROM sessions WHERE group_id=?").run(session.groupId); }
 
   changePassword(session: Session, current: string, replacement: string) {
     const row = this.db.prepare("SELECT * FROM users WHERE id=?").get(session.viewer.id) as UserRow;

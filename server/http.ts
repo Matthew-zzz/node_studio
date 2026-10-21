@@ -57,13 +57,15 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         }
         send(202, { accepted: true }); return;
       }
-      if (request.method === "POST" && ["/api/portal/login", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
-        // Enable only behind the domain proxy, which overwrites X-Real-IP.
-        const address = String((config.trustProxy ? request.headers["x-real-ip"] : undefined) ?? request.socket.remoteAddress ?? "unknown");
+      // Enable only behind the domain proxy, which overwrites X-Real-IP.
+      const address = String((config.trustProxy ? request.headers["x-real-ip"] : undefined) ?? request.socket.remoteAddress ?? "unknown");
+      if (request.method === "POST" && ["/api/portal/login", "/api/portal/profiles/add", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
         const key = `${address}:${path}`; const epoch = Date.now(); const limit = publicLimits.get(key);
         if (limit && epoch - limit.since < 60_000 && limit.count >= 30) throw new PortalError(429, "Слишком много запросов. Повторите через минуту.");
         publicLimits.set(key, { count: limit && epoch - limit.since < 60_000 ? limit.count + 1 : 1, since: limit && epoch - limit.since < 60_000 ? limit.since : epoch });
         if (publicLimits.size > 10000) for (const [key, limit] of publicLimits) if (epoch - limit.since > 60_000) publicLimits.delete(key);
+      }
+      if (request.method === "POST" && ["/api/portal/login", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
         if (path === "/api/portal/login") {
           const result = service.store.login(text(body.email, 254), passwordInput(body.password), address);
           response.setHeader("Set-Cookie", cookie(result.token, 604800));
@@ -85,6 +87,13 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
       }
       if (request.method !== "POST") throw new PortalError(404, "Страница не найдена.");
       if (!equalSecret(String(request.headers["x-csrf-token"] ?? ""), session.csrf)) throw new PortalError(403, "Обновите страницу и повторите запрос.");
+      if (path === "/api/portal/profiles/add" || path === "/api/portal/profiles/switch") {
+        const result = path.endsWith("/add")
+          ? service.store.login(text(body.email, 254), passwordInput(body.password), address, session)
+          : service.store.switchProfile(session, text(body.userId, 100));
+        response.setHeader("Set-Cookie", cookie(result.token, 604800));
+        send(200, await service.snapshot(result.session)); return;
+      }
       if (path === "/api/portal/logout") {
         service.store.logout(session); response.setHeader("Set-Cookie", cookie("", 0)); send(200, { ok: true }); return;
       }

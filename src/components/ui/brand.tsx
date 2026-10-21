@@ -13,10 +13,10 @@ export function BrandMark() {
 
 export function Brand({ onNavigate }: { onNavigate?: () => void } = {}) {
   return (
-    <Link className="brand" href="/" aria-label="NODO Studio — главная" {...(onNavigate ? { onNavigate } : {})}>
+    <Link className="brand" href="/" aria-label="Node Studio — главная" {...(onNavigate ? { onNavigate } : {})}>
       <BrandMark />
       <span>
-        NODO
+        Node
         <span className="brand-studio">studio</span>
       </span>
     </Link>

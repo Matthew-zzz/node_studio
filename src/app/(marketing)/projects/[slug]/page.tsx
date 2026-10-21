@@ -18,7 +18,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const project = getProject((await params).slug);
   if (!project) notFound();
-  return createMetadata({ title: `${project.shortTitle} — кейс NODO Studio`, description: project.description, path: `/projects/${project.slug}/` });
+  return createMetadata({ title: `${project.shortTitle} — кейс Node Studio`, description: project.description, path: `/projects/${project.slug}/` });
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {

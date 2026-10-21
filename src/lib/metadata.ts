@@ -15,11 +15,11 @@ export function createMetadata({ title = site.title, description = site.descript
     openGraph: {
       type: "website",
       locale: "ru_RU",
-      siteName: "NODO Studio",
+      siteName: "Node Studio",
       title,
       description,
       url: path,
-      images: [{ url: "/assets/og-cover.svg", width: 1200, height: 630, alt: "NODO Studio — разработка, автоматизация и ИИ" }],
+      images: [{ url: "/assets/og-cover.svg", width: 1200, height: 630, alt: "Node Studio — разработка, автоматизация и ИИ" }],
     },
     twitter: { card: "summary_large_image", title, description, images: ["/assets/og-cover.svg"] },
   };

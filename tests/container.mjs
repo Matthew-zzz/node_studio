@@ -44,7 +44,7 @@ try {
   // Generated test credentials stay in process memory and never enter CI logs.
   const access = JSON.parse(compose("exec", "--no-TTY", "app", "node", "-e", "process.stdout.write(require('node:fs').readFileSync('/data/initial-access.json','utf8'))"));
   const developer = access.find(user => user.role === "developer");
-  const first = await login(developer.email, developer.password);
+  let first = await login(developer.email, developer.password);
   assert.equal(first.snapshot.viewer.mustChangePassword, true);
   const password = "Container-verified-password-2026";
   const changed = await fetchApplication("/api/portal/password", {
@@ -56,11 +56,32 @@ try {
   const account = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
   assert.equal(account.projects.length, 0, "a fresh installation does not seed customer projects");
   assert.equal(account.messages.length, 0, "a fresh installation does not seed customer messages");
+  const curator = access.find(user => user.role === "curator");
+  const added = await fetchApplication("/api/portal/profiles/add", {
+    method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": account.csrf },
+    body: JSON.stringify({ email: curator.email, password: curator.password }),
+  });
+  assert.equal(added.status, 200);
+  const profiles = await added.json();
+  assert.equal(profiles.viewer.role, "curator"); assert.equal(profiles.profiles.length, 2);
+  const back = await fetchApplication("/api/portal/profiles/switch", {
+    method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: added.headers.get("set-cookie").split(";")[0], "X-CSRF-Token": profiles.csrf },
+    body: JSON.stringify({ userId: account.viewer.id }),
+  });
+  assert.equal(back.status, 200);
+  first = { snapshot: await back.json(), cookie: back.headers.get("set-cookie").split(";")[0] };
   compose("up", "--detach", "--no-build", "--force-recreate", "--wait", "--wait-timeout", "90");
   console.log("Docker container replaced; checking persistent account and session.");
   assert.equal((await login(developer.email, password)).snapshot.viewer.mustChangePassword, false, "recreating the container preserves the account");
-  assert.equal((await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json())).viewer.role, "developer", "session survives a container replacement");
-  console.log("Docker verified: frontend + API, health, non-root runtime, first login, password change and persistent volume across recreation.");
+  const restored = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
+  assert.equal(restored.viewer.role, "developer", "session survives a container replacement");
+  assert.equal(restored.profiles.length, 2, "remembered profiles survive a container replacement");
+  const switched = await fetchApplication("/api/portal/profiles/switch", {
+    method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": restored.csrf },
+    body: JSON.stringify({ userId: profiles.viewer.id }),
+  });
+  assert.equal(switched.status, 200); assert.equal((await switched.json()).viewer.role, "curator");
+  console.log("Docker verified: frontend + API, health, non-root runtime, first login, password change and persistent accounts, sessions and profile switching across recreation.");
 } catch (error) {
   // Application logs contain no bootstrap credentials or incoming request bodies.
   spawnSync("docker", [...docker, "logs", "--tail", "40"], { env: environment, stdio: "inherit" });

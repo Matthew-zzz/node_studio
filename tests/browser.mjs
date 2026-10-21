@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
-import { checkPortal, checkPortalAuthentication, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
+import { checkPortal, checkPortalAuthentication, checkProfileSwitching, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -118,6 +118,7 @@ try {
       throw error;
     }
     await context.close();
+    await checkProfileSwitching(browser, origin, width, screenshots);
   }
 
   await checkMotionPreferences(browser, origin);
@@ -135,7 +136,7 @@ try {
   assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, marketing, authenticated role accounts, server-backed payment stub, chat handoff, confirmed tasks, initial project creation, themes and no public demo routes.");
+  console.log("Passed: 4 viewports, authenticated profile switching across tabs, marketing, role accounts, server-backed payment stub, chat handoff, confirmed tasks, initial project creation, themes and no public demo routes.");
 } finally {
   await browser?.close();
   clearInterval(portalWorker);

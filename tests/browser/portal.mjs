@@ -24,12 +24,81 @@ async function login(page, origin, role, password = fixturePassword) {
   await page.getByLabel("Пароль", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
   await page.getByTestId("portal").waitFor();
-  assert.equal(await page.getByRole("group", { name: "Быстрое переключение кабинетов", exact: true }).count(), 0);
   assert.equal(await page.locator('a[href*="-demo"]').count(), 0);
+  assert.ok((await page.title()).includes("Node Studio"));
+  const path = await page.locator('header a[href="/"]').evaluate(link => [...link.parentElement.children].map(element => ({ height: element.getBoundingClientRect().height, lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight) })));
+  assert.ok(path.every(element => element.height <= element.lineHeight + 1), "every breadcrumb segment stays on one line");
+  assert.equal(await page.locator('main nav[aria-label="Вкладки кабинета"]').count(), 0);
+}
+
+export async function checkProfileSwitching(browser, origin, width, screenshots) {
+  const context = await browser.newContext({ viewport: { width, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await login(page, origin, "client");
+    const root = page.getByTestId("portal");
+    const profiles = page.getByRole("group", { name: "Переключение профилей", exact: true });
+    async function openProfiles() {
+      if (width <= 650) await page.getByRole("button", { name: "Открыть профили", exact: true }).click();
+      await profiles.waitFor({ state: "visible" });
+    }
+    async function waitForRole(role) { await page.waitForFunction(role => document.querySelector('[data-testid="portal"]')?.dataset.role === role, role); }
+    for (const [role, label] of [["curator", "Куратор"], ["developer", "Разработчик"]]) {
+      await openProfiles();
+      await profiles.getByRole("button", { name: `Добавить профиль: ${label}`, exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
+      await dialog.getByLabel("Почта профиля", { exact: true }).fill(`${role}@example.test`);
+      await dialog.getByLabel("Пароль профиля", { exact: true }).fill("Invalid-profile-password");
+      await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
+      await dialog.getByRole("alert").filter({ hasText: "Проверьте почту и пароль." }).waitFor();
+      assert.notEqual(await root.getAttribute("data-role"), role, "failed login cannot switch profiles");
+      await dialog.getByLabel("Пароль профиля", { exact: true }).fill(fixturePassword);
+      await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
+      await waitForRole(role);
+    }
+    const second = await context.newPage();
+    await second.goto(origin + "/cabinet/"); await second.getByTestId("portal").waitFor();
+    for (const [role, label] of [["client", "Клиент"], ["curator", "Куратор"], ["developer", "Разработчик"], ["client", "Клиент"]]) {
+      await openProfiles();
+      await profiles.getByRole("button", { name: `Переключиться: ${label}, ${role}`, exact: true }).click();
+      await waitForRole(role);
+      await second.waitForFunction(role => document.querySelector('[data-testid="portal"]')?.dataset.role === role, role);
+      assert.equal(await page.getByRole("dialog").count(), 0, "remembered profiles switch without a password dialog");
+    }
+    await page.reload(); await waitForRole("client");
+    await openProfiles();
+    assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 3);
+    const active = profiles.getByRole("button", { name: "Переключиться: Клиент, client", exact: true });
+    assert.equal(await active.getAttribute("aria-pressed"), "true");
+    assert.equal(await page.getByRole("button", { name: "three", exact: true }).count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    if (width > 650) {
+      const bounds = await profiles.boundingBox();
+      assert.ok(bounds.x < 30 && bounds.y + bounds.height > 830, "profiles sit in the bottom left of the viewport");
+    }
+    await page.screenshot({ path: resolve(screenshots, `${width}-profiles-light.png`), fullPage: true });
+    if (width <= 650) await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Включить тёмную тему", exact: true }).click();
+    if (width <= 650) await openProfiles();
+    await page.screenshot({ path: resolve(screenshots, `${width}-profiles-dark.png`), fullPage: true });
+    if (width <= 650) await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Выйти", exact: true }).click();
+    await page.getByRole("heading", { name: "С возвращением", exact: true }).waitFor();
+    await second.getByRole("heading", { name: "С возвращением", exact: true }).waitFor();
+    await login(page, origin, "client"); await openProfiles();
+    assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 1, "signing out removes remembered profiles");
+  } finally { await context.close(); }
 }
 
 async function openChat(page, width) {
-  if (width <= 650) await page.getByRole("navigation", { name: "Вкладки кабинета" }).getByRole("button", { name: "Чат", exact: true }).click();
+  if (width <= 650) await navigate(page, width, "Чат");
+}
+
+async function navigate(page, width, label) {
+  if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+  await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: label, exact: true }).click();
+  assert.equal(await page.locator('main nav[aria-label="Вкладки кабинета"]').count(), 0);
+  if (width <= 650) assert.equal(await page.getByRole("dialog", { name: "Меню кабинета", exact: true }).count(), 0, "selecting a section closes the mobile sidebar");
 }
 
 export async function checkPortal(page, origin, width, screenshots, portal) {
@@ -38,10 +107,19 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   const root = page.getByTestId("portal");
   assert.equal(await root.getAttribute("data-role"), "client");
   await page.getByRole("heading", { name: "one", level: 1, exact: true }).waitFor();
+  if (width <= 650) {
+    const open = page.getByRole("button", { name: "Открыть меню кабинета", exact: true });
+    await open.click();
+    const menu = page.getByRole("dialog", { name: "Меню кабинета", exact: true });
+    await menu.getByRole("navigation", { name: "Разделы кабинета", exact: true }).waitFor();
+    await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-sidebar.png`), fullPage: true });
+    await page.keyboard.press("Escape");
+    assert.equal(await menu.count(), 0);
+    assert.ok(await open.evaluate(element => document.activeElement === element), "closing the sidebar restores keyboard focus");
+  }
   assert.equal(await page.getByRole("button", { name: "three", exact: true }).count(), 0, "client projects remain private");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-client.png`), fullPage: true });
-  const tabs = page.getByRole("navigation", { name: "Вкладки кабинета" });
   const chat = page.getByRole("region", { name: "Чат проекта", exact: true });
   await openChat(page, width);
   await chat.getByLabel("Сообщение", { exact: true }).fill("Добавить поиск товаров по названию");
@@ -55,7 +133,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await login(page, origin, "developer");
   await page.getByRole("region", { name: "Ожидают разработчика", exact: true }).getByRole("button", { name: "Открыть диалог", exact: true }).click();
   assert.ok(await chat.isVisible(), "handoff opens the chat on desktop and mobile");
-  await tabs.getByRole("button", { name: "Общая очередь", exact: true }).click();
+  await navigate(page, width, "Общая очередь");
   const queue = page.getByRole("region", { name: "Общая очередь задач", exact: true });
   await page.getByRole("group", { name: "Фильтр задач", exact: true }).getByRole("button", { name: "Нужна оценка", exact: true }).click();
   await page.getByLabel("Поиск задач", { exact: true }).fill("ПОДГОТОВЛЕННАЯ");
@@ -85,7 +163,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await quote.getByText("Оплачено · тест", { exact: true }).waitFor();
   await page.reload(); await root.waitFor(); await openChat(page, width);
   await quote.getByText("Оплачено · тест", { exact: true }).waitFor();
-  await tabs.getByRole("button", { name: "История", exact: true }).click();
+  await navigate(page, width, "История");
   await page.getByRole("heading", { name: "init: первоначальная версия проекта", exact: true }).waitFor();
   await page.getByRole("button", { name: "Включить тёмную тему", exact: true }).click();
   await page.reload(); await root.waitFor();
@@ -131,7 +209,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-curator.png`), fullPage: true });
 
   const projectName = `Новый проект ${width}`;
-  await tabs.getByRole("button", { name: "Создание проектов", exact: true }).click();
+  await navigate(page, width, "Создание проектов");
   await page.getByText("Подготовить проект", { exact: true }).click();
   await page.getByLabel("Название проекта", { exact: true }).fill(projectName);
   await page.getByLabel("Имя клиента", { exact: true }).fill("Клиент");
@@ -149,15 +227,15 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.reload();
   await page.getByText("Тестовая оплата подтверждена. Студия подготовит доступ к проекту.", { exact: true }).waitFor();
   await page.goto(origin + "/cabinet/"); await root.waitFor();
-  await tabs.getByRole("button", { name: "Создание проектов", exact: true }).click();
+  await navigate(page, width, "Создание проектов");
   await page.getByRole("button", { name: "Создать проект и выдать доступ", exact: true }).click();
   await portal.service.workJobs();
   await page.reload(); await root.waitFor();
-  await tabs.getByRole("button", { name: "Создание проектов", exact: true }).click();
+  await navigate(page, width, "Создание проектов");
   await page.getByText("Доступ выдан", { exact: true }).waitFor();
   await login(page, origin, "client");
-  if (width <= 650) await page.getByLabel("Текущий проект", { exact: true }).selectOption({ label: projectName });
-  else await page.getByRole("navigation", { name: "Выбор проекта" }).getByRole("button", { name: projectName, exact: true }).click();
+  if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+  await page.getByRole("navigation", { name: "Выбор проекта" }).getByRole("button", { name: projectName, exact: true }).click();
   await page.getByRole("heading", { name: projectName, level: 1, exact: true }).waitFor();
   await login(page, origin, "admin");
   await page.getByRole("heading", { name: "Здесь будет управление студией", exact: true }).waitFor();

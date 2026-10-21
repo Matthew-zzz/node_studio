@@ -33,7 +33,7 @@ export function Chat({ thread, controller }: { thread: Conversation | undefined;
           <span className={styles.chatSymbol}><Icon name={thread.kind === "telegram" ? "telegram" : thread.ownerId ? "people" : "spark"} /></span>
           <div>
             <h2>{thread.kind === "telegram" ? thread.name : "Диалог по проекту"}</h2>
-            <small>{thread.ownerName ? `${thread.ownerName} · на связи` : "NODO · ИИ-помощник"}</small>
+            <small>{thread.ownerName ? `${thread.ownerName} · на связи` : "Node · ИИ-помощник"}</small>
           </div>
         </div>
         <span className={styles.badge}>{thread.kind === "telegram" ? "Telegram" : "Проект"}</span>
