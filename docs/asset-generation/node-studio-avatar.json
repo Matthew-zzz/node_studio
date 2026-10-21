@@ -1,0 +1,8 @@
+{
+  "asset": "public/assets/node-studio-avatar.png",
+  "brand": "Node Studio",
+  "purpose": "Square studio avatar for social profiles and circular crops.",
+  "generator": "Built-in image_gen tool",
+  "generatedOn": "2026-10-21",
+  "prompt": "Use case: logo-brand.\nAsset type: final square profile avatar for Node Studio, a web development and AI studio. Create one finished image, not a mockup or presentation sheet.\nSubject: a distinctive minimal four-module studio symbol: exactly four thick softly rounded square tiles in a compact 2 by 2 arrangement, with the top-right tile offset slightly upward. Tilt the entire arrangement about 10 degrees counterclockwise. Keep the symbol highly recognizable at small avatar sizes.\nStyle: beautifully art-directed, restrained dimensional brand render; satin ceramic / frosted glass tiles, softly beveled edges, subtle material depth and controlled studio reflections. Front-facing, almost orthographic, with a gentle blue-violet glow immediately around the modules. Calm, premium and clean.\nColor palette: tiles transition from blue #5286f4 through violet #7963ee to lavender #b08afa. Opaque seamless dark navy-charcoal background close to #10121b, with only a subtle broad soft ambient gradient.\nComposition: centered symbol occupies about 55 percent of a square canvas, generous clean dark negative space on every side. Entire symbol must fit comfortably within a circular avatar crop. Background fills every edge; no external app-icon container or outer frame.\nConstraints: exactly four square modules; no text, letters, slogans, watermark, extra objects, particle effects, grid, cables or network lines. Keep edges precise and the visual simple. Output a high-resolution square avatar."
+}
