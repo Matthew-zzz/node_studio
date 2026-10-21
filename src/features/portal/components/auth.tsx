@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { WorkspaceBrand, ThemeSwitch } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
+import { notify } from "@/lib/notifications";
 import styles from "./portal.module.css";
 
 export function Login({ controller, theme, setTheme }: { controller: PortalController; theme: PortalTheme; setTheme: (theme: PortalTheme) => void }) {
@@ -23,7 +24,6 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
         <span className={styles.kicker}>Рабочее пространство студии</span>
         <h1>С возвращением</h1>
         <p>Всё по вашему проекту — в одном месте.</p>
-        {controller.error && <p className={styles.notice} role="alert">{controller.error}</p>}
         <form className={styles.form} onSubmit={event => void submit(event)}>
           <label>
             Почта
@@ -49,11 +49,10 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
 
 export function PasswordForm({ controller, required = false }: { controller: PortalController; required?: boolean }) {
   const [current, setCurrent] = useState(""); const [replacement, setReplacement] = useState(""); const [repeat, setRepeat] = useState("");
-  const [message, setMessage] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setMessage("");
-    if (repeat !== replacement) { setMessage("Пароли не совпадают."); return; }
-    if (await controller.password(current, replacement)) { setCurrent(""); setReplacement(""); setRepeat(""); setMessage("Пароль сохранён."); }
+    event.preventDefault();
+    if (repeat !== replacement) { notify.error("Пароли не совпадают."); return; }
+    if (await controller.password(current, replacement)) { setCurrent(""); setReplacement(""); setRepeat(""); }
   }
   return (
     <section className={`${styles.panel} ${styles.settings}`}>
@@ -73,7 +72,6 @@ export function PasswordForm({ controller, required = false }: { controller: Por
           <input type="password" autoComplete="new-password" required minLength={12} maxLength={256} value={repeat} onChange={event => setRepeat(event.target.value)} />
         </label>
         <button className={styles.primary} type="submit" disabled={controller.busy}>Сохранить пароль</button>
-        {message && <p className={styles.small} role="status">{message}</p>}
       </form>
     </section>
   );

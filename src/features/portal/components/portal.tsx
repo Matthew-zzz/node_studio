@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Notifications } from "@/components/ui/notifications";
 import type { IconName } from "@/components/ui/icon";
 import { Login, PasswordForm } from "@/features/portal/components/auth";
 import { Chat } from "@/features/portal/components/chat";
@@ -105,6 +106,7 @@ export function Portal() {
           </div>
         </aside>
         <dialog ref={mobileMenu} className={styles.mobileMenu} aria-label="Меню кабинета">
+          <Notifications modal />
           <button type="button" className={styles.closeMenu} aria-label="Закрыть меню кабинета" onClick={() => mobileMenu.current?.close()}><Icon name="close" /></button>
           {navigation}
           <div className={styles.sidebarBottom}>{support}</div>
@@ -124,12 +126,6 @@ export function Portal() {
             </div>
           </header>
           <main id="main" className={styles.content} aria-busy={busy}>
-            {controller.error && (
-            <div className={styles.notice} role="alert">
-              <span>{controller.error}</span>
-              <button className={styles.textButton} type="button" aria-label="Скрыть сообщение" onClick={controller.clearError}>×</button>
-            </div>
-)}
             <div className={styles.pageHeader}>
               <div>
                 <span className={styles.kicker}>{viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "curator" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
@@ -142,12 +138,6 @@ export function Portal() {
               <>
                 {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onOpenTask={id => openProject(id)} onOpenChat={id => openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
                   <>
-                    {snapshot.syncError && (
-                    <div className={styles.notice} role="status">
-                      <span>{snapshot.syncError}</span>
-                      <button className={styles.textButton} type="button" onClick={() => void controller.refresh()}>Обновить</button>
-                    </div>
-)}
                     <div className={styles.columns} data-chat={activeView === "chat"}>
                       <div className={styles.stack}>
                         {activeView === "history" ? <CommitHistory controller={controller} /> : activeView === "tasks" ? (

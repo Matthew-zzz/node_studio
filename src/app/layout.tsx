@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Notifications } from "@/components/ui/notifications";
 import { createMetadata, siteOrigin } from "@/lib/metadata";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body>
         {children}
+        <Notifications />
       </body>
     </html>
   );

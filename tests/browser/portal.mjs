@@ -15,7 +15,7 @@ export function preparePortalFixture(portal) {
   }
 }
 
-async function login(page, origin, role, password = fixturePassword) {
+export async function login(page, origin, role, password = fixturePassword) {
   await page.goto(origin + "/cabinet/");
   const signOut = page.getByRole("button", { name: "Выйти", exact: true });
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
@@ -50,7 +50,11 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
       await dialog.getByLabel("Почта профиля", { exact: true }).fill(`${role}@example.test`);
       await dialog.getByLabel("Пароль профиля", { exact: true }).fill("Invalid-profile-password");
       await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
-      await dialog.getByRole("alert").filter({ hasText: "Проверьте почту и пароль." }).waitFor();
+      const error = dialog.locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Проверьте почту и пароль." });
+      await error.waitFor();
+      const bounds = await error.boundingBox();
+      assert.ok(bounds.y < 100 && bounds.x >= 0 && bounds.x + bounds.width <= width + 1, "modal error is at the top and fits the viewport");
+      await error.getByRole("button", { name: "Закрыть уведомление", exact: true }).click();
       assert.notEqual(await root.getAttribute("data-role"), role, "failed login cannot switch profiles");
       await dialog.getByLabel("Пароль профиля", { exact: true }).fill(fixturePassword);
       await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();

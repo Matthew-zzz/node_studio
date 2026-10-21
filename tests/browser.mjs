@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
+import { checkNotifications } from "./browser/notifications.mjs";
 import { checkPortal, checkPortalAuthentication, checkProfileSwitching, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
@@ -108,7 +109,7 @@ try {
     if (width === 1440) {
       await context.grantPermissions(["clipboard-read", "clipboard-write"]);
       await page.getByRole("button", { name: "Скопировать Telegram-аккаунт" }).click();
-      await page.waitForFunction(() => document.querySelector(".toast").textContent.includes("скопирован"));
+      await page.locator('[data-sonner-toast]').filter({ hasText: "Telegram-аккаунт скопирован" }).waitFor();
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "@ma11hew_z");
     }
     try { await checkPortal(page, origin, width, screenshots, portal); }
@@ -124,6 +125,7 @@ try {
   await checkMotionPreferences(browser, origin);
   await checkPortalAuthentication(browser, origin);
   await checkWorkspacePreferences(browser, origin);
+  await checkNotifications(browser, origin, portal, screenshots);
 
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();

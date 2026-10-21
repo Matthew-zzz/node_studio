@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Notifications } from "@/components/ui/notifications";
 import type { IconName } from "@/components/ui/icon";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import { ROLE_LABELS } from "@/features/portal/model/types";
@@ -33,7 +34,7 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
 
   function addProfile(nextRole: Role | null = null) {
     popover.current?.hidePopover();
-    controller.clearError(); setRole(nextRole); setEmail(""); setPassword(""); setOpen(true);
+    setRole(nextRole); setEmail(""); setPassword(""); setOpen(true);
   }
 
   async function switchProfile(userId: string) {
@@ -89,10 +90,10 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
       </button>
       <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
       <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { setOpen(false); setPassword(""); } }}>
+        <Notifications modal />
         <span className={portal.kicker}>{role ? ROLE_LABELS[role] : "Рабочее пространство"}</span>
         <h2 id={titleId}>Добавить профиль</h2>
         <p className={portal.subtitle}>Войдите в аккаунт один раз, чтобы переключаться без повторного ввода пароля.</p>
-        {controller.error && <p className={portal.notice} role="alert">{controller.error}</p>}
         <form className={portal.form} onSubmit={event => void submit(event)}>
           <label>
             Почта профиля

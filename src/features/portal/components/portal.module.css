@@ -132,8 +132,6 @@
 .empty > svg { width: 28px; height: 28px; opacity: .6; margin-bottom: 8px; }
 .empty h2 { color: var(--p-text); }
 .empty p { max-width: 320px; font-size: 12px; }
-.notice { display: flex; justify-content: space-between; gap: 15px; align-items: flex-start; padding: 13px 16px; margin-bottom: 20px; border: 1px solid var(--p-line); background: var(--p-panel); border-radius: 10px; color: var(--p-red); font-size: 12px; overflow-wrap: anywhere; }
-.notice button { flex-shrink: 0; }
 .chat { padding: 0; overflow: hidden; }
 .chatHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 21px 22px; border-bottom: 1px solid var(--p-line); }
 .chatIdentity { display: flex; gap: 11px; align-items: center; min-width: 0; }

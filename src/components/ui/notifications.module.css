@@ -1,0 +1,14 @@
+.viewport[data-sonner-toaster] { --border-radius: 14px; font-family: Arial, Helvetica, sans-serif; }
+.viewport[data-sonner-toaster][data-sonner-theme="light"] { --normal-bg: #fff; --normal-border: #e9e8f0; --normal-text: #2b2938; --notification-muted: #777384; --notification-error: #af4d60; --notification-success: #3f816b; --notification-accent: #7563aa; }
+.viewport[data-sonner-toaster][data-sonner-theme="dark"] { --normal-bg: #1c1c26; --normal-border: #393746; --normal-text: #e6e4ef; --notification-muted: #a19dae; --notification-error: #e19ba7; --notification-success: #8bc3ae; --notification-accent: #baabdf; }
+.viewport .notification[data-sonner-toast] { padding: 16px 38px 16px 17px; gap: 11px; box-shadow: 0 8px 35px #1712221f; font-size: 12px; line-height: 1.6; }
+.viewport .notification[data-type="error"] [data-icon] { color: var(--notification-error); }
+.viewport .notification[data-type="success"] [data-icon] { color: var(--notification-success); }
+.viewport .notification[data-type="info"] [data-icon] { color: var(--notification-accent); }
+.viewport .notification .title { font-size: 12px; font-weight: 500; }
+.viewport .notification .description { color: var(--notification-muted); font-size: 11px; }
+.viewport .notification .close[data-close-button] { inset: 12px 10px auto auto; transform: none; border: 0; width: 22px; height: 22px; background: transparent; color: var(--notification-muted); }
+.viewport .notification .action[data-button] { border-radius: 7px; color: var(--normal-bg); background: var(--notification-accent); font-size: 11px; }
+.viewport .notification :is(button,a):focus-visible { outline: 2px solid var(--notification-accent); outline-offset: 3px; }
+@media (max-width: 600px) { .viewport .notification[data-sonner-toast] { padding-block: 14px; } }
+.host { position: absolute; width: 0; height: 0; }

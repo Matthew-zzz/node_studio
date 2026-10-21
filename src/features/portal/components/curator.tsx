@@ -7,6 +7,7 @@ import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { Conversation } from "@/features/portal/model/types";
 import { formatRubles, parseRubles } from "@/features/payments/model/payment";
+import { notify } from "@/lib/notifications";
 import styles from "./portal.module.css";
 
 type InboxFilter = "all" | "waiting" | "mine";
@@ -86,11 +87,11 @@ const orderStatus = { pending: "Ожидает оплаты", paid: "Оплач�
 
 export function ProjectOrders({ controller }: { controller: PortalController }) {
   const [name, setName] = useState(""); const [client, setClient] = useState(""); const [email, setEmail] = useState("");
-  const [username, setUsername] = useState(""); const [brief, setBrief] = useState(""); const [amount, setAmount] = useState(""); const [validation, setValidation] = useState("");
+  const [username, setUsername] = useState(""); const [brief, setBrief] = useState(""); const [amount, setAmount] = useState("");
   const kopecks = parseRubles(amount);
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setValidation("");
-    if (!kopecks) { setValidation("Введите корректную стоимость в рублях."); return; }
+    event.preventDefault();
+    if (!kopecks) { notify.error("Введите корректную стоимость в рублях."); return; }
     if (await controller.run({ type: "order.create", order: { projectName: name, clientName: client, email, username, brief, totalKopecks: kopecks } })) {
       setName(""); setClient(""); setEmail(""); setUsername(""); setBrief(""); setAmount("");
     }
@@ -132,7 +133,6 @@ export function ProjectOrders({ controller }: { controller: PortalController }) 
               <textarea required maxLength={16000} rows={5} value={brief} onChange={event => setBrief(event.target.value)} placeholder="Что входит в основной объём проекта" />
             </label>
             <p className={styles.small}>Основная работа оплачивается без наценки. После оплаты можно создать проект и выдать доступ клиенту.</p>
-            {validation && <p className={styles.small} role="alert">{validation}</p>}
             <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>Подготовить ссылку на оплату</button></div>
           </form>
         </details>

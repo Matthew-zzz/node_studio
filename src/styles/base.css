@@ -739,29 +739,6 @@ h2 {
   color: #66677d;
 }
 
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 30px;
-  transform: translate(-50%,20px);
-  z-index: 100;
-  color: var(--text);
-  background: #1f2033;
-  border: 1px solid #4b4d85;
-  border-radius: 8px;
-  padding: 12px 22px;
-  font-size: 13px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .2s,transform .2s;
-  box-shadow: 0 10px 30px #0005;
-  max-width: calc(100vw - 30px);
-}
-
-.toast.visible {
-  opacity: 1;
-  transform: translate(-50%,0);
-}
 
 .case-hero {
   padding-top: 49px;
@@ -1382,12 +1359,6 @@ h2 {
   }
   .not-found p {
     font-size: 14px;
-  }
-  .toast {
-    font-size: 12px;
-    bottom: 20px;
-    padding: 11px 16px;
-    white-space: nowrap;
   }
 }
 
