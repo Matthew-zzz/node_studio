@@ -61,6 +61,13 @@ const paths = {
     <rect x="3" y="3" width="18" height="18" rx="3" />
     <path d="M3 9h18M3 15h18M9 9v12M15 9v12" />
   </>),
+  columns: (<>
+    <rect x="3" y="4" width="18" height="16" rx="3" />
+    <path d="M12 4v16" />
+  </>),
+  swap: (<>
+    <path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" />
+  </>),
   database: (<>
     <ellipse cx="12" cy="5" rx="8" ry="3" />
     <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />

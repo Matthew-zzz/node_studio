@@ -98,7 +98,7 @@ async function openChat(page, width) {
   await navigate(page, width, "Чат");
 }
 
-async function openProject(page, width, projectId, section = "Обзор проекта") {
+export async function openProject(page, width, projectId, section = "Обзор проекта") {
   if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
   const developer = await page.getByTestId("portal").getAttribute("data-role") === "developer";
   const projects = page.getByRole("navigation", { name: developer ? "Проекты в работе" : "Мои проекты", exact: true });

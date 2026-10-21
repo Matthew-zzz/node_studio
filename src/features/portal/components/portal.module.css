@@ -49,6 +49,7 @@
 .projectBranch[open] > summary .projectChevron { transform: rotate(90deg); }
 .projectBranch > .projectSections { display: grid; gap: 3px; margin: 4px 0 4px 21px; padding-left: 9px; border-left: 1px solid var(--p-line); }
 .projectSections button { min-height: 36px; padding: 8px 10px; gap: 8px; font-size: 11px; }
+.projectSections button[data-secondary="true"] { color: var(--p-accent); box-shadow: inset 2px 0 var(--p-accent); }
 .projectSections svg { width: 15px; height: 15px; flex-shrink: 0; }
 .sidebarBottom { margin-top: auto; display: grid; gap: 24px; }
 .supportLink { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--p-muted); padding-inline: 13px; }
@@ -79,7 +80,6 @@
 .mobileMenu > .logo { padding-right: 30px; }
 .closeMenu { position: absolute; top: 27px; right: 15px; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--p-line); border-radius: 9px; background: transparent; color: var(--p-muted); }
 .closeMenu svg { width: 16px; height: 16px; }
-.projectContent { max-width: 960px; }
 .stack { display: grid; gap: 21px; min-width: 0; }
 .panel { background: var(--p-panel); border: 1px solid var(--p-line); border-radius: 15px; box-shadow: var(--p-shadow); padding: 25px; min-width: 0; }
 .panelHeader { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 23px; }

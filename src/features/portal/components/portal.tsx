@@ -6,29 +6,30 @@ import { Icon } from "@/components/ui/icon";
 import { Notifications } from "@/components/ui/notifications";
 import type { IconName } from "@/components/ui/icon";
 import { Login, PasswordForm } from "@/features/portal/components/auth";
-import { Chat } from "@/features/portal/components/chat";
 import { ProjectOrders, TelegramInbox } from "@/features/portal/components/curator";
 import { DeveloperQueue } from "@/features/portal/components/developer";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
-import { CommitHistory, ProjectBrief, Stages, Tasks } from "@/features/portal/components/project-work";
+import { ProjectWorkspace } from "@/features/portal/components/project-workspace";
 import { Empty, ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { usePortal } from "@/features/portal/lib/use-portal";
 import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { ROLE_LABELS } from "@/features/portal/model/types";
 import type { Role } from "@/features/portal/model/types";
+import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/portal/model/project-views";
+import type { ProjectView } from "@/features/portal/model/project-views";
 import styles from "./portal.module.css";
 
-type View = "overview" | "tasks" | "history" | "chat" | "queue" | "inbox" | "orders" | "settings";
+type View = ProjectView | "queue" | "inbox" | "orders" | "settings";
 const views: Record<View, { label: string; icon: IconName }> = {
-  overview: { label: "Обзор проекта", icon: "service" }, tasks: { label: "Задачи", icon: "document" }, history: { label: "История", icon: "code" }, chat: { label: "Чат", icon: "bot" },
+  overview: { label: PROJECT_VIEW_LABELS.overview, icon: "service" }, tasks: { label: PROJECT_VIEW_LABELS.tasks, icon: "document" }, history: { label: PROJECT_VIEW_LABELS.history, icon: "code" }, chat: { label: PROJECT_VIEW_LABELS.chat, icon: "bot" },
   queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Создание проектов", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
 };
 const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: [] };
-const projectViews: View[] = ["overview", "tasks", "history", "chat"];
 
 export function Portal() {
   const controller = usePortal(); const { theme, setTheme } = usePortalTheme();
   const [view, setView] = useState<View | null>(null);
+  const [layout, setLayout] = useState<{ viewerId: string; projectId: string; secondary: ProjectView } | null>(null);
   const mobileMenu = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 651px)");
@@ -51,17 +52,33 @@ export function Portal() {
   const project = snapshot.projects.find(project => project.id === snapshot.selectedProjectId);
   const developer = viewer.role === "developer";
   const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
-  const activeView = developer && projectViews.includes(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
-  const projectView = projectViews.includes(activeView) && viewer.role !== "admin";
-  const globalViews = available.filter(key => !projectViews.includes(key));
+  const activeView = developer && isProjectView(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
+  const projectView = isProjectView(activeView) && viewer.role !== "admin";
+  const globalViews = available.filter(key => !isProjectView(key));
   const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : snapshot.projects;
-  const thread = snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project?.id);
-  const navigate = (next: View) => { setView(next); mobileMenu.current?.close(); };
-  const openProject = async (id: string, tab: View = "overview") => {
-    if (await controller.select(id)) navigate(tab);
+  const secondaryView = layout?.viewerId === viewer.id && layout.projectId === project?.id && layout.secondary !== activeView ? layout.secondary : null;
+  const navigate = (next: View) => {
+    if (!isProjectView(next)) setLayout(null);
+    setView(next); mobileMenu.current?.close();
+  };
+  const selectSecondary = (next: ProjectView | null) => {
+    if (secondaryView && next === activeView) navigate(secondaryView);
+    setLayout(next && project ? { viewerId: viewer.id, projectId: project.id, secondary: next } : null);
+  };
+  const selectPrimary = (next: ProjectView) => {
+    if (next === secondaryView && isProjectView(activeView)) setLayout({ viewerId: viewer.id, projectId: project!.id, secondary: activeView });
+    navigate(next);
+  };
+  const openSecondary = () => {
+    if (activeView === "chat") { selectSecondary("chat"); navigate("overview"); }
+    else selectSecondary("chat");
+  };
+  const openProject = async (id: string, tab: ProjectView = "overview") => {
+    if (id === project?.id) selectPrimary(tab);
+    else if (await controller.select(id)) { setLayout(null); navigate(tab); }
   };
   const acceptProject = async (id: string, tab: "overview" | "chat") => {
-    if (await controller.acceptProject(id)) navigate(tab);
+    if (await controller.acceptProject(id)) { setLayout(null); navigate(tab); }
   };
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : viewer.role === "admin" ? "Администратор" : projectView ? project?.name ?? "Мои проекты" : views[activeView].label;
   const navigation = (
@@ -92,8 +109,8 @@ export function Portal() {
                 <span className={styles.projectChevron} aria-hidden="true">›</span>
               </summary>
               <div className={styles.projectSections} role="group" aria-label={`Разделы проекта ${item.name}`}>
-                {projectViews.map(key => (
-                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && activeView === key ? "page" : undefined} onClick={() => void openProject(item.id, key)}>
+                {PROJECT_VIEWS.map(key => (
+                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && activeView === key ? "page" : undefined} data-secondary={item.id === project?.id && secondaryView === key} onClick={() => void openProject(item.id, key)}>
                     <Icon name={views[key].icon} />
                     {views[key].label}
                   </button>
@@ -155,27 +172,17 @@ export function Portal() {
             {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : viewer.role === "admin" ? <section className={styles.panel}><Empty title="Здесь будет управление студией" text="Раздел администратора подготовлен. Возможности добавим на следующем этапе." icon="service" /></section> : (
               <>
                 {activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
-                  <>
-                    <div key={project.id} className={styles.projectContent}>
-                      {activeView !== "chat" && (
-                      <div className={styles.stack}>
-                        {activeView === "history" ? <CommitHistory controller={controller} /> : activeView === "tasks" ? (
-                          <>
-                            <ProjectBrief project={project} />
-                            <Tasks project={project} controller={controller} />
-                          </>
-) : (
-  <>
-    <Stages project={project} controller={controller} />
-    <Tasks project={project} controller={controller} compact />
-    <ProjectBrief project={project} />
-  </>
-)}
-                      </div>
-)}
-                      {activeView === "chat" && <Chat key={thread?.id} thread={thread} controller={controller} />}
-                    </div>
-                  </>
+                  <ProjectWorkspace
+                    key={`${viewer.id}:${project.id}`}
+                    project={project}
+                    controller={controller}
+                    primary={isProjectView(activeView) ? activeView : "overview"}
+                    secondary={secondaryView}
+                    onSelectPrimary={selectPrimary}
+                    onSelectSecondary={selectSecondary}
+                    onOpenSecondary={openSecondary}
+                    onCloseSecondary={() => setLayout(null)}
+                  />
                 )}
               </>
             )}

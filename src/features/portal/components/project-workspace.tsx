@@ -1,0 +1,97 @@
+"use client";
+
+import { Icon } from "@/components/ui/icon";
+import { Chat } from "@/features/portal/components/chat";
+import { CommitHistory, ProjectBrief, Stages, Tasks } from "@/features/portal/components/project-work";
+import type { PortalController } from "@/features/portal/lib/use-portal";
+import type { PortalProject } from "@/features/portal/model/types";
+import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/portal/model/project-views";
+import type { ProjectView } from "@/features/portal/model/project-views";
+import portalStyles from "./portal.module.css";
+import styles from "./project-workspace.module.css";
+
+interface ProjectWorkspaceProps {
+  project: PortalProject;
+  controller: PortalController;
+  primary: ProjectView;
+  secondary: ProjectView | null;
+  onSelectPrimary: (view: ProjectView) => void;
+  onSelectSecondary: (view: ProjectView) => void;
+  onOpenSecondary: () => void;
+  onCloseSecondary: () => void;
+}
+
+function ProjectSection({ project, controller, view, companion }: {
+  project: PortalProject;
+  controller: PortalController;
+  view: ProjectView;
+  companion: ProjectView | null;
+}) {
+  if (view === "chat") {
+    const thread = controller.snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project.id);
+    return <Chat key={thread?.id} thread={thread} controller={controller} />;
+  }
+  if (view === "history") return <CommitHistory controller={controller} />;
+  if (view === "tasks") return <Tasks project={project} controller={controller} />;
+  return (
+    <div className={portalStyles.stack}>
+      <Stages project={project} controller={controller} />
+      {companion !== "tasks" && <Tasks project={project} controller={controller} compact />}
+      <ProjectBrief project={project} />
+    </div>
+  );
+}
+
+export function ProjectWorkspace({ project, controller, primary, secondary, onSelectPrimary, onSelectSecondary, onOpenSecondary, onCloseSecondary }: ProjectWorkspaceProps) {
+  const { busy } = controller;
+  const panes = secondary ? [primary, secondary] : [primary];
+  const expandSecondary = () => {
+    if (secondary) { onSelectPrimary(secondary); onCloseSecondary(); }
+  };
+  return (
+    <section className={styles.root} data-split={Boolean(secondary)} aria-label="Рабочая область проекта">
+      <div className={styles.tools}>
+        <span className={portalStyles.small}>{secondary ? "Два раздела" : PROJECT_VIEW_LABELS[primary]}</span>
+        <div className={styles.actions}>
+          {secondary ? (
+            <>
+              <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Поменять разделы местами" title="Поменять разделы местами" onClick={() => onSelectPrimary(secondary)}><Icon name="swap" /></button>
+              <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onCloseSecondary}>Один раздел</button>
+            </>
+          ) : (
+            <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onOpenSecondary}>
+              <Icon name="columns" />
+              Открыть рядом
+            </button>
+          )}
+        </div>
+      </div>
+      <div className={styles.grid}>
+        {panes.map((view, index) => (
+          <section key={view} className={styles.pane} aria-label={secondary ? index === 0 ? "Левая область проекта" : "Правая область проекта" : "Основная область проекта"}>
+            {secondary && (
+              <div className={styles.paneHeader}>
+                <label>
+                  <span>{index === 0 ? "Слева" : "Справа"}</span>
+                  <select
+                    aria-label={index === 0 ? "Раздел слева" : "Раздел справа"}
+                    value={view}
+                    disabled={busy}
+                    onChange={event => {
+                    if (isProjectView(event.target.value)) (index === 0 ? onSelectPrimary : onSelectSecondary)(event.target.value);
+                  }}
+                  >
+                    {PROJECT_VIEWS.map(item => <option key={item} value={item}>{PROJECT_VIEW_LABELS[item]}</option>)}
+                  </select>
+                </label>
+                <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label={index === 0 ? "Развернуть левый раздел" : "Развернуть правый раздел"} title="Развернуть раздел" onClick={index === 0 ? onCloseSecondary : expandSecondary}><Icon name="diagonal" /></button>
+                {index === 1 && <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Закрыть правый раздел" title="Закрыть раздел" onClick={onCloseSecondary}><Icon name="close" /></button>}
+              </div>
+            )}
+            <ProjectSection project={project} controller={controller} view={view} companion={secondary ? index === 0 ? secondary : primary : null} />
+          </section>
+        ))}
+      </div>
+    </section>
+  );
+}

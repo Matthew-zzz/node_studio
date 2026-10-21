@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { checkMotionPreferences } from "./browser/motion.mjs";
 import { checkNotifications } from "./browser/notifications.mjs";
+import { checkProjectWorkspace } from "./browser/project-workspace.mjs";
 import { checkPortal, checkPortalAuthentication, checkProfileSwitching, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
@@ -119,6 +120,7 @@ try {
       throw error;
     }
     await context.close();
+    await checkProjectWorkspace(browser, origin, width, screenshots, portal);
     await checkProfileSwitching(browser, origin, width, screenshots);
   }
 
