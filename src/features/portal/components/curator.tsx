@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
+import { CuratorProject } from "@/features/portal/components/curator-project";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { Conversation } from "@/features/portal/model/types";
@@ -97,8 +98,9 @@ export function ProjectOrders({ controller }: { controller: PortalController }) 
   }
   return (
     <div className={styles.stack}>
-      <section className={styles.panel}>
-        <h2>Новый проект</h2>
+      <CuratorProject controller={controller} />
+      <section className={styles.panel} aria-label="Оплата и выдача доступа">
+        <h2>Оплата и выдача доступа</h2>
         <p className={styles.subtitle}>Данные клиента и согласованный объём основной работы.</p>
         <details style={{ marginTop: 16 }}>
           <summary>Подготовить проект</summary>
@@ -166,7 +168,7 @@ export function ProjectOrders({ controller }: { controller: PortalController }) 
             <div className={styles.formActions}>
               {order.status === "pending" && <a className={styles.orderLink} href={`/checkout/#${encodeURIComponent(order.checkoutToken)}`} target="_blank" rel="noopener noreferrer">Открыть ссылку на оплату ↗</a>}
               {["paid", "needs_setup"].includes(order.status) && <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "order.provision", orderId: order.id })}>Создать проект и выдать доступ</button>}
-              {order.status === "ready" && <span className={styles.small}>Репозиторий создан, первое ТЗ передано разработчику, доступ отправлен на почту.</span>}
+              {order.status === "ready" && <span className={styles.small}>Проект передан в общую очередь, доступ отправлен на почту. Репозиторий создаст разработчик после принятия проекта.</span>}
             </div>
           </article>
         ))}

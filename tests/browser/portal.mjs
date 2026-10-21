@@ -278,10 +278,11 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
 
   const projectName = `Новый проект ${width}`;
   await navigate(page, width, "Создание проектов");
+  const paidProject = page.getByRole("region", { name: "Оплата и выдача доступа", exact: true });
   await page.getByText("Подготовить проект", { exact: true }).click();
-  await page.getByLabel("Название проекта", { exact: true }).fill(projectName);
+  await paidProject.getByLabel("Название проекта", { exact: true }).fill(projectName);
   await page.getByLabel("Имя клиента", { exact: true }).fill("Клиент");
-  await page.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
+  await paidProject.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
   await page.getByLabel("Telegram username", { exact: true }).fill("client_customer");
   await page.getByLabel("Основная работа, ₽", { exact: true }).fill("5000");
   await page.getByLabel("Согласованное ТЗ", { exact: true }).fill("Каталог и оформление заказа.");

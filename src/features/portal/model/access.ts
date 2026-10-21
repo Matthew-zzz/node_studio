@@ -2,16 +2,18 @@ import type { PortalSnapshot, Viewer } from "./types";
 
 /** The API applies this projection before serializing; hidden data never reaches a client. */
 export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selectedId = ""): PortalSnapshot {
+  source = { ...source, projects: source.projects.filter(project => project.status !== "archived") };
   const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], selectedProjectId: "", repositoryStatus: {} };
   if (viewer.mustChangePassword || viewer.role === "admin") return blank;
   if (viewer.role === "curator") {
     const conversations = source.conversations.filter(thread => thread.kind === "telegram");
     const ids = new Set(conversations.map(thread => thread.id));
-    return { ...blank, conversations, messages: source.messages.filter(message => ids.has(message.threadId)), orders: source.orders };
+    const projects = source.projects.filter(project => project.origin === "curator").map(project => { const visible = { ...project, repo: "", repositoryReady: Boolean(project.repo) }; delete visible.subprojects; return visible; });
+    return { ...blank, projects, conversations, messages: source.messages.filter(message => ids.has(message.threadId)), orders: source.orders.filter(order => !order.projectId || source.projects.some(project => project.id === order.projectId)) };
   }
   const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id).map(project => {
     if (viewer.role !== "client") return project;
-    const publicProject = { ...project, repo: "" };
+    const publicProject = { ...project, repo: "", repositoryReady: Boolean(project.repo) };
     delete publicProject.subprojects;
     return publicProject;
   });

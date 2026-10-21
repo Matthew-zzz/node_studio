@@ -67,7 +67,12 @@ export function Chat({ thread, controller }: { thread: Conversation | undefined;
             <span className={styles.small}>Черновик задачи · проверьте перед отправкой</span>
             <h3>{draft.title}</h3>
             <LongText text={draft.body} label="Показать формулировку" />
-            {viewer.role === "client" ? <button className={styles.primary} type="button" disabled={busy} onClick={() => void run({ type: "draft.confirm", draftId: draft.id })}>Подтвердить и отправить задачу</button> : <p className={styles.small}>Ожидает подтверждения клиента</p>}
+            {viewer.role === "client" ? (
+              <>
+                <button className={styles.primary} type="button" disabled={busy || snapshot.projects.find(project => project.id === draft.projectId)?.repositoryReady === false} onClick={() => void run({ type: "draft.confirm", draftId: draft.id })}>Подтвердить и отправить задачу</button>
+                {snapshot.projects.find(project => project.id === draft.projectId)?.repositoryReady === false && <p className={styles.small}>Пожелание сохранено. Отправить его можно будет, когда разработчик подготовит проект.</p>}
+              </>
+) : <p className={styles.small}>Ожидает подтверждения клиента</p>}
           </article>
         ))}
         {quotes.map(quote => (

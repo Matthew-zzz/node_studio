@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Empty } from "@/features/portal/components/ui";
+import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import { CreateProject } from "@/features/portal/components/project-manager";
 import styles from "./portal.module.css";
@@ -52,7 +52,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCrea
             <input type="search" aria-label="Поиск проектов" value={search} onChange={event => setSearch(event.target.value)} placeholder="Проект или клиент" />
           </div>
         </div>
-        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Новые проекты появятся после оплаты и создания. Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
+        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Здесь появятся проекты от куратора. Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
         {visible.length === 0 && projects.length > 0 && <button className={styles.secondary} type="button" onClick={() => setSearch("")}>Сбросить поиск</button>}
         {visible.map(project => (
           <article className={styles.queueItem} key={project.id}>
@@ -60,6 +60,9 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCrea
               <span className={styles.small}>{project.clientName}</span>
               <h3>{project.name}</h3>
               <p className={styles.projectDescription}>{project.description}</p>
+              <p className={styles.small}>{project.clientEmail}</p>
+              <LongText text={project.brief} label="Изучить ТЗ проекта" />
+              {!project.repo && <p className={styles.small}>После принятия проекта вы сможете создать его GitHub-репозиторий.</p>}
             </div>
             <button type="button" className={styles.primary} disabled={busy} onClick={() => onAcceptProject(project.id, "overview")}>Взять в работу</button>
           </article>

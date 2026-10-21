@@ -207,7 +207,7 @@ test("Telegram intake is deduplicated, private, and supports curator takeover", 
   } finally { f.close(); }
 });
 
-test("paid initial order provisions one private repo, first Issue and one account; access email is queued encrypted", async () => {
+test("paid order creates a client and project without GitHub; developer creates the repo after acceptance", async () => {
   const f = portalFixture();
   try {
     const curator = f.login("curator").session;
@@ -220,12 +220,19 @@ test("paid initial order provisions one private repo, first Issue and one accoun
     let queued;
     f.integrations.mail = async (email, content) => { queued = String(f.store.db.prepare("SELECT payload FROM jobs WHERE kind='mail'").get().payload); f.sent.push({ email, content }); };
     await f.service.workJobs();
-    assert.equal(f.repositories.length, 1); assert.equal(f.issues.get(f.repositories[0]).length, 1);
+    assert.equal(f.repositories.length, 0);
+    const project = f.store.get("projects", `project:${order.id}`);
+    assert.equal(project.repo, ""); assert.equal(project.developerId, undefined);
+    assert.equal(f.store.all("tasks", project.id).length, 0);
     const client = f.store.findUser("new@example.test"); assert.equal(client.mustChangePassword, true);
     const mail = f.sent.find(item => item.email === client.email); assert.ok(mail.content.includes("Временный пароль"));
     assert.ok(!queued.includes("Временный пароль")); assert.ok(!queued.includes(mail.content.match(/Временный пароль: (.+)/)[1]));
     assert.equal(f.store.get("orders", order.id).status, "ready");
-    await f.service.action(curator, { type: "order.provision", orderId: order.id }); assert.equal(f.repositories.length, 1);
+    await f.service.action(curator, { type: "order.provision", orderId: order.id }); assert.equal(f.repositories.length, 0);
+    const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    await f.service.action(developer, { type: "project.repository.create", projectId: project.id });
+    assert.equal(f.repositories.length, 1); assert.equal(f.issues.get(f.repositories[0]).length, 1);
   } finally { f.close(); }
 });
 

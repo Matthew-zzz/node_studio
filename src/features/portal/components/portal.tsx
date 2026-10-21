@@ -65,7 +65,7 @@ export function Portal() {
   const activeView = developer && isProjectView(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
   const projectView = isProjectView(activeView) && viewer.role !== "admin";
   const globalViews = available.filter(key => !isProjectView(key));
-  const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : snapshot.projects;
+  const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : viewer.role === "client" ? snapshot.projects : [];
   const secondaryView = layout?.viewerId === viewer.id && layout.projectId === project?.id && layout.secondary !== activeView ? layout.secondary : null;
   const navigate = (next: View) => {
     if (!isProjectView(next)) setLayout(null);
@@ -197,7 +197,7 @@ export function Portal() {
                 <h1>{pageTitle}</h1>
                 <p className={styles.subtitle}>{projectView ? project?.description : viewer.role === "curator" ? "Переписка с клиентами и подготовка новых проектов" : viewer.role === "developer" ? "Все проекты и задачи в одном месте" : ""}</p>
               </div>
-              {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : "Ожидаем GitHub"}</span>}
+              {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : !project.developerId ? "Ожидает разработчика" : !(project.repositoryReady ?? Boolean(project.repo)) ? "Подготовка к разработке" : "Ожидаем GitHub"}</span>}
             </div>
             {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
               <>

@@ -32,6 +32,32 @@ test("GitHub mutations preserve markers and other labels and retry Issue creatio
   assert.ok(written.body.includes("<!-- nodo:draft:123 -->"));
 });
 
+test("repository adapter creates a private empty repo and reuses it on retries with its labels", async () => {
+  let exists = false; let posts = 0; const labels = [];
+  const adapter = createIntegrations(config(), async (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/user") return reply({ login: "Matthew-zzz" });
+    if (path === "/user/repos" && init.method === "POST") {
+      assert.deepEqual(JSON.parse(init.body), { name: "node-project", private: true, auto_init: false, has_issues: true });
+      exists = true; posts++; return reply({ full_name: "Matthew-zzz/node-project", private: true }, 201);
+    }
+    if (path === "/repos/Matthew-zzz/node-project") return reply(exists ? { private: true } : { message: "Not found" }, exists ? 200 : 404);
+    if (path.endsWith("/labels")) {
+      if (init.method === "POST") { labels.push(JSON.parse(init.body)); return reply(labels.at(-1), 201); }
+      return reply(labels);
+    }
+    throw new Error(`Unexpected GitHub operation: ${path}`);
+  });
+  assert.equal(await adapter.createRepository("node-project"), "Matthew-zzz/node-project");
+  const count = labels.length; assert.ok(count > 0);
+  assert.equal(await adapter.createRepository("node-project"), "Matthew-zzz/node-project");
+  assert.equal(posts, 1); assert.equal(labels.length, count);
+  const publicRepo = createIntegrations(config(), async url => reply(url.endsWith("/user") ? { login: "Matthew-zzz" } : { private: false }));
+  await assert.rejects(publicRepo.createRepository("node-project"), { status: 409 });
+  const otherOwner = createIntegrations(config(), async () => reply({ login: "someone-else" }));
+  await assert.rejects(otherOwner.createRepository("node-project"), { status: 503 });
+});
+
 test("assistant request contains only supplied messages, configured model, and a structured reply schema", async () => {
   let payload;
   const adapter = createIntegrations(config(), async (url, init) => {

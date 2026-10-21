@@ -9,7 +9,7 @@ import { withErrorContext } from "./error-context.ts";
 import { PortalError } from "./store.ts";
 
 const [command, role, email, name] = process.argv.slice(2);
-if (!["bootstrap", "import-project"].includes(command ?? "") && (command !== "create-user" || !["developer", "curator", "admin"].includes(role ?? "") || !email || !name)) {
+if (!["bootstrap", "import-project", "archive-project"].includes(command ?? "") && (command !== "create-user" || !["developer", "curator", "admin"].includes(role ?? "") || !email || !name)) {
   console.error('Usage: node server/cli.ts create-user <developer|curator|admin> <email> "Name" < password-file');
   process.exit(1);
 }
@@ -18,7 +18,12 @@ const config = readConfig();
 const store = new PortalStore(config.database, { recoverJobs: false });
 try {
   const input = readFileSync(0, "utf8").replace(/\r?\n$/, "");
-  if (command === "import-project") {
+  if (command === "archive-project") {
+    const definition = object(JSON.parse(input));
+    const service = new PortalService(store, createIntegrations(config), config);
+    const project = service.projects.archive(text(definition.projectId, 100));
+    console.log(JSON.stringify({ id: project.id, name: project.name, status: project.status, archivedAt: project.archivedAt }));
+  } else if (command === "import-project") {
     if (Buffer.byteLength(input) > 65536) throw new PortalError(413, "Слишком большое описание проекта.");
     const definition = object(JSON.parse(input));
     const developer = store.findUser(text(definition.developerEmail, 254));

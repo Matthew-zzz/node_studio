@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { resolve } from "node:path";
+import { login, openProject } from "./portal.mjs";
+
+export async function checkProjectLifecycle(browser, origin, width, screenshots, fixture) {
+  const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
+  try {
+    const page = await context.newPage(); const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    const name = `Проект куратора ${width}`; const brief = "Личный кабинет с каталогом, поиском и историей заказов.";
+    const before = fixture.repositories.length; const sent = fixture.sent.filter(item => item.email).length;
+    await login(page, origin, "curator");
+    if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
+    await page.getByText("Создать для существующего клиента", { exact: true }).click();
+    const form = page.getByRole("form", { name: "Создание проекта куратором", exact: true });
+    await form.getByLabel("Название проекта", { exact: true }).fill(name);
+    await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
+    await form.getByLabel("Краткое описание", { exact: true }).fill("Каталог и личный кабинет");
+    await form.getByLabel("ТЗ проекта", { exact: true }).fill(brief);
+    await form.getByRole("button", { name: "Создать проект", exact: true }).click();
+    const receipt = page.getByRole("region", { name: "Проекты клиентов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await receipt.getByText("В общей очереди", { exact: true }).waitFor();
+    assert.equal(fixture.repositories.length, before); assert.equal(fixture.sent.filter(item => item.email).length, sent);
+    assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
+    const project = fixture.store.all("projects").find(project => project.name === name);
+    assert.equal(project.repo, ""); assert.equal(project.developerId, undefined);
+    await login(page, origin, "client"); await openProject(page, width, name);
+    await page.getByText("Ожидает разработчика", { exact: true }).waitFor({ state: "attached" });
+    await login(page, origin, "developer");
+    const card = page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await card.locator("summary").filter({ hasText: "Изучить ТЗ проекта" }).click();
+    await card.getByText(brief, { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.screenshot({ path: resolve(screenshots, `${width}-project-review.png`), fullPage: true });
+    await card.getByRole("button", { name: "Взять в работу", exact: true }).click();
+    await page.getByRole("heading", { name, level: 1, exact: true }).waitFor();
+    const create = page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true });
+    await create.waitFor(); assert.equal(fixture.repositories.length, before);
+    assert.equal(await page.getByText("Добавить этап", { exact: true }).count(), 0);
+    await create.click();
+    await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
+    assert.equal(fixture.repositories.length, before + 1);
+    const created = fixture.store.get("projects", project.id);
+    assert.equal(created.repo, fixture.repositories.at(-1)); assert.equal(created.subprojects.length, 1);
+    assert.equal(fixture.issues.get(created.repo).length, 1);
+    await page.locator("summary").filter({ hasText: /^Управление подпроектами$/ }).click();
+    await page.getByRole("link", { name: created.repo, exact: true }).waitFor();
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    await page.screenshot({ path: resolve(screenshots, `${width}-project-repository.png`), fullPage: true });
+    await login(page, origin, "client"); await openProject(page, width, name, "Задачи");
+    await page.getByRole("heading", { name: `Разработка: ${name}`, exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: created.repo, exact: true }).count(), 0);
+    const snapshot = await (await page.request.get(`${origin}/api/portal/snapshot?project=${encodeURIComponent(project.id)}`)).json();
+    assert.equal(snapshot.projects.find(item => item.id === project.id).repositoryReady, true);
+    assert.ok(!JSON.stringify(snapshot).includes(created.repo)); assert.deepEqual(errors, []);
+    console.log(`Project lifecycle ${width}px: curator creation, client access, review, acceptance and exclusive repository creation passed`);
+  } finally { await context.close(); }
+}

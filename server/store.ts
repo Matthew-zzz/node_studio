@@ -11,6 +11,7 @@ import { errorContext } from "./error-context.ts";
 
 export interface Records {
   projects: PortalProject;
+  repositoryRequests: { id: string; projectId: string; owner: string; name: string; createdAt: string };
   tasks: WorkItem;
   stages: WorkItem;
   commits: PortalCommit & { id: string };

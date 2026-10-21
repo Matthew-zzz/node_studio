@@ -85,6 +85,7 @@ export function ProjectWorkspace({ project, controller, primary, secondary, onSe
           )}
         </div>
       </div>
+      {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>
         {panes.map((view, index) => (
           <section key={view} className={styles.pane} aria-label={secondary ? index === 0 ? "Левая область проекта" : "Правая область проекта" : "Основная область проекта"}>
@@ -111,7 +112,6 @@ export function ProjectWorkspace({ project, controller, primary, secondary, onSe
           </section>
         ))}
       </div>
-      {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
     </section>
   );
 }

@@ -88,7 +88,7 @@ export function Stages({ project, controller, subprojectId }: { project: PortalP
           </div>
         </>
       ) : <Empty title="Всё начинается здесь" text="Разработчик добавит этапы, и вы увидите, как движется работа." />}
-      {developer && <StageEditor key={subprojectId ?? "all"} project={project} controller={controller} {...(subprojectId ? { sourceId: subprojectId } : {})} />}
+      {developer && Boolean(project.repo) && <StageEditor key={subprojectId ?? "all"} project={project} controller={controller} {...(subprojectId ? { sourceId: subprojectId } : {})} />}
     </section>
   );
 }
@@ -172,7 +172,7 @@ export function ProjectBrief({ project }: { project: PortalProject }) {
       <Icon name="document" />
       <div>
         <h2>{project.origin === "import" ? "Описание проекта" : "Согласованное ТЗ"}</h2>
-        {project.origin !== "import" && <p className={styles.subtitle}>Основная разработка оплачена</p>}
+        {(project.origin === "order" || !project.origin) && <p className={styles.subtitle}>Основная разработка оплачена</p>}
         <LongText text={project.brief} label="Открыть описание проекта" />
       </div>
     </section>

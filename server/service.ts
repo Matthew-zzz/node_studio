@@ -56,7 +56,7 @@ export class PortalService {
   private project(viewer: Viewer, projectId: string): PortalProject {
     this.role(viewer, ["client", "developer"]);
     const project = this.store.get("projects", projectId);
-    if (!project || (viewer.role === "client" && project.clientId !== viewer.id)) throw new PortalError(404, "Проект не найден.");
+    if (!project || project.status === "archived" || (viewer.role === "client" && project.clientId !== viewer.id)) throw new PortalError(404, "Проект не найден.");
     updateErrorContext({ projectId: project.id, projectName: project.name });
     return project;
   }
@@ -88,6 +88,7 @@ export class PortalService {
   async sync(project: PortalProject, pages = 1, force = false, subprojectId?: string): Promise<void> {
     return this.exclusive(`github:${project.id}`, async () => {
       const current = this.store.get("projects", project.id) ?? project;
+      if (current.status === "archived" || !projectRepositories(current).length) { this.synced.delete(project.id); return; }
       const parts = subprojectId ? [this.repository(current, subprojectId)] : projectRepositories(current);
       const results = await Promise.allSettled(parts.map(part => this.syncRepository(current, part, pages, force)));
       const states = projectRepositories(current).map(part => this.synced.get(`${project.id}:${part.id}`));
@@ -114,6 +115,7 @@ export class PortalService {
         if (!more) break;
       }
       const scope = (item: WorkItem) => ({ ...item, ...(project.subprojects?.length ? { subprojectId: part.id } : {}), id: workItemId(project.id, part.id, item.number), projectId: project.id });
+      if (this.store.get("projects", project.id)?.status === "archived") return;
       this.store.replace("tasks", project.id, issues.filter(item => item.kind !== "stage").map(scope), part.id);
       this.store.replace("stages", project.id, issues.filter(item => item.kind === "stage").map(scope), part.id);
       this.store.replace("commits", project.id, commits, part.id);
@@ -130,7 +132,7 @@ export class PortalService {
   async snapshot(session: Session, selectedId = "", pages = 1): Promise<PortalSnapshot> {
     const viewer = this.store.user(session.viewer.id);
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
-    const projects = this.store.all("projects").sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    const projects = this.store.all("projects").filter(project => project.status !== "archived").sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
     const allowed = projects.filter(project => viewer.role === "developer" || (viewer.role === "client" && project.clientId === viewer.id));
     const selected = allowed.find(project => project.id === selectedId) ?? allowed[0];
     if (!viewer.mustChangePassword && selected && ["developer", "client"].includes(viewer.role)) {
@@ -188,7 +190,14 @@ export class PortalService {
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     this.role(viewer, ["client", "developer", "curator"]);
     const type = text(action.type, 40);
+    if (type === "project.request") { this.projects.request(viewer, action); return; }
     if (type === "project.create") { await this.projects.create(viewer, action); return; }
+    if (type === "project.repository.create") {
+      this.role(viewer, ["developer"]);
+      const project = this.project(viewer, text(action.projectId, 100));
+      await this.exclusive(`write:${project.id}`, () => this.projects.createRepository(viewer, project.id));
+      this.synced.delete(project.id); return;
+    }
     if (type === "project.repository.add") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
@@ -237,6 +246,7 @@ export class PortalService {
       const project = this.project(viewer, draft.projectId);
       await this.exclusive(`write:${project.id}`, async () => {
         if (this.store.get("drafts", draft.id)?.confirmed) return;
+        if (!project.repo) throw new PortalError(409, "Разработчик ещё не создал репозиторий. Пожелание сохранено, его можно будет отправить позже.");
         const issue = await this.integrations.createIssue(project.repo, draft.title, draft.body, "wish", `draft:${draft.id}`);
         this.store.transaction(() => {
           this.saveWork(project.id, issue, project.subprojects?.length ? "main" : undefined);
@@ -318,9 +328,10 @@ export class PortalService {
       if (!order) throw new PortalError(404, "Заказ не найден.");
       if (order.status === "ready") return;
       if (order.status === "pending") throw new PortalError(409, "Сначала требуется подтверждение оплаты.");
-      if (!this.config.mockProvisioning || !this.integrations.ready.github || !this.integrations.ready.mail) {
+      if (order.projectId && this.store.get("projects", order.projectId)?.status === "archived") throw new PortalError(404, "Проект удалён из кабинета.");
+      if (!this.config.mockProvisioning || !this.integrations.ready.mail) {
         this.store.put("orders", { ...order, status: "needs_setup" });
-        throw new PortalError(503, "Для создания проекта нужны GitHub, почта и разрешение на тестовое создание репозиториев в настройках сервера.");
+        throw new PortalError(503, "Для выдачи доступа нужны почта и разрешение на создание проектов после тестовой оплаты в настройках сервера.");
       }
       this.store.transaction(() => {
         this.store.put("orders", { ...order, status: "provisioning" });
@@ -335,6 +346,7 @@ export class PortalService {
   checkout(checkoutToken: string) {
     const order = this.store.all("orders").find(order => order.checkoutToken === checkoutToken);
     if (!order || !/^[a-f0-9]{64}$/.test(checkoutToken)) throw new PortalError(404, "Ссылка на оплату не найдена.");
+    if (order.projectId && this.store.get("projects", order.projectId)?.status === "archived") throw new PortalError(404, "Ссылка на оплату не найдена.");
     return order;
   }
 
@@ -355,7 +367,7 @@ export class PortalService {
 
   receiveGitHub(delivery: string, value: unknown) {
     const event = object(value); const repo = object(event.repository).full_name;
-    const project = this.store.all("projects").find(project => projectRepositories(project).some(part => part.repo === repo));
+    const project = this.store.all("projects").find(project => project.status !== "archived" && projectRepositories(project).some(part => part.repo === repo));
     if (!project) return;
     this.store.transaction(() => {
       if (this.store.delivered(`github:${delivery}`)) this.store.enqueue("github.sync", { projectId: project.id, subprojectId: projectRepositories(project).find(part => part.repo === repo)!.id });
@@ -410,10 +422,10 @@ export class PortalService {
   }
 
   private async provision(order: ProjectOrder) {
-    const repo = await this.integrations.createRepository(`nodo-${order.id.replaceAll("-", "")}`);
-    const issue = await this.integrations.createIssue(repo, `Разработка: ${order.projectName}`, order.brief, "initial", `order:${order.id}`);
     const projectId = `project:${order.id}`;
     this.store.transaction(() => {
+      const existingProject = this.store.get("projects", projectId);
+      if (existingProject?.status === "archived") return;
       let client = this.store.findUser(order.email); let access = "Войдите с вашей почтой и текущим паролем.";
       if (!client) {
         const password = randomBytes(18).toString("base64url");
@@ -421,8 +433,7 @@ export class PortalService {
         access = `Логин: ${order.email}\nВременный пароль: ${password}\nПри первом входе смените пароль.`;
       }
       if (client.role !== "client") throw new PortalError(409, "Почта уже занята сотрудником.");
-      this.store.put("projects", { id: projectId, name: order.projectName, description: "Разработка проекта", clientId: client.id, clientName: client.name, clientEmail: client.email, repo, brief: order.brief, status: "active", createdAt: now() });
-      this.saveWork(projectId, issue);
+      if (!existingProject) this.store.put("projects", { id: projectId, name: order.projectName, description: "Разработка проекта", clientId: client.id, clientName: client.name, clientEmail: client.email, repo: "", origin: "order", brief: order.brief, status: "active", createdAt: now() });
       const threadId = `chat:${projectId}`;
       if (!this.store.get("conversations", threadId)) {
         const thread = this.store.put("conversations", { id: threadId, kind: "project", projectId, name: order.projectName, username: order.username, email: order.email, telegramId: "", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
@@ -443,6 +454,12 @@ export class PortalService {
         if (!job) break;
         this.store.db.prepare("UPDATE jobs SET running=1 WHERE id=?").run(job.id);
         const payload = JSON.parse(job.payload) as Record<string, string>;
+        const order = payload.orderId ? this.store.get("orders", payload.orderId) : undefined;
+        const thread = payload.threadId ? this.store.get("conversations", payload.threadId) : undefined;
+        const projectId = payload.projectId || order?.projectId || (order ? `project:${order.id}` : "") || thread?.projectId;
+        if (projectId && this.store.get("projects", projectId)?.status === "archived") {
+          this.store.db.prepare("DELETE FROM jobs WHERE id=?").run(job.id); continue;
+        }
         const context = this.jobContext(job, payload);
         await withErrorContext(context, async () => { try {
           if (job.kind === "telegram.inbound") await this.telegramInbound(payload.update!);
@@ -491,6 +508,7 @@ export class PortalService {
   private async answer(threadId: string, messageId: string) {
     const thread = this.store.get("conversations", threadId);
     if (!thread || thread.ownerId || thread.handoffRequested || this.store.get("messages", `reply:${messageId}`)) return;
+    if (thread.kind === "project" && this.store.get("projects", thread.projectId)?.status === "archived") return;
     if (thread.kind === "telegram") { await this.answerTelegram(thread, messageId); return; }
     if (!this.integrations.ready.ai) {
       this.append(thread, "Node", "system", "ИИ пока не подключён. Сообщение сохранено; можно попросить подключить человека.", `reply:${messageId}`);
@@ -501,7 +519,7 @@ export class PortalService {
     if (lastClient?.id !== messageId) return;
     const reply = await this.integrations.assistant(messages, thread.kind);
     const latest = this.store.get("conversations", threadId);
-    if (!latest || latest.ownerId || latest.handoffRequested || latest.revision !== thread.revision) return;
+    if (!latest || latest.ownerId || latest.handoffRequested || latest.revision !== thread.revision || this.store.get("projects", thread.projectId)?.status === "archived") return;
     this.store.transaction(() => {
       this.append(thread, "Node ИИ", "assistant", reply.reply, `reply:${messageId}`);
       if (reply.handoff) this.store.put("conversations", { ...latest, handoffRequested: true, updatedAt: now() });

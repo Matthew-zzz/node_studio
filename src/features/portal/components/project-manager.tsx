@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalProject } from "@/features/portal/model/types";
+import { projectRepositories } from "@/features/portal/model/project-repositories";
 import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
 
@@ -71,11 +72,21 @@ export function RepositoryManager({ project, controller }: { project: PortalProj
     event.preventDefault();
     if (await controller.run({ type: "project.repository.add", projectId: project.id, name, repo })) { setName(""); setRepo(""); }
   }
+  if (project.developerId !== controller.snapshot.viewer?.id) return null;
+  if (!projectRepositories(project).length) return (
+    <section className={styles.panel} aria-label="Репозиторий проекта">
+      <h2>Подготовить разработку</h2>
+      <p className={styles.subtitle}>Создайте закрытый GitHub-репозиторий для этого проекта. ТЗ станет первой задачей, история и этапы будут обновляться из GitHub.</p>
+      <div className={styles.formActions}>
+        <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "project.repository.create", projectId: project.id })}>{controller.busy ? "Создаём репозиторий…" : "Создать GitHub-репозиторий"}</button>
+      </div>
+    </section>
+  );
   return (
     <details className={`${styles.panel} ${management.manager}`}>
       <summary>Управление подпроектами</summary>
       <div className={styles.stack}>
-        {(project.subprojects?.length ? project.subprojects : [{ id: "main", name: "Основной", repo: project.repo }]).map(part => (
+        {projectRepositories(project).map(part => (
           <div className={management.source} key={part.id}>
             <strong>{part.name}</strong>
             <a href={`https://github.com/${part.repo}`} target="_blank" rel="noreferrer">{part.repo}</a>

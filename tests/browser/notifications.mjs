@@ -82,7 +82,7 @@ export async function checkNotifications(browser, origin, fixture, screenshots) 
         fixture.config.mockProvisioning = false;
         try {
           await page.getByRole("button", { name: "Создать проект и выдать доступ", exact: true }).click();
-          const setupError = page.locator(visibleToast).filter({ hasText: "Для создания проекта нужны GitHub" });
+          const setupError = page.locator(visibleToast).filter({ hasText: "Для выдачи доступа нужны почта" });
           await setupError.waitFor();
           await page.screenshot({ path: resolve(screenshots, "1440-notification-project-error.png"), fullPage: true });
           await setupError.getByRole("button", { name: "Закрыть уведомление", exact: true }).click();

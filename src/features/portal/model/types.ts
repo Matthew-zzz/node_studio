@@ -17,10 +17,13 @@ export interface PortalProject {
   readonly clientName: string;
   readonly clientEmail: string;
   readonly repo: string;
+  readonly repositoryReady?: boolean;
   readonly subprojects?: readonly ProjectRepository[];
-  readonly origin?: "order" | "import";
+  readonly origin?: "order" | "import" | "curator";
+  readonly curatorId?: string;
   readonly brief: string;
-  readonly status: "active" | "provisioning";
+  readonly status: "active" | "provisioning" | "archived";
+  readonly archivedAt?: string;
   readonly developerId?: string;
   readonly acceptedAt?: string;
   readonly createdAt: string;
@@ -155,7 +158,9 @@ export const EMPTY_SNAPSHOT: PortalSnapshot = {
 };
 
 export type PortalAction =
+  | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string }
   | { type: "project.create"; requestId: string; name: string; clientEmail: string; description: string; repositories: { name: string; repo: string }[] }
+  | { type: "project.repository.create"; projectId: string }
   | { type: "project.repository.add"; projectId: string; name: string; repo: string }
   | { type: "project.accept"; projectId: string }
   | { type: "message"; threadId: string; text: string }
