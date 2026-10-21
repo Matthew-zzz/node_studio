@@ -50,10 +50,9 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
             <span>{mine.length}</span>
           </button>
         </div>
-        <label className={styles.searchField}>
-          Поиск диалогов
-          <input type="search" value={search} onChange={event => changeSelection(filter, event.target.value)} placeholder="Имя, @username или почта" />
-        </label>
+        <div className={styles.searchField}>
+          <input type="search" aria-label="Поиск диалогов" value={search} onChange={event => changeSelection(filter, event.target.value)} placeholder="Имя, @username или почта" />
+        </div>
       </section>
       {thread ? (
         <div className={styles.inbox}>
