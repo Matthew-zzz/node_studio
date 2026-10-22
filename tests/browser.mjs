@@ -11,6 +11,7 @@ import { checkAgentAdmin } from "./browser/agent-admin.mjs";
 import { checkErrorJournal } from "./browser/errors.mjs";
 import { checkSubprojects } from "./browser/subprojects.mjs";
 import { checkProjectLifecycle } from "./browser/project-lifecycle.mjs";
+import { checkEmailAuthentication } from "./browser/email-auth.mjs";
 import { checkPortal, checkPortalAuthentication, checkProfileSwitching, checkWorkspacePreferences, preparePortalFixture } from "./browser/portal.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
@@ -136,6 +137,7 @@ try {
   await checkPortalAuthentication(browser, origin);
   await checkWorkspacePreferences(browser, origin);
   await checkNotifications(browser, origin, portal, screenshots);
+  await checkEmailAuthentication(browser, origin, portal, screenshots);
 
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();

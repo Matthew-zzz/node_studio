@@ -1,24 +1,13 @@
+import { portalApi } from "./helpers/http.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Readable } from "node:stream";
 import test from "node:test";
 import { PortalStore } from "../server/store.ts";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 
-function api(fixture) {
-  return async (path, body, account, headers = {}) => {
-    const request = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]);
-    request.url = `/api/portal/${path}`; request.method = body === undefined ? "GET" : "POST";
-    request.socket = { remoteAddress: "127.0.0.1" };
-    request.headers = { origin: fixture.config.origin, "content-type": "application/json", ...(account ? { cookie: account.cookie, "x-csrf-token": account.body.csrf } : {}), ...headers };
-    const response = { statusCode: 200, headers: {}, setHeader(key, value) { this.headers[key] = value; }, end(value) { this.body = JSON.parse(value); } };
-    await fixture.handler(request, response);
-    response.cookie = response.headers["Set-Cookie"]?.split(";")[0];
-    return response;
-  };
-}
+const api = fixture => portalApi(fixture, true).request;
 
 test("profiles require individual login, rotate authentication, isolate devices and preserve server permissions", async () => {
   const f = portalFixture(); const request = api(f);
@@ -38,7 +27,7 @@ test("profiles require individual login, rotate authentication, isolate devices 
     assert.equal(developer.statusCode, 200);
     assert.equal(developer.body.viewer.role, "developer");
     assert.equal(developer.body.profiles.length, 2);
-    assert.ok(developer.headers["Set-Cookie"].includes("HttpOnly; SameSite=Lax"));
+    assert.ok([developer.headers["Set-Cookie"]].flat().some(cookie => cookie.includes("HttpOnly; SameSite=Lax")));
     const switched = await request("profiles/switch", { userId: f.users.client.id }, developer);
     assert.equal(switched.statusCode, 200);
     assert.notEqual(switched.cookie, client.cookie); assert.notEqual(switched.body.csrf, client.body.csrf);
@@ -60,7 +49,7 @@ test("saved profiles expire without renewal and password changes revoke them on 
   const f = portalFixture();
   try {
     const client = f.login("client");
-    const developer = f.store.login(f.users.developer.email, fixturePassword, "test", client.session);
+    let developer = f.store.login(f.users.developer.email, fixturePassword, "test", client.session);
     const expires = Date.now() + 60_000;
     f.store.db.prepare("UPDATE sessions SET expires=? WHERE token_hash=?").run(expires, client.session.tokenHash);
     const switched = f.store.switchProfile(developer.session, f.users.client.id);
@@ -69,7 +58,8 @@ test("saved profiles expire without renewal and password changes revoke them on 
     f.store.changePassword(elsewhere.session, fixturePassword, "New-profile-password-2026");
     assert.equal(f.store.session(switched.token), undefined);
     assert.throws(() => f.store.switchProfile(developer.session, f.users.client.id), { status: 404 });
-    assert.deepEqual(f.store.profiles(developer.session).map(profile => profile.role), ["developer"]);
+    assert.deepEqual(f.store.profiles(developer.session).map(profile => profile.role), [], "the whole affected device group is revoked");
+    developer = f.login("developer");
     const curator = f.store.login(f.users.curator.email, fixturePassword, "test", developer.session);
     f.store.db.prepare("UPDATE sessions SET expires=0 WHERE token_hash=?").run(developer.session.tokenHash);
     assert.throws(() => f.store.switchProfile(curator.session, f.users.developer.id), { status: 404 });

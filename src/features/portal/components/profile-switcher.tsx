@@ -10,6 +10,7 @@ import { ROLE_LABELS } from "@/features/portal/model/types";
 import type { Role } from "@/features/portal/model/types";
 import portal from "./portal.module.css";
 import styles from "./profile-switcher.module.css";
+import { EmailVerification } from "@/features/portal/components/email-verification";
 
 const profileRoles: Role[] = ["curator", "client", "developer"];
 const roleIcons: Record<Role, IconName> = { curator: "telegram", client: "people", developer: "code", admin: "service" };
@@ -25,16 +26,17 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
   const titleId = useId();
   const popoverId = useId();
 
+  const visible = open;
   useEffect(() => {
-    if (open && !dialog.current?.open) dialog.current?.showModal();
-    if (!open && dialog.current?.open) dialog.current.close();
-  }, [open]);
+    if (visible && !dialog.current?.open) dialog.current?.showModal();
+    if (!visible && dialog.current?.open) dialog.current.close();
+  }, [visible]);
 
   if (!viewer) return null;
 
   function addProfile(nextRole: Role | null = null) {
     popover.current?.hidePopover();
-    setRole(nextRole); setEmail(""); setPassword(""); setOpen(true);
+    setRole(nextRole); setEmail(viewer?.email ?? ""); setPassword(""); setOpen(true);
   }
 
   async function switchProfile(userId: string) {
@@ -44,13 +46,15 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await controller.addProfile(email, password)) { setPassword(""); setOpen(false); onChange(); }
+    const complete = await controller.addProfile(email, password, role ?? undefined); setPassword("");
+    if (complete) { setOpen(false); onChange(); }
   }
 
   const roles = profiles.some(profile => profile.role === "admin") ? [...profileRoles, "admin" as const] : profileRoles;
   const list = (
     <div className={styles.list} role="group" aria-label="Переключение профилей">
       <p className={styles.caption}>Профили</p>
+      {controller.challenge && <button type="button" className={styles.add} onClick={() => { setRole(controller.challenge!.role); setOpen(true); }}>Продолжить подтверждение профиля</button>}
       {roles.map(itemRole => {
         const accounts = profiles.filter(profile => profile.role === itemRole);
         return accounts.length ? accounts.map(profile => (
@@ -89,23 +93,31 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
         <Icon name="people" />
       </button>
       <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
-      <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { setOpen(false); setPassword(""); } }}>
+      <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { if (controller.challenge) void controller.cancelCode(); setOpen(false); setPassword(""); } }}>
         <Notifications modal />
         <span className={portal.kicker}>{role ? ROLE_LABELS[role] : "Рабочее пространство"}</span>
-        <h2 id={titleId}>Добавить профиль</h2>
-        <p className={portal.subtitle}>Войдите в аккаунт один раз, чтобы переключаться без повторного ввода пароля.</p>
-        <form className={portal.form} onSubmit={event => void submit(event)}>
-          <label>
-            Почта профиля
-            <input type="email" autoComplete="username" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
-          </label>
-          <label>
-            Пароль профиля
-            <input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={event => setPassword(event.target.value)} />
-          </label>
-          <button type="submit" className={portal.primary} disabled={controller.busy}>{controller.busy ? "Входим…" : "Добавить и перейти"}</button>
-          <button type="button" className={portal.textButton} disabled={controller.busy} onClick={() => { setOpen(false); setPassword(""); }}>Отменить</button>
-        </form>
+        <h2 id={titleId}>{controller.challenge ? "Подтвердите вход" : "Добавить профиль"}</h2>
+        {open && controller.challenge ? <EmailVerification controller={controller} onComplete={() => { setOpen(false); dialog.current?.close(); onChange(); }} /> : (
+          <>
+            <p className={portal.subtitle}>Войдите в аккаунт один раз, чтобы переключаться в течение сессии.</p>
+            <form className={portal.form} onSubmit={event => void submit(event)}>
+              <label>
+                Роль профиля
+                <select value={role ?? "client"} onChange={event => setRole(event.target.value as Role)}>{Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              </label>
+              <label>
+                Почта профиля
+                <input type="email" autoComplete="username" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
+              </label>
+              <label>
+                Пароль профиля
+                <input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={event => setPassword(event.target.value)} />
+              </label>
+              <button type="submit" className={portal.primary} disabled={controller.busy}>{controller.busy ? "Входим…" : "Добавить и перейти"}</button>
+              <button type="button" className={portal.textButton} disabled={controller.busy} onClick={() => { setOpen(false); setPassword(""); }}>Отменить</button>
+            </form>
+          </>
+)}
       </dialog>
     </div>
   );

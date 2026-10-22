@@ -1,4 +1,5 @@
-import type { Checkout, PortalAction, PortalSnapshot } from "@/features/portal/model/types";
+import type { Checkout, PortalAction, PortalSnapshot, Role } from "@/features/portal/model/types";
+import type { EmailChallenge, LoginResult, RecoveryDetails } from "@/features/portal/model/auth";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, AgentTestMessage, AgentTestResult, KnowledgeDocument } from "@/features/portal/model/agent";
 import type { ErrorPage, ErrorQuery } from "@/features/portal/model/errors";
@@ -13,14 +14,23 @@ export interface AgentGateway {
 }
 
 export interface PortalGateway {
+  auth: {
+    pending(): Promise<{ challenge: EmailChallenge | null }>;
+    verify(code: string): Promise<PortalSnapshot>;
+    resend(): Promise<EmailChallenge>;
+    cancel(): Promise<void>;
+    forgot(email: string, role: Role): Promise<void>;
+    recovery(token: string): Promise<RecoveryDetails>;
+    reset(token: string, replacement: string): Promise<void>;
+  };
   agent: AgentGateway;
   errors: { list(query: ErrorQuery): Promise<ErrorPage>; resolve(id: string, resolved: boolean): Promise<void> };
   dispose(): void;
   activate(): void;
   snapshot(projectId?: string, pages?: number): Promise<PortalSnapshot>;
   action(action: PortalAction): Promise<void>;
-  login(email: string, password: string): Promise<PortalSnapshot>;
-  addProfile(email: string, password: string): Promise<PortalSnapshot>;
+  login(email: string, password: string, role?: Role): Promise<LoginResult>;
+  addProfile(email: string, password: string, role?: Role): Promise<LoginResult>;
   switchProfile(userId: string): Promise<PortalSnapshot>;
   logout(): Promise<void>;
   password(current: string, replacement: string): Promise<PortalSnapshot>;
@@ -34,7 +44,7 @@ export function createApiGateway(): PortalGateway {
   const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); });
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
-    const authenticating = ["login", "logout", "password", "profiles/add", "profiles/switch"].includes(path);
+    const authenticating = ["login", "logout", "password", "profiles/add", "profiles/switch", "auth/verify", "auth/reset"].includes(path);
     const requestId = ++sequence;
     const requestViewerId = viewerId;
     const requestGeneration = authenticating ? ++generation : generation;
@@ -66,6 +76,15 @@ export function createApiGateway(): PortalGateway {
     return value as T;
   }
   return {
+    auth: {
+      pending() { return request("auth/challenge"); },
+      verify(code) { return request("auth/verify", { code }); },
+      resend() { return request("auth/resend", {}); },
+      cancel() { return request("auth/cancel", {}); },
+      forgot(email, role) { return request("auth/forgot", { email, role }); },
+      recovery(token) { return request("auth/recovery", { token }); },
+      reset(token, replacement) { return request("auth/reset", { token, replacement }); },
+    },
     activate() { reporter.activate(); },
     dispose() { reporter.dispose(); },
     errors: {
@@ -81,8 +100,8 @@ export function createApiGateway(): PortalGateway {
     },
     snapshot(projectId = "", pages = 1) { return request(`snapshot?project=${encodeURIComponent(projectId)}&pages=${pages}`); },
     action(action) { return request("action", action); },
-    login(email, password) { return request("login", { email, password }); },
-    addProfile(email, password) { return request("profiles/add", { email, password }); },
+    login(email, password, role) { return request("login", { email, password, role }); },
+    addProfile(email, password, role) { return request("profiles/add", { email, password, role }); },
     switchProfile(userId) { return request("profiles/switch", { userId }); },
     logout() { return request("logout", {}); },
     password(current, replacement) { return request("password", { current, replacement }); },

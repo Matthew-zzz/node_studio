@@ -1,5 +1,5 @@
 import { PortalError } from "./store.ts";
-import type { WorkStatus } from "../src/features/portal/model/types.ts";
+import type { WorkStatus, Role } from "../src/features/portal/model/types.ts";
 
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new PortalError(400, "Некорректный запрос.");
@@ -26,4 +26,10 @@ export function passwordInput(value: unknown): string {
 export function status(value: unknown): WorkStatus {
   if (!["new", "in_progress", "done", "canceled"].includes(String(value))) throw new PortalError(400, "Неизвестный статус.");
   return value as WorkStatus;
+}
+
+export function optionalRole(value: unknown): Role | undefined {
+  if (value === undefined || value === "") return undefined;
+  if (!["client", "developer", "curator", "admin"].includes(String(value))) throw new PortalError(400, "Выберите роль аккаунта.");
+  return value as Role;
 }

@@ -19,7 +19,7 @@ export interface Integrations {
   assistant(messages: ChatMessage[], kind: "project" | "telegram", options?: { preferences: AgentPreferences; knowledge: KnowledgeHit[] }): Promise<AssistantReply>;
   embed(inputs: string[], model: string): Promise<number[][]>;
   telegram(chatId: string, message: string, html?: string): Promise<void>;
-  mail(email: string, content: string, deliveryId: string): Promise<void>;
+  mail(email: string, content: string, deliveryId: string, subject?: string): Promise<void>;
 }
 
 interface GitHubIssue {
@@ -179,9 +179,9 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
       if (!result.response.ok || !result.data.ok) throw await responseError(`https://api.telegram.org/bot${config.telegramToken}/sendMessage`, result.response);
       await result.response.body?.cancel();
     },
-    async mail(email, content, deliveryId) {
+    async mail(email, content, deliveryId, subject = "Доступ к вашему проекту — Node Studio") {
       if (!config.mailKey || !config.mailFrom) throw new PortalError(503, "Почта ещё не подключена.");
-      await json("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${config.mailKey}`, "Content-Type": "application/json", "Idempotency-Key": deliveryId }, body: JSON.stringify({ from: config.mailFrom, to: [email], subject: "Доступ к вашему проекту — Node Studio", text: content }) });
+      await json("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${config.mailKey}`, "Content-Type": "application/json", "Idempotency-Key": deliveryId }, body: JSON.stringify({ from: config.mailFrom, to: [email], subject, text: content }) });
     },
   };
 }

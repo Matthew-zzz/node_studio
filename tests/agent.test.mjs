@@ -1,6 +1,6 @@
+import { portalApi } from "./helpers/http.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Readable } from "node:stream";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,16 +15,7 @@ const assistantReply = reply => ({ reply, title: "", body: "", handoff: false })
 function update(f, updateId, content, chatId = 901) {
   f.service.receiveTelegram({ update_id: updateId, message: { text: content, chat: { id: chatId, type: "private" }, from: { first_name: "Клиент", username: "fixture_client" } } });
 }
-function api(f) {
-  return async (path, body, account, headers = {}) => {
-    const request = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]);
-    request.url = `/api/portal/${path}`; request.method = body === undefined ? "GET" : "POST";
-    request.socket = { remoteAddress: "127.0.0.1" };
-    request.headers = { origin: f.config.origin, "content-type": "application/json", ...(account ? { cookie: account.cookie, "x-csrf-token": account.body.csrf } : {}), ...headers };
-    const response = { statusCode: 200, headers: {}, setHeader(key, value) { this.headers[key] = value; }, end(value) { this.body = JSON.parse(value); } };
-    await f.handler(request, response); response.cookie = response.headers["Set-Cookie"]?.split(";")[0]; return response;
-  };
-}
+const api = f => portalApi(f, true).request;
 
 test("Telegram HTML balances tags, escapes untrusted markup, rejects unsafe links and bounds Unicode text", () => {
   assert.deepEqual(formatTelegramHtml('<strong>Заголовок</strong>\n<i>Текст &amp; детали</i>'), { html: '<b>Заголовок</b>\n<i>Текст &amp; детали</i>', text: 'Заголовок\nТекст & детали' });

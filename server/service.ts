@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { PortalError, PortalStore, id, now } from "./store.ts";
 import type { Session } from "./store.ts";
 import { integer, object, status, text } from "./validation.ts";
@@ -16,6 +16,8 @@ import { ErrorJournal } from "./error-journal.ts";
 import { updateErrorContext, withErrorContext } from "./error-context.ts";
 import type { ErrorContext } from "./error-context.ts";
 import type { ErrorQuery } from "../src/features/portal/model/errors.ts";
+import { PortalAuth } from "./auth.ts";
+import { seal, unseal } from "./secret-box.ts";
 
 export const projectGreeting = PROJECT_GREETING;
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
@@ -30,6 +32,7 @@ export class PortalService {
   readonly agent: TelegramAgent;
   readonly errors: ErrorJournal;
   readonly projects: ProjectRegistry;
+  readonly auth: PortalAuth;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -39,6 +42,7 @@ export class PortalService {
     this.agent = new TelegramAgent(store, integrations, config);
     this.errors = new ErrorJournal(store, config.revision);
     this.projects = new ProjectRegistry(store, integrations, config.githubOwner);
+    this.auth = new PortalAuth(store, integrations, config);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -313,7 +317,7 @@ export class PortalService {
       const input = object(action.order);
       const email = text(input.email, 254).toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту клиента.");
-      const existing = this.store.findUser(email);
+      const existing = this.store.findUser(email, "client") ?? this.store.findUser(email);
       if (existing && existing.role !== "client") throw new PortalError(409, "Эта почта принадлежит сотруднику студии.");
       this.store.put("orders", {
         id: id(), projectName: text(input.projectName, 200), clientName: text(input.clientName, 100), email,
@@ -409,16 +413,11 @@ export class PortalService {
   }
 
   private seal(content: string) {
-    if (!/^[a-f0-9]{64}$/.test(this.config.encryptionKey)) throw new PortalError(503, "Не настроен ключ шифрования писем.");
-    const iv = randomBytes(12); const cipher = createCipheriv("aes-256-gcm", Buffer.from(this.config.encryptionKey, "hex"), iv);
-    const encrypted = Buffer.concat([cipher.update(content, "utf8"), cipher.final()]);
-    return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64");
+    return seal(content, this.config.encryptionKey);
   }
 
   private unseal(content: string) {
-    const data = Buffer.from(content, "base64"); const decipher = createDecipheriv("aes-256-gcm", Buffer.from(this.config.encryptionKey, "hex"), data.subarray(0, 12));
-    decipher.setAuthTag(data.subarray(12, 28));
-    return Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString("utf8");
+    return unseal(content, this.config.encryptionKey);
   }
 
   private async provision(order: ProjectOrder) {
@@ -426,7 +425,7 @@ export class PortalService {
     this.store.transaction(() => {
       const existingProject = this.store.get("projects", projectId);
       if (existingProject?.status === "archived") return;
-      let client = this.store.findUser(order.email); let access = "Войдите с вашей почтой и текущим паролем.";
+      let client = this.store.findUser(order.email, "client"); let access = "Войдите с вашей почтой и текущим паролем.";
       if (!client) {
         const password = randomBytes(18).toString("base64url");
         client = this.store.createUser(order.email, order.clientName, "client", password);
@@ -449,6 +448,7 @@ export class PortalService {
     if (this.working) return;
     this.working = true;
     try {
+      this.auth.cleanup();
       for (let count = 0; count < 20; count++) {
         const job = this.store.db.prepare("SELECT id,kind,payload,attempts FROM jobs WHERE running=0 AND available<=? AND attempts<8 ORDER BY available LIMIT 1").get(Date.now()) as Job | undefined;
         if (!job) break;
@@ -465,6 +465,7 @@ export class PortalService {
           if (job.kind === "telegram.inbound") await this.telegramInbound(payload.update!);
           if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!, payload.html);
           if (job.kind === "agent.index") await this.agent.index(payload.documentId!);
+          if (job.kind === "auth.mail") await this.auth.deliverMail(payload, job.id);
           if (job.kind === "github.sync") {
             const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true, payload.subprojectId);
           }
@@ -501,7 +502,7 @@ export class PortalService {
     const thread = payload.threadId ? this.store.get("conversations", payload.threadId) : payload.chatId ? this.store.all("conversations").find(item => item.telegramId === payload.chatId) : undefined;
     const order = payload.orderId ? this.store.get("orders", payload.orderId) : undefined;
     const project = this.store.get("projects", payload.projectId ?? thread?.projectId ?? order?.projectId ?? "");
-    const actor = (payload._actorId ? this.store.user(payload._actorId) : undefined) ?? (project ? this.store.user(project.clientId) : undefined) ?? (order ? this.store.findUser(order.email) : undefined);
+    const actor = (payload._actorId ? this.store.user(payload._actorId) : undefined) ?? (project ? this.store.user(project.clientId) : undefined) ?? (order ? this.store.findUser(order.email, "client") : undefined);
     return { actor: actor ?? (thread?.kind === "telegram" ? { id: `telegram:${thread.telegramId}`, name: thread.name, email: thread.email, role: "telegram" } : null), projectId: project?.id ?? "", projectName: project?.name ?? order?.projectName ?? "", requestId: payload._requestId ?? id(), method: "JOB", operation: job.kind, path: "", source: "background", report: (error, extra) => this.errors.capture(error, extra) };
   }
 

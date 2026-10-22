@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { fixturePassword } from "../helpers/portal-fixture.mjs";
+import { fixtureAt, fixturePassword } from "../helpers/portal-fixture.mjs";
+
+export async function completeEmailCode(page, origin, email) {
+  const fixture = fixtureAt(origin);
+  const code = fixture.sent.filter(mail => mail.email === email && mail.subject === "Код для входа — Node Studio").at(-1)?.content.match(/\b\d{6}\b/)?.[0];
+  assert.ok(code, "the code is read only from the isolated test mail adapter");
+  await page.getByLabel("Код из письма", { exact: true }).fill(code);
+  await page.getByRole("button", { name: "Подтвердить и войти", exact: true }).click();
+}
 
 // External services are fixtures only in tests. The browser uses the production HTTP API.
 export function preparePortalFixture(portal) {
@@ -20,10 +28,15 @@ export async function login(page, origin, role, password = fixturePassword) {
   const signOut = page.getByRole("button", { name: "Выйти", exact: true });
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
   if (await signOut.count()) await signOut.click();
+  await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(["developer", "curator", "admin"].includes(role) ? role : "client");
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
   await page.getByLabel("Пароль", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
+  await page.getByLabel("Код из письма", { exact: true }).waitFor();
+  await completeEmailCode(page, origin, `${role}@example.test`);
   await page.getByTestId("portal").waitFor();
+  // Browser scenarios are independent login sequences, not an hour-long account abuse test.
+  fixtureAt(origin).store.db.exec("DELETE FROM auth_limits");
   assert.equal(await page.locator('a[href*="-demo"]').count(), 0);
   assert.ok((await page.title()).includes("Node Studio"));
   const path = await page.locator('header a[href="/"]').evaluate(link => [...link.parentElement.children].map(element => ({ height: element.getBoundingClientRect().height, lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight) })));
@@ -58,6 +71,8 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
       assert.notEqual(await root.getAttribute("data-role"), role, "failed login cannot switch profiles");
       await dialog.getByLabel("Пароль профиля", { exact: true }).fill(fixturePassword);
       await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
+      await page.getByLabel("Код из письма", { exact: true }).waitFor();
+      await completeEmailCode(page, origin, `${role}@example.test`);
       await waitForRole(role);
     }
     const second = await context.newPage();

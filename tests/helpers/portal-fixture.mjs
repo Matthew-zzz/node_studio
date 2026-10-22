@@ -4,6 +4,8 @@ import { readConfig } from "../../server/config.ts";
 import { createPortalHandler } from "../../server/http.ts";
 
 export const fixturePassword = "Fixture-password-2026";
+const fixtures = new Map();
+export const fixtureAt = origin => fixtures.get(origin);
 
 export function portalFixture(origin = "http://localhost:3000") {
   const store = new PortalStore(":memory:");
@@ -40,9 +42,15 @@ export function portalFixture(origin = "http://localhost:3000") {
     async assistant(messages, kind) { return { reply: "Проверьте формулировку.", title: kind === "project" ? "Подготовленная задача" : "", body: kind === "project" ? messages.at(-1).text : "", handoff: false }; },
     async embed(inputs) { return inputs.map(() => [1, 0, 0]); },
     async telegram(chatId, text, html) { sent.push({ chatId, text, html }); },
-    async mail(email, content, deliveryId) { sent.push({ email, content, deliveryId }); },
+    async mail(email, content, deliveryId, subject) { sent.push({ email, content, deliveryId, subject }); },
   };
   const service = new PortalService(store, integrations, config);
-  const login = role => store.login(users[role].email, fixturePassword, "fixture");
-  return { store, config, integrations, service, users, login, issues, commits, sent, repositories, handler: createPortalHandler(service, config), close: () => store.close() };
+  // Business-domain tests create authenticated fixtures directly; HTTP/browser tests use real email challenges.
+  const login = role => {
+    const result = store.login(users[role].email, fixturePassword, "fixture");
+    store.db.prepare("INSERT INTO auth_verifications(group_id,email,expires) VALUES(?,?,?)").run(result.session.groupId, result.session.viewer.email, store.sessionDeadline(result.session));
+    return result;
+  };
+  const fixture = { store, config, integrations, service, users, login, issues, commits, sent, repositories, handler: createPortalHandler(service, config), close: () => { if (fixtures.get(origin) === fixture) fixtures.delete(origin); store.close(); } };
+  fixtures.set(origin, fixture); return fixture;
 }

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
-import type { PortalAction, PortalSnapshot } from "@/features/portal/model/types";
+import type { PortalAction, PortalSnapshot, Role } from "@/features/portal/model/types";
+import type { EmailChallenge, LoginResult } from "@/features/portal/model/auth";
 import { createApiGateway } from "@/features/portal/lib/gateway";
 import { notify } from "@/lib/notifications";
 
@@ -23,6 +24,8 @@ export function usePortal() {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [challenge, setChallenge] = useState<EmailChallenge | null>(null);
+  const authSequence = useRef(0);
   const backgroundError = useRef("");
   const backgroundNotification = useRef<string | number | undefined>(undefined);
   const actionNotification = useRef<string | number | undefined>(undefined);
@@ -40,7 +43,7 @@ export function usePortal() {
       if (issueKey && issueKey !== backgroundError.current) backgroundNotification.current = notify.error(issue, { action: { label: "Повторить", onClick: event => { event.preventDefault(); backgroundError.current = ""; void refreshSnapshot(); } } });
       if (!issueKey && backgroundNotification.current !== undefined) { notify.dismiss(backgroundNotification.current); backgroundNotification.current = undefined; }
       backgroundError.current = issueKey;
-      if (!next.viewer && viewerId.current) { notify.clear(); notify.info("Сессия завершена. Войдите снова."); }
+      if (!next.viewer && viewerId.current) { authSequence.current++; setChallenge(null); notify.clear(); notify.info("Сессия завершена. Войдите снова."); }
       if (viewerId.current !== (next.viewer?.id ?? "")) pages.current = 1;
       viewerId.current = next.viewer?.id ?? "";
       setSnapshot(next.viewer ? next : EMPTY_SNAPSHOT);
@@ -57,18 +60,22 @@ export function usePortal() {
   }, [gateway]);
   useEffect(() => {
     void refresh();
+    let active = true;
+    const authRequest = authSequence.current;
+    void gateway.auth.pending().then(result => { if (active && authRequest === authSequence.current && !pending.current) setChallenge(result.challenge); }).catch(() => undefined);
     const timer = setInterval(() => { if (!document.hidden && !pending.current) void refresh(); }, 5000);
     const visible = () => { if (!document.hidden && !pending.current) void refresh(); };
     window.addEventListener("focus", visible);
-    return () => { invalidate(); clearInterval(timer); window.removeEventListener("focus", visible); };
-  }, [refresh, invalidate]);
+    return () => { active = false; invalidate(); clearInterval(timer); window.removeEventListener("focus", visible); };
+  }, [refresh, invalidate, gateway]);
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
     const connection = new BroadcastChannel("nodo-portal-profiles");
     channel.current = connection;
     connection.onmessage = () => {
+      authSequence.current++;
       invalidate(); selected.current = ""; pages.current = 1;
-      setSnapshot(EMPTY_SNAPSHOT); setLoading(true); backgroundError.current = ""; notify.clear();
+      setSnapshot(EMPTY_SNAPSHOT); setChallenge(null); setLoading(true); backgroundError.current = ""; notify.clear();
       void refresh();
     };
     return () => { connection.close(); channel.current = null; };
@@ -88,15 +95,20 @@ export function usePortal() {
     catch (error) { actionNotification.current = notify.error(error instanceof Error ? error.message : "Не удалось выполнить действие."); return false; }
     finally { pending.current = false; setBusy(false); }
   }
-  async function authenticate(action: () => Promise<typeof snapshot>): Promise<void> {
+  async function authenticate(action: () => Promise<LoginResult>): Promise<void> {
+    const authRequest = ++authSequence.current;
     const next = await action();
+    if (authRequest !== authSequence.current) return;
+    if ("kind" in next && next.kind === "verification") { setChallenge(next); return; }
+    if (!("viewer" in next)) return;
+    setChallenge(null);
     notify.clear(); backgroundError.current = "";
     selected.current = ""; pages.current = 1;
     viewerId.current = next.viewer?.id ?? "";
     setSnapshot(next); channel.current?.postMessage("changed");
   }
   return {
-    snapshot, loading, busy, refresh, agent: gateway.agent, errors: gateway.errors,
+    snapshot, loading, busy, challenge, refresh, agent: gateway.agent, errors: gateway.errors,
     run: (action: PortalAction) => perform(() => gateway.action(action), successMessages[action.type]),
     select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
     acceptProject: (projectId: string) => perform(async () => {
@@ -104,11 +116,23 @@ export function usePortal() {
       selected.current = projectId; pages.current = 1;
     }, successMessages["project.accept"], projectId),
     more: async () => { pages.current++; await refresh(); },
-    login: (email: string, password: string) => perform(() => authenticate(() => gateway.login(email, password))),
-    addProfile: (email: string, password: string) => perform(() => authenticate(() => gateway.addProfile(email, password)), "Профиль добавлен."),
+    login: (email: string, password: string, role?: Role) => perform(() => authenticate(() => gateway.login(email, password, role))),
+    addProfile: async (email: string, password: string, role?: Role) => {
+      let awaitingCode = false;
+      const success = await perform(async () => {
+        const result = await gateway.addProfile(email, password, role);
+        awaitingCode = "kind" in result;
+        await authenticate(() => Promise.resolve(result));
+      });
+      return success && !awaitingCode;
+    },
+    verifyCode: (code: string) => perform(() => authenticate(() => gateway.auth.verify(code))),
+    resendCode: () => perform(async () => { setChallenge(await gateway.auth.resend()); }, "Новый код отправлен на почту."),
+    cancelCode: () => perform(async () => { authSequence.current++; await gateway.auth.cancel(); setChallenge(null); }),
+    forgotPassword: (email: string, role: Role) => perform(() => gateway.auth.forgot(email, role), "Если аккаунт найден, ссылка для восстановления придёт на почту."),
     switchProfile: (userId: string) => perform(() => authenticate(() => gateway.switchProfile(userId))),
     password: (current: string, replacement: string) => perform(() => authenticate(() => gateway.password(current, replacement)), "Пароль сохранён."),
-    logout: () => perform(async () => { await gateway.logout(); notify.clear(); backgroundError.current = ""; selected.current = ""; pages.current = 1; viewerId.current = ""; setSnapshot(EMPTY_SNAPSHOT); channel.current?.postMessage("changed"); }, "Вы вышли из всех профилей на этом устройстве."),
+    logout: () => perform(async () => { authSequence.current++; await gateway.logout(); notify.clear(); setChallenge(null); backgroundError.current = ""; selected.current = ""; pages.current = 1; viewerId.current = ""; setSnapshot(EMPTY_SNAPSHOT); channel.current?.postMessage("changed"); }, "Вы вышли из всех профилей на этом устройстве."),
   };
 }
 

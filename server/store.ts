@@ -8,6 +8,7 @@ import type {
 } from "../src/features/portal/model/types.ts";
 import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "../src/features/portal/model/agent.ts";
 import { errorContext } from "./error-context.ts";
+import { initializeAuthSchema } from "./auth-schema.ts";
 
 export interface Records {
   projects: PortalProject;
@@ -36,6 +37,7 @@ export interface Session { viewer: Viewer; csrf: string; tokenHash: string; grou
 export const now = () => new Date().toISOString();
 export const id = (): string => randomUUID();
 export const tokenHash = (value: string) => createHash("sha256").update(value).digest("hex");
+export const SESSION_LIFETIME = 12 * 60 * 60 * 1000;
 
 function hashPassword(password: string): string {
   if (password.length < 12 || password.length > 256) throw new PortalError(400, "Пароль должен содержать от 12 до 256 символов.");
@@ -66,9 +68,9 @@ export class PortalStore {
       PRAGMA foreign_keys=ON;
       PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        id TEXT PRIMARY KEY, email TEXT NOT NULL COLLATE NOCASE,
         name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('client','developer','curator','admin')),
-        password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1
+        password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1, UNIQUE(email,role)
       );
       CREATE UNIQUE INDEX IF NOT EXISTS one_developer ON users(role) WHERE role='developer';
       CREATE TABLE IF NOT EXISTS sessions (
@@ -104,6 +106,7 @@ export class PortalStore {
       this.db.exec("ALTER TABLE sessions ADD COLUMN group_id TEXT NOT NULL DEFAULT ''");
     }
     this.db.exec("UPDATE sessions SET group_id=token_hash WHERE group_id=''; CREATE INDEX IF NOT EXISTS sessions_group ON sessions(group_id)");
+    initializeAuthSchema(this.db);
     if (options.recoverJobs !== false) this.db.prepare("UPDATE jobs SET running=0").run();
   }
 
@@ -146,15 +149,16 @@ export class PortalStore {
   createUser(email: string, name: string, role: Role, password: string, mustChange = true): Viewer {
     const user = { id: id(), name, email: email.toLowerCase().trim(), role, password: hashPassword(password), must_change: Number(mustChange) };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) throw new PortalError(400, "Проверьте почту клиента.");
-    if (this.findUser(user.email)) throw new PortalError(409, "Пользователь с этой почтой уже существует.");
+    if (this.findUser(user.email, role)) throw new PortalError(409, "Аккаунт с этой почтой и ролью уже существует.");
     this.db.prepare("INSERT INTO users(id,name,email,role,password,must_change) VALUES(?,?,?,?,?,?)")
       .run(user.id, user.name, user.email, user.role, user.password, user.must_change);
     return viewer(user);
   }
 
-  findUser(email: string): Viewer | undefined {
-    const row = this.db.prepare("SELECT * FROM users WHERE email=?").get(email.toLowerCase().trim()) as UserRow | undefined;
-    return row && viewer(row);
+  findUser(email: string, role?: Role): Viewer | undefined {
+    const rows = (role ? this.db.prepare("SELECT * FROM users WHERE email=? AND role=?").all(email.toLowerCase().trim(), role)
+      : this.db.prepare("SELECT * FROM users WHERE email=?").all(email.toLowerCase().trim())) as UserRow[];
+    return rows.length === 1 ? viewer(rows[0]!) : undefined;
   }
 
   user(userId: string): Viewer | undefined {
@@ -162,14 +166,15 @@ export class PortalStore {
     return row && viewer(row);
   }
 
-  login(email: string, password: string, address: string, current?: Session): { token: string; session: Session } {
+  authenticatePassword(email: string, password: string, address: string, role?: Role): Viewer {
     const key = tokenHash(`${address}:${email.trim().toLowerCase()}`);
     const limit = this.db.prepare("SELECT attempts,since FROM login_limits WHERE key=?").get(key);
     const epoch = Date.now();
     if (limit && epoch - Number(limit.since) < 900_000 && Number(limit.attempts) >= 8) {
       throw new PortalError(429, "Слишком много попыток. Попробуйте через 15 минут.");
     }
-    const row = this.db.prepare("SELECT * FROM users WHERE email=?").get(email.trim().toLowerCase()) as UserRow | undefined;
+    const account = this.findUser(email, role);
+    const row = account ? this.db.prepare("SELECT * FROM users WHERE id=?").get(account.id) as UserRow : undefined;
     const valid = row ? verifyPassword(password, row.password) : (scryptSync(password.slice(0, 256), "missing-user", 64), false);
     if (!row || !valid) {
       this.db.prepare(`INSERT INTO login_limits(key,attempts,since) VALUES(?,1,?)
@@ -178,16 +183,30 @@ export class PortalStore {
       throw new PortalError(401, "Проверьте почту и пароль.");
     }
     this.db.prepare("DELETE FROM login_limits WHERE key=?").run(key);
+    return viewer(row);
+  }
+
+  /** Internal session minting. HTTP callers must first pass PortalAuth email verification. */
+  login(email: string, password: string, address: string, current?: Session, role?: Role): { token: string; session: Session } {
+    return this.loginVerified(this.authenticatePassword(email, password, address, role).id, current);
+  }
+
+  loginVerified(userId: string, current?: Session, complete?: (result: { token: string; session: Session }) => void): { token: string; session: Session } {
+    const user = this.user(userId); if (!user) throw new PortalError(401, "Войдите в кабинет.");
+    const epoch = Date.now();
     this.db.prepare("DELETE FROM sessions WHERE expires<?").run(epoch);
     if (current && !this.db.prepare("SELECT 1 FROM sessions WHERE token_hash=? AND expires>?").get(current.tokenHash, epoch)) {
       throw new PortalError(401, "Войдите в кабинет.");
     }
     const groupId = current?.groupId ?? id();
     const profiles = current ? this.profiles(current) : [];
-    if (profiles.length >= 8 && !profiles.some(profile => profile.id === row.id)) throw new PortalError(409, "Можно добавить до 8 профилей на одном устройстве.");
+    if (profiles.length >= 8 && !profiles.some(profile => profile.id === user.id)) throw new PortalError(409, "Можно добавить до 8 профилей на одном устройстве.");
+    const deadline = current ? Number(this.db.prepare("SELECT min(expires) AS expires FROM sessions WHERE group_id=?").get(groupId)!.expires) : epoch + SESSION_LIFETIME;
     return this.transaction(() => {
-      this.db.prepare("DELETE FROM sessions WHERE group_id=? AND user_id=?").run(groupId, row.id);
-      return this.createSession(viewer(row), groupId, epoch + 604_800_000);
+      this.db.prepare("DELETE FROM sessions WHERE group_id=? AND user_id=?").run(groupId, user.id);
+      const result = this.createSession(user, groupId, deadline);
+      complete?.(result);
+      return result;
     });
   }
 
@@ -223,7 +242,13 @@ export class PortalStore {
     });
   }
 
-  logout(session: Session) { this.db.prepare("DELETE FROM sessions WHERE group_id=?").run(session.groupId); }
+  logout(session: Session) {
+    this.transaction(() => {
+      this.db.prepare("DELETE FROM sessions WHERE group_id=?").run(session.groupId);
+      this.db.prepare("DELETE FROM auth_verifications WHERE group_id=?").run(session.groupId);
+      this.db.prepare("DELETE FROM auth_challenges WHERE group_id=?").run(session.groupId);
+    });
+  }
 
   changePassword(session: Session, current: string, replacement: string) {
     const row = this.db.prepare("SELECT * FROM users WHERE id=?").get(session.viewer.id) as UserRow;
@@ -231,9 +256,39 @@ export class PortalStore {
     if (current === replacement) throw new PortalError(400, "Новый пароль должен отличаться от временного.");
     const password = hashPassword(replacement);
     this.transaction(() => {
-      this.db.prepare("UPDATE users SET password=?,must_change=0 WHERE id=?").run(password, row.id);
-      this.db.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash!=?").run(row.id, session.tokenHash);
+      this.updateIdentityPassword(row.email, password, session.groupId);
     });
+  }
+
+  credentialHash(userId: string): string {
+    const row = this.db.prepare("SELECT password,email FROM users WHERE id=?").get(userId);
+    return row ? tokenHash(`${row.email}:${row.password}`) : "";
+  }
+
+  sessionDeadline(session: Session): number {
+    return Number(this.db.prepare("SELECT expires FROM sessions WHERE token_hash=?").get(session.tokenHash)?.expires ?? 0);
+  }
+
+  grantIdentityProfiles(session: Session) {
+    const account = this.db.prepare("SELECT email,password FROM users WHERE id=?").get(session.viewer.id)!;
+    const users = this.db.prepare("SELECT * FROM users WHERE email=? AND password=?").all(account.email!, account.password!) as UserRow[];
+    for (const user of users) if (!this.db.prepare("SELECT 1 FROM sessions WHERE group_id=? AND user_id=?").get(session.groupId, user.id)) {
+      this.createSession(viewer(user), session.groupId, this.sessionDeadline(session));
+    }
+  }
+
+  private updateIdentityPassword(email: string, password: string, keepGroup = "") {
+    this.db.prepare("DELETE FROM auth_verifications WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
+    this.db.prepare("DELETE FROM sessions WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
+    this.db.prepare("UPDATE users SET password=?,must_change=0 WHERE email=?").run(password, email);
+    this.db.prepare("DELETE FROM auth_challenges WHERE email=?").run(email);
+    this.db.prepare("DELETE FROM auth_recoveries WHERE email=?").run(email);
+  }
+
+  resetIdentityPassword(email: string, replacement: string) {
+    const row = this.db.prepare("SELECT password FROM users WHERE email=? LIMIT 1").get(email);
+    if (row && verifyPassword(replacement, String(row.password))) throw new PortalError(400, "Новый пароль должен отличаться от текущего.");
+    this.updateIdentityPassword(email, hashPassword(replacement));
   }
 
   delivered(deliveryId: string): boolean {

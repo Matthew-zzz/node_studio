@@ -98,7 +98,7 @@ test("sitemap, robots and custom 404 are exported", async () => {
 
 test("portal and checkout routes are exported and excluded from indexing", async () => {
   const sitemap = await readFile(resolve(output, "sitemap.xml"), "utf8");
-  for (const route of ["/cabinet/", "/checkout/"]) {
+  for (const route of ["/cabinet/", "/checkout/", "/recover/"]) {
     const { nodes } = await documentAt(route);
     assert.equal(nodes.filter(node => node.tagName === "h1").length, 1);
     assert.equal(nodes.filter(node => node.tagName === "main").length, 1);

@@ -31,7 +31,7 @@ export class ProjectRegistry {
     if (viewer.mustChangePassword || viewer.role !== "curator") throw new PortalError(403, "Создать проект для клиента может только куратор.");
     const requestId = text(input.requestId, 100);
     if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId)) throw new PortalError(400, "Обновите форму создания проекта.");
-    const client = this.store.findUser(text(input.clientEmail, 254).toLowerCase());
+    const client = this.store.findUser(text(input.clientEmail, 254).toLowerCase(), "client");
     if (!client || client.role !== "client") throw new PortalError(404, "Клиент с этой почтой не найден. Для нового клиента подготовьте проект с оплатой и выдачей доступа.");
     const name = text(input.name, 160); const description = text(input.description, 1000, 0); const brief = text(input.brief, 16000);
     return this.store.transaction(() => {
@@ -106,7 +106,7 @@ export class ProjectRegistry {
     if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId)) throw new PortalError(400, "Обновите форму создания проекта.");
     const projectId = `project:${requestId}`;
     const existing = this.store.get("projects", projectId);
-    const client = this.store.findUser(text(input.clientEmail, 254).toLowerCase());
+    const client = this.store.findUser(text(input.clientEmail, 254).toLowerCase(), "client");
     if (!client || client.role !== "client") throw new PortalError(404, "Клиент с этой почтой не найден. Используйте существующий клиентский аккаунт.");
     if (existing) { if (existing.status === "archived" || existing.clientId !== client.id || existing.developerId !== viewer.id) throw new PortalError(409, "Проект с этим идентификатором уже существует."); return existing; }
     const name = text(input.name, 160); const description = text(input.description, 1000, 0);

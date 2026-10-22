@@ -1,9 +1,9 @@
+import { portalApi } from "./helpers/http.mjs";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Readable } from "node:stream";
 import test from "node:test";
 import { PortalService } from "../server/service.ts";
 import { PortalStore } from "../server/store.ts";
@@ -238,17 +238,14 @@ test("paid order creates a client and project without GitHub; developer creates 
 
 test("HTTP boundary rejects cross-origin writes, missing CSRF, and unverified webhooks", async () => {
   const f = portalFixture();
-  async function request(path, body, headers = {}, method = "POST") {
-    const raw = body === undefined ? "" : JSON.stringify(body); const req = Readable.from([Buffer.from(raw)]);
-    req.url = `/api/portal/${path}`; req.method = method; req.socket = { remoteAddress: "127.0.0.1" }; req.headers = { "content-type": "application/json", origin: f.config.origin, ...headers };
-    const res = { headers: {}, statusCode: 200, setHeader(name, value) { this.headers[name] = value; }, end(value) { this.body = JSON.parse(value); } };
-    await f.handler(req, res); return res;
-  }
+  const http = portalApi(f, true).request;
+  const request = (path, body, headers = {}, method = "POST") => http(path, method === "GET" ? undefined : body, undefined, headers);
+
   try {
     assert.equal((await request("login", { email: f.users.client.email, password: fixturePassword }, { origin: "https://another.test" })).statusCode, 403);
     const login = await request("login", { email: f.users.client.email, password: fixturePassword });
-    assert.equal(login.statusCode, 200); assert.ok(login.headers["Set-Cookie"].includes("HttpOnly; SameSite=Lax"));
-    const cookie = login.headers["Set-Cookie"].split(";")[0];
+    assert.equal(login.statusCode, 200); assert.ok([login.headers["Set-Cookie"]].flat().some(cookie => cookie.includes("HttpOnly; SameSite=Lax")));
+    const cookie = login.cookie;
     const action = { type: "message", threadId: "chat-one", text: "Hello" };
     assert.equal((await request("action", action, { cookie })).statusCode, 403);
     assert.equal((await request("action", action, { cookie, "x-csrf-token": login.body.csrf })).statusCode, 200);

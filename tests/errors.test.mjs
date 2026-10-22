@@ -1,6 +1,6 @@
+import { portalApi } from "./helpers/http.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -15,14 +15,7 @@ import { withErrorContext } from '../server/error-context.ts';
 import { createRequestReporter } from '../src/features/portal/lib/request-reporter.ts';
 
 const query = { state: 'all', provider: 'all', search: '', page: 1 };
-function api(f) {
-  return async (path, body, account, headers = {}) => {
-    const request = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]);
-    Object.assign(request, {url: `/api/portal/${path}`, method: body === undefined ? 'GET' : 'POST', socket: {remoteAddress: '127.0.0.1'}, headers: {origin:f.config.origin, 'content-type':'application/json', ...(account ? {cookie:account.cookie,'x-csrf-token':account.body.csrf} : {}), ...headers}});
-    const response = {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v;},end(v){this.body=JSON.parse(v);}};
-    await f.handler(request,response);response.cookie=response.headers['Set-Cookie']?.split(';')[0];return response;
-  };
-}
+const api = f => portalApi(f, true).request;
 const suspended = () => responseError('https://api.github.com/repos/owner/repo/issues?token=NEVER_EXPOSE', new Response(JSON.stringify({message:'Sorry. Your account was suspended', secret:'NEVER_EXPOSE'}),{status:403,headers:{'x-github-request-id':'GITHUB-123'}}));
 
 test('upstream diagnostics distinguish suspension, permissions, quota, rate limits and transport without retaining bodies or secrets',async()=>{
