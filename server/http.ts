@@ -8,8 +8,15 @@ import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
 import { withErrorContext, updateErrorContext } from "./error-context.ts";
 import type { ErrorProvider } from "../src/features/portal/model/errors.ts";
 
+function cookieNames(request: IncomingMessage, config: PortalConfig) {
+  const prefix = config.secureCookies ? "__Host-" : "";
+  return request.headers["x-portal-client"] === "miniapp"
+    ? { session: `${prefix}node_miniapp_session`, challenge: `${prefix}node_miniapp_challenge` }
+    : { session: `${prefix}nodo_session`, challenge: `${prefix}node_challenge` };
+}
+
 export function requestSession(request: IncomingMessage, service: PortalService, config: PortalConfig) {
-  const name = config.secureCookies ? "__Host-nodo_session" : "nodo_session";
+  const name = cookieNames(request, config).session;
   const token = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${name}=`))?.slice(name.length + 1) ?? "";
   return service.auth.session(token);
 }
@@ -31,16 +38,17 @@ async function readBody(request: IncomingMessage, limit = 131_072): Promise<Buff
 
 export function createPortalHandler(service: PortalService, config: PortalConfig) {
   const publicLimits = new Map<string, { count: number; since: number }>();
-  const cookieName = config.secureCookies ? "__Host-nodo_session" : "nodo_session";
-  const challengeName = config.secureCookies ? "__Host-node_challenge" : "node_challenge";
-  function cookie(name: string, value: string, age: number) {
-    return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${config.secureCookies ? "; Secure" : ""}`;
-  }
-  function challengeCookie(request: IncomingMessage) {
+  function challengeCookie(request: IncomingMessage, challengeName: string) {
     return request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${challengeName}=`))?.slice(challengeName.length + 1) ?? "";
   }
   return async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const requestId = id();
+    const names = cookieNames(request, config);
+    const cookieName = names.session; const challengeName = names.challenge;
+    function cookie(name: string, value: string, age: number) {
+      const embedded = config.secureCookies && request.headers["x-portal-client"] === "miniapp";
+      return `${name}=${value}; Path=/; HttpOnly; SameSite=${embedded ? "None" : "Lax"}; Max-Age=${age}${config.secureCookies ? "; Secure" : ""}${embedded ? "; Partitioned" : ""}`;
+    }
     return withErrorContext({ requestId, method: request.method ?? "", source: "request", report: (error, context) => service.errors.capture(error, context) }, async () => {
       response.setHeader("X-Request-Id", requestId);
       response.setHeader("Cache-Control", "no-store");
@@ -54,7 +62,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         updateErrorContext({ path });
         if (request.method === "GET" && path === "/api/portal/health") { send(200, { status: "ok", service: "node-studio-portal", version: 1, revision: config.revision }); return; }
         const session = requestSession(request, service, config);
-        const challengeToken = challengeCookie(request);
+        const challengeToken = challengeCookie(request, challengeName);
         updateErrorContext({ actor: session?.viewer ?? null });
         if (!["GET", "POST"].includes(request.method ?? "")) throw new PortalError(405, "Метод не поддерживается.");
         const isWebhook = ["/api/portal/webhooks/github", "/api/portal/webhooks/telegram"].includes(path);

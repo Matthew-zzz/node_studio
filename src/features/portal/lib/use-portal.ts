@@ -18,8 +18,8 @@ const successMessages: Partial<Record<PortalAction["type"], string>> = {
   "order.provision": "Создание проекта запущено. Доступ придёт клиенту на почту.",
 };
 
-export function usePortal() {
-  const gateway = useMemo(() => createApiGateway(), []);
+export function usePortal(presentation: "web" | "miniapp" = "web") {
+  const gateway = useMemo(() => createApiGateway(presentation), [presentation]);
   useEffect(() => { gateway.activate(); return () => gateway.dispose(); }, [gateway]);
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [loading, setLoading] = useState(true);

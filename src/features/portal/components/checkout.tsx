@@ -10,8 +10,8 @@ import type { Checkout } from "@/features/portal/model/types";
 import { notify } from "@/lib/notifications";
 import styles from "./portal.module.css";
 
-export function CheckoutPage() {
-  const gateway = useMemo(() => createApiGateway(), []);
+export function CheckoutPage({ presentation = "web" }: { presentation?: "web" | "miniapp" }) {
+  const gateway = useMemo(() => createApiGateway(presentation), [presentation]);
   useEffect(() => { gateway.activate(); return () => gateway.dispose(); }, [gateway]);
   const { theme, setTheme } = usePortalTheme();
   const [checkout, setCheckout] = useState<Checkout | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
@@ -38,7 +38,7 @@ export function CheckoutPage() {
     finally { setBusy(false); }
   }
   return (
-    <div className={styles.root} data-theme={theme}>
+    <div className={styles.root} data-theme={theme} data-presentation={presentation}>
       <main id="main" className={styles.authPage}>
         <div className={styles.authTop}>
           <WorkspaceBrand />

@@ -38,10 +38,11 @@ export interface PortalGateway {
   payOrder(token: string, outcome: "succeeded" | "failed"): Promise<Checkout>;
 }
 
-export function createApiGateway(): PortalGateway {
+export function createApiGateway(presentation: "web" | "miniapp" = "web"): PortalGateway {
   let csrf = "";
   let viewerId = ""; let identityReady = false;
-  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); });
+  const clientHeaders = presentation === "miniapp" ? { "X-Portal-Client": "miniapp" } : {};
+  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation);
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
     const authenticating = ["login", "logout", "password", "profiles/add", "profiles/switch", "auth/verify", "auth/reset"].includes(path);
@@ -52,7 +53,8 @@ export function createApiGateway(): PortalGateway {
     try {
       response = await fetch(`/api/portal/${path}`, {
         credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(120_000),
-        ...(body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(body) }),
+        headers: { ...clientHeaders, ...(body === undefined ? {} : { "Content-Type": "application/json", "X-CSRF-Token": csrf }) },
+        ...(body === undefined ? {} : { method: "POST", body: JSON.stringify(body) }),
       });
     } catch (error) {
       reporter.record(path, body === undefined ? "GET" : "POST", error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : "network", 0, requestViewerId);

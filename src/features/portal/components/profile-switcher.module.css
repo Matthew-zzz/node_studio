@@ -1,5 +1,6 @@
 .root { min-width: 0; border-top: 1px solid var(--p-line); padding-top: 18px; }
 .list { display: grid; gap: 5px; }
+.inline { display: block; }
 .caption { color: var(--p-muted); font-size: 10px; letter-spacing: 1.1px; text-transform: uppercase; padding: 0 11px 6px; }
 .profile { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; border: 1px solid transparent; border-radius: 11px; padding: 9px; text-align: left; background: transparent; color: var(--p-text); transition: background .16s ease, border-color .16s ease; }
 .profile:hover { background: var(--p-inset); }

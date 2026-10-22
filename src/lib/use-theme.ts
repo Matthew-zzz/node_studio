@@ -6,13 +6,20 @@ export type Theme = "light" | "dark";
 const STORAGE_KEY = "nodo.portal.theme";
 const CHANGE_EVENT = "nodo-theme";
 let memoryTheme: Theme | undefined;
+let hostTheme: Theme | undefined;
+
+/** A host preference is a fallback; an explicit choice always takes precedence. */
+export function setHostTheme(theme: Theme | undefined) {
+  hostTheme = theme;
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
 
 function readTheme(): Theme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "light" || saved === "dark") return saved;
   } catch { /* Private browsers can keep the preference in memory. */ }
-  return memoryTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  return memoryTheme ?? hostTheme ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 }
 
 function subscribe(listener: () => void) {

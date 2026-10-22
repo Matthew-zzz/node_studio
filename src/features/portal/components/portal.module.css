@@ -242,3 +242,45 @@
   .authTop { margin-bottom: 35px; } .authCard h1 { font-size: 26px; } .dialog { padding: 24px; } .dialogTotal { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) { .root * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+/* Mini App shares business components, with phone-sized surfaces in every Telegram client. */
+.root[data-presentation="miniapp"] { height: 100%; min-height: 0; width: 100%; font-size: 14px; }
+.root[data-presentation="miniapp"] :is(input, textarea, select) { font-size: 16px; max-width: 100%; }
+.root[data-presentation="miniapp"] :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) { min-height: 44px; }
+.root[data-presentation="miniapp"] :is(button, summary) { touch-action: manipulation; }
+.root[data-presentation="miniapp"] summary { min-height: 44px; padding-block: 10px; }
+.root[data-presentation="miniapp"] :is(button, a, summary) { overflow-wrap: anywhere; }
+.root[data-presentation="miniapp"] :is(.primary, .secondary, .textButton, .iconButton) { min-height: 44px; }
+.root[data-presentation="miniapp"] .panel { padding: 17px; border-radius: 16px; box-shadow: none; }
+.root[data-presentation="miniapp"] .stack { gap: 15px; }
+.root[data-presentation="miniapp"] .formRow { grid-template-columns: minmax(0, 1fr); }
+.root[data-presentation="miniapp"] .formActions { flex-wrap: wrap; }
+.root[data-presentation="miniapp"] .inlineForm > label { flex-basis: 100%; min-width: 0; }
+.root[data-presentation="miniapp"] .inlineForm > button { width: 100%; }
+.root[data-presentation="miniapp"] .panelHeader { flex-wrap: wrap; gap: 10px; margin-bottom: 17px; }
+.root[data-presentation="miniapp"] .queueItem { flex-wrap: wrap; align-items: flex-start; }
+.root[data-presentation="miniapp"] .queueItem > button { min-height: 44px; }
+.root[data-presentation="miniapp"] .inbox { grid-template-columns: minmax(0, 1fr); gap: 15px; }
+.root[data-presentation="miniapp"] .inboxList { display: grid; grid-template-columns: minmax(0, 1fr); max-height: 200px; overflow-y: auto; }
+.root[data-presentation="miniapp"] .inboxItem { min-width: 0; width: 100%; }
+.root[data-presentation="miniapp"] .filters button { min-height: 44px; }
+.root[data-presentation="miniapp"] .authPage, .root[data-presentation="miniapp"] .loadingPage { height: 100%; min-height: 0; overflow-y: auto; align-content: start; padding: calc(22px + var(--miniapp-top, 0px)) 16px calc(24px + var(--miniapp-bottom, 0px)); }
+.root[data-presentation="miniapp"] .authTop { margin-bottom: 25px; gap: 12px; max-width: 420px; }
+.root[data-presentation="miniapp"] .logo small { display: none; }
+.root[data-presentation="miniapp"] .authCard { width: 100%; max-width: 420px; padding: 24px 20px; }
+.root[data-presentation="miniapp"] .authCard h1 { font-size: 27px; }
+.root[data-presentation="miniapp"] .authFooter { max-width: 420px; }
+.root[data-presentation="miniapp"] .dialog { max-height: calc(var(--node-viewport-height, 100dvh) - var(--miniapp-top, 0px) - 20px); padding: 22px 22px calc(22px + var(--miniapp-bottom, 0px)); }
+.root[data-presentation="miniapp"] .chat { padding: 0; display: flex; flex-direction: column; min-height: 240px; }
+.root[data-presentation="miniapp"] .chatHeader { padding: 14px; flex-shrink: 0; }
+.root[data-presentation="miniapp"] .chatLog { height: clamp(160px, calc(var(--node-viewport-height, 100dvh) - 430px), 450px); min-height: 90px; padding: 15px; flex: 1 1 auto; }
+.root[data-presentation="miniapp"] .compose { padding: 10px 12px 12px; flex-shrink: 0; }
+.root[data-presentation="miniapp"] .compose textarea { min-height: 44px; max-height: 96px; resize: none; }
+.root[data-presentation="miniapp"] .compose button { min-width: 44px; }
+.root[data-presentation="miniapp"] .compose .small { line-height: 1.4; }
+.root[data-presentation="miniapp"] .takeover { padding: 8px 12px; flex-shrink: 0; }
+.root[data-presentation="miniapp"] .bubble { font-size: 14px; line-height: 1.65; }
+.root[data-presentation="miniapp"] .messageMeta { font-size: 10px; }
+.root[data-presentation="miniapp"] .empty { padding: 26px 8px; min-height: 140px; }
+.root[data-presentation="miniapp"] .themeSwitch button { min-width: 44px; min-height: 44px; }
+.root[data-presentation="miniapp"] .themeSwitch button > span:last-child { display: none; }

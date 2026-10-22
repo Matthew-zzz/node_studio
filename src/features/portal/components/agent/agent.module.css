@@ -28,6 +28,13 @@
 .file { font-size: 11px !important; }
 .rawHtml { white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.7 monospace; max-height: 240px; overflow: auto; }
 .empty { padding-block: 20px; }
+:global([data-presentation="miniapp"]) .fields { grid-template-columns: minmax(0, 1fr); }
+:global([data-presentation="miniapp"]) .saveBar { flex-wrap: wrap; padding: 12px; }
+:global([data-presentation="miniapp"]) .saveBar[data-dirty="true"] { bottom: 0; }
+:global([data-presentation="miniapp"]) .saveBar .actions { width: 100%; }
+:global([data-presentation="miniapp"]) .saveBar button { flex: 1; }
+:global([data-presentation="miniapp"]) .itemHeader { flex-wrap: wrap; }
+:global([data-presentation="miniapp"]) .check { min-height: 44px; align-items: center; }
 @media (max-width: 650px) {
   .fields { grid-template-columns: minmax(0, 1fr); }
   .saveBar { flex-wrap: wrap; padding: 13px; }

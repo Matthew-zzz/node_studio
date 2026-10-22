@@ -53,6 +53,7 @@ export function createStaticHandler(directory: string) {
         "Cache-Control": status === 200 && pathname.startsWith("/_next/static/") ? "public, max-age=31536000, immutable" : "no-cache",
         "Accept-Ranges": "bytes", ETag: etag, "Last-Modified": info.mtime.toUTCString(),
       };
+      if (status === 200 && pathname.startsWith("/miniapp/")) headers["Content-Security-Policy"] = "frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org";
       if (status === 200 && request.headers["if-none-match"] === etag) { response.writeHead(304, headers); response.end(); return; }
       let start = 0; let end = info.size - 1;
       const range = request.headers.range;

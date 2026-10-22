@@ -15,7 +15,7 @@ import { EmailVerification } from "@/features/portal/components/email-verificati
 const profileRoles: Role[] = ["curator", "client", "developer"];
 const roleIcons: Record<Role, IconName> = { curator: "telegram", client: "people", developer: "code", admin: "service" };
 
-export function ProfileSwitcher({ controller, onChange }: { controller: PortalController; onChange: () => void }) {
+export function ProfileSwitcher({ controller, onChange, inline = false }: { controller: PortalController; onChange: () => void; inline?: boolean }) {
   const { viewer, profiles } = controller.snapshot;
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
@@ -86,13 +86,17 @@ export function ProfileSwitcher({ controller, onChange }: { controller: PortalCo
 
   return (
     <div className={styles.root}>
-      <div className={styles.desktop}>{list}</div>
-      <button type="button" className={styles.mobileTrigger} popoverTarget={popoverId} aria-label="Открыть профили" disabled={controller.busy}>
-        <Icon name={roleIcons[viewer.role]} />
-        <span>{ROLE_LABELS[viewer.role]}</span>
-        <Icon name="people" />
-      </button>
-      <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
+      <div className={inline ? styles.inline : styles.desktop}>{list}</div>
+      {!inline && (
+      <>
+        <button type="button" className={styles.mobileTrigger} popoverTarget={popoverId} aria-label="Открыть профили" disabled={controller.busy}>
+          <Icon name={roleIcons[viewer.role]} />
+          <span>{ROLE_LABELS[viewer.role]}</span>
+          <Icon name="people" />
+        </button>
+        <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
+      </>
+)}
       <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { if (controller.challenge) void controller.cancelCode(); setOpen(false); setPassword(""); } }}>
         <Notifications modal />
         <span className={portal.kicker}>{role ? ROLE_LABELS[role] : "Рабочее пространство"}</span>

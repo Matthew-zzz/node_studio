@@ -29,5 +29,7 @@
 .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 20px; }
 .failure { color: var(--p-red); font-size: 13px; }
 .note { line-height: 1.7; }
+:global([data-presentation="miniapp"]) .filters { grid-template-columns: minmax(0, 1fr); }
+:global([data-presentation="miniapp"]) .data > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 @media (max-width: 800px) { .filters { grid-template-columns: 1fr 1fr; } .filters > label:first-child { grid-column: 1 / -1; } }
 @media (max-width: 650px) { .data > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } .heading { align-items: flex-start; } .indicator { margin-top: 7px; } .filters { gap: 12px; } }

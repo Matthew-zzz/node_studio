@@ -9,9 +9,10 @@ import { withErrorContext } from "./error-context.ts";
 import { PortalError } from "./store.ts";
 import { configureOwnerAccounts } from "./accounts.ts";
 import { initializeRuntime } from "./runtime.ts";
+import { configureTelegramMenu } from "./telegram-menu.ts";
 
 const [command, role, email, name] = process.argv.slice(2);
-if (!["bootstrap", "import-project", "archive-project", "configure-owner"].includes(command ?? "") && (command !== "create-user" || !["developer", "curator", "admin"].includes(role ?? "") || !email || !name)) {
+if (!["bootstrap", "import-project", "archive-project", "configure-owner", "telegram-menu"].includes(command ?? "") && (command !== "create-user" || !["developer", "curator", "admin"].includes(role ?? "") || !email || !name)) {
   console.error('Usage: node server/cli.ts create-user <developer|curator|admin> <email> "Name" < password-file');
   process.exit(1);
 }
@@ -20,7 +21,9 @@ const config = readConfig();
 const store = new PortalStore(config.database, { recoverJobs: false });
 try {
   const input = readFileSync(0, "utf8").replace(/\r?\n$/, "");
-  if (command === "configure-owner") {
+  if (command === "telegram-menu") {
+    console.log(JSON.stringify(await configureTelegramMenu(config)));
+  } else if (command === "configure-owner") {
     initializeRuntime(store, config);
     const definition = object(JSON.parse(input));
     const accounts = configureOwnerAccounts(store, text(definition.email, 254));

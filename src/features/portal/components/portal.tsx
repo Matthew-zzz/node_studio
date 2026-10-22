@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Notifications } from "@/components/ui/notifications";
-import type { IconName } from "@/components/ui/icon";
 import { Login, PasswordForm } from "@/features/portal/components/auth";
 import { ProjectOrders, TelegramInbox } from "@/features/portal/components/curator";
 import { DeveloperQueue } from "@/features/portal/components/developer";
@@ -13,28 +12,21 @@ import { ProjectWorkspace } from "@/features/portal/components/project-workspace
 import { AgentAdmin } from "@/features/portal/components/agent/admin";
 import { AdminErrors } from "@/features/portal/components/errors/admin-errors";
 import { isAgentView } from "@/features/portal/model/agent";
-import type { AgentView } from "@/features/portal/model/agent";
 import { Empty, ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { usePortal } from "@/features/portal/lib/use-portal";
 import { usePortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { ROLE_LABELS } from "@/features/portal/model/types";
-import type { Role } from "@/features/portal/model/types";
-import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/portal/model/project-views";
+import { isProjectView, PROJECT_VIEWS } from "@/features/portal/model/project-views";
 import type { ProjectView } from "@/features/portal/model/project-views";
 import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
 
-type View = ProjectView | AgentView | "errors" | "queue" | "inbox" | "orders" | "settings";
-const views: Record<View, { label: string; icon: IconName }> = {
-  errors: { label: "Ошибки", icon: "document" },
-  agent: { label: "ИИ-агент", icon: "bot" }, "agent-prompts": { label: "Промпты", icon: "document" }, "agent-knowledge": { label: "База знаний", icon: "database" }, "agent-playground": { label: "Проверка агента", icon: "spark" }, "agent-history": { label: "История настроек", icon: "clock" },
-  overview: { label: PROJECT_VIEW_LABELS.overview, icon: "service" }, tasks: { label: PROJECT_VIEW_LABELS.tasks, icon: "document" }, history: { label: PROJECT_VIEW_LABELS.history, icon: "code" }, chat: { label: PROJECT_VIEW_LABELS.chat, icon: "bot" },
-  queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Создание проектов", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
-};
-const roleViews: Record<Role, View[]> = { client: ["overview", "tasks", "history", "chat", "settings"], developer: ["queue", "overview", "tasks", "history", "chat", "settings"], curator: ["inbox", "orders", "settings"], admin: ["agent", "agent-prompts", "agent-knowledge", "agent-playground", "agent-history", "errors", "settings"] };
+import { PORTAL_VIEWS as views, ROLE_VIEWS as roleViews } from "@/features/portal/model/navigation";
+import type { PortalView as View } from "@/features/portal/model/navigation";
+import { MiniAppShell } from "@/features/telegram/components/miniapp-shell";
 
-export function Portal() {
-  const controller = usePortal(); const { theme, setTheme } = usePortalTheme();
+export function Portal({ presentation = "web" }: { presentation?: "web" | "miniapp" }) {
+  const controller = usePortal(presentation); const { theme, setTheme } = usePortalTheme();
   const [view, setView] = useState<View | null>(null);
   const [layout, setLayout] = useState<{ viewerId: string; projectId: string; secondary: ProjectView } | null>(null);
   const [source, setSource] = useState<{ viewerId: string; projectId: string; id: string } | null>(null);
@@ -47,7 +39,7 @@ export function Portal() {
   }, []);
   const { snapshot, busy } = controller; const viewer = snapshot.viewer;
   if (!viewer && controller.loading) return (
-    <div className={styles.root} data-theme={theme}>
+    <div className={styles.root} data-theme={theme} data-presentation={presentation}>
       <main id="main" className={styles.loadingPage}>
         <WorkspaceBrand />
         <h1>Личный кабинет</h1>
@@ -55,7 +47,7 @@ export function Portal() {
       </main>
     </div>
   );
-  if (!viewer) return <div className={styles.root} data-theme={theme}><Login controller={controller} theme={theme} setTheme={setTheme} /></div>;
+  if (!viewer) return <div className={styles.root} data-theme={theme} data-presentation={presentation}><Login controller={controller} theme={theme} setTheme={setTheme} /></div>;
   const available = roleViews[viewer.role];
   const project = snapshot.projects.find(project => project.id === snapshot.selectedProjectId);
   const developer = viewer.role === "developer";
@@ -84,13 +76,35 @@ export function Portal() {
     else selectSecondary("chat");
   };
   const openProject = async (id: string, tab: ProjectView = "overview", repositoryId: string | null = null) => {
-    if (id === project?.id) { selectSubproject(repositoryId); selectPrimary(tab); }
-    else if (await controller.select(id)) { setSource(repositoryId ? { viewerId: viewer.id, projectId: id, id: repositoryId } : null); setLayout(null); navigate(tab); }
+    if (id === project?.id) { selectSubproject(repositoryId); selectPrimary(tab); return true; }
+    else if (await controller.select(id)) { setSource(repositoryId ? { viewerId: viewer.id, projectId: id, id: repositoryId } : null); setLayout(null); navigate(tab); return true; }
+    return false;
   };
   const acceptProject = async (id: string, tab: "overview" | "chat") => {
     if (await controller.acceptProject(id)) { setLayout(null); navigate(tab); }
   };
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? subprojectId ? `${project?.name} / ${project?.subprojects?.find(part => part.id === subprojectId)?.name}` : project?.name ?? "Мои проекты" : views[activeView].label;
+  const content = (viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
+    <>
+      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+        <ProjectWorkspace
+          key={`${viewer.id}:${project.id}`}
+          project={project}
+          controller={controller}
+          subprojectId={subprojectId}
+          onSelectSubproject={selectSubproject}
+          primary={isProjectView(activeView) ? activeView : "overview"}
+          secondary={secondaryView}
+          onSelectPrimary={selectPrimary}
+          onSelectSecondary={selectSecondary}
+          onOpenSecondary={openSecondary}
+          onCloseSecondary={() => setLayout(null)}
+        />
+      )}
+    </>
+  )
+  );
+  if (presentation === "miniapp") return <MiniAppShell key={viewer.id} controller={controller} theme={theme} setTheme={setTheme} activeView={activeView} project={project} onNavigate={navigate} onOpenProject={openProject} onProfileChange={() => setView(null)}>{content}</MiniAppShell>;
   const navigation = (
     <>
       <WorkspaceBrand />
@@ -199,25 +213,7 @@ export function Portal() {
               </div>
               {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : !project.developerId ? "Ожидает разработчика" : !(project.repositoryReady ?? Boolean(project.repo)) ? "Подготовка к разработке" : "Ожидаем GitHub"}</span>}
             </div>
-            {viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
-              <>
-                {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
-                  <ProjectWorkspace
-                    key={`${viewer.id}:${project.id}`}
-                    project={project}
-                    controller={controller}
-                    subprojectId={subprojectId}
-                    onSelectSubproject={selectSubproject}
-                    primary={isProjectView(activeView) ? activeView : "overview"}
-                    secondary={secondaryView}
-                    onSelectPrimary={selectPrimary}
-                    onSelectSecondary={selectSecondary}
-                    onOpenSecondary={openSecondary}
-                    onCloseSecondary={() => setLayout(null)}
-                  />
-                )}
-              </>
-            )}
+            {content}
           </main>
         </div>
       </div>

@@ -10,8 +10,8 @@ import { Notifications } from "@/components/ui/notifications";
 import { notify } from "@/lib/notifications";
 import styles from "./portal.module.css";
 
-export function Recovery() {
-  const gateway = useMemo(() => createApiGateway(), []);
+export function Recovery({ presentation = "web" }: { presentation?: "web" | "miniapp" }) {
+  const gateway = useMemo(() => createApiGateway(presentation), [presentation]);
   const { theme, setTheme } = usePortalTheme();
   const [token, setToken] = useState(""); const [email, setEmail] = useState(""); const [error, setError] = useState("");
   const [replacement, setReplacement] = useState(""); const [repeat, setRepeat] = useState("");
@@ -34,7 +34,7 @@ export function Recovery() {
     finally { setBusy(false); }
   }
   return (
-    <div className={styles.root} data-theme={theme}>
+    <div className={styles.root} data-theme={theme} data-presentation={presentation}>
       <Notifications />
       <main id="main" className={styles.authPage}>
         <div className={styles.authTop}>
@@ -64,7 +64,7 @@ export function Recovery() {
               </form>
             </>
 )}
-          <Link className={styles.textButton} href="/cabinet/">Перейти ко входу</Link>
+          <Link className={styles.textButton} href={presentation === "miniapp" ? "/miniapp/" : "/cabinet/"}>Перейти ко входу</Link>
         </section>
       </main>
     </div>
