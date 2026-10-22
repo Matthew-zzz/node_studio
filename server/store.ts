@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } from "node:crypto";
 import type {
   Viewer, Role, PortalProject, WorkItem, PortalCommit, Conversation,
-  ChatMessage, TaskDraft, PortalQuote, ProjectOrder,
+  ChatMessage, TaskDraft, PortalQuote, ProjectOrder, RepositoryCreation,
 } from "../src/features/portal/model/types.ts";
 import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "../src/features/portal/model/agent.ts";
 import { errorContext } from "./error-context.ts";
@@ -12,7 +12,7 @@ import { initializeAuthSchema } from "./auth-schema.ts";
 
 export interface Records {
   projects: PortalProject;
-  repositoryRequests: { id: string; projectId: string; owner: string; name: string; createdAt: string };
+  repositoryRequests: { id: string; projectId: string; owner: string; name: string; createdAt: string; status?: RepositoryCreation["status"] | "ready"; attempts?: number; updatedAt?: string; nextAttemptAt?: string };
   tasks: WorkItem;
   stages: WorkItem;
   commits: PortalCommit & { id: string };

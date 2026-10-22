@@ -4,6 +4,7 @@ import { login, openProject } from "./portal.mjs";
 
 export async function checkProjectLifecycle(browser, origin, width, screenshots, fixture) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
+  const createRepository = fixture.integrations.createRepository;
   try {
     const page = await context.newPage(); const errors = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -39,7 +40,23 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     const create = page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true });
     await create.waitFor(); assert.equal(fixture.repositories.length, before);
     assert.equal(await page.getByText("Добавить этап", { exact: true }).count(), 0);
+    fixture.integrations.createRepository = async () => { throw new Error("Temporary GitHub outage"); };
     await create.click();
+    await page.getByRole("heading", { name: "Повторим создание автоматически", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
+    assert.equal(fixture.repositories.length, before);
+    await page.reload();
+    await openProject(page, width, name);
+    await page.getByRole("heading", { name: "Повторим создание автоматически", exact: true }).waitFor();
+    await page.screenshot({ path: resolve(screenshots, `${width}-project-repository-retry.png`), fullPage: true });
+    fixture.store.db.prepare("UPDATE jobs SET attempts=7,available=0 WHERE kind='github.repository.create' AND json_extract(payload,'$.projectId')=?").run(project.id);
+    await fixture.service.workJobs();
+    await page.reload();
+    await openProject(page, width, name);
+    await page.getByRole("heading", { name: "Создание приостановлено", exact: true }).waitFor();
+    const retry = page.getByRole("button", { name: "Повторить создание", exact: true }); await retry.waitFor();
+    fixture.integrations.createRepository = createRepository;
+    await retry.click();
     await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
     assert.equal(fixture.repositories.length, before + 1);
     const created = fixture.store.get("projects", project.id);
@@ -55,6 +72,6 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     const snapshot = await (await page.request.get(`${origin}/api/portal/snapshot?project=${encodeURIComponent(project.id)}`)).json();
     assert.equal(snapshot.projects.find(item => item.id === project.id).repositoryReady, true);
     assert.ok(!JSON.stringify(snapshot).includes(created.repo)); assert.deepEqual(errors, []);
-    console.log(`Project lifecycle ${width}px: curator creation, client access, review, acceptance and exclusive repository creation passed`);
-  } finally { await context.close(); }
+    console.log(`Project lifecycle ${width}px: curator creation, acceptance, durable GitHub retry after reload, manual recovery and exclusive repository creation passed`);
+  } finally { fixture.integrations.createRepository = createRepository; await context.close(); }
 }

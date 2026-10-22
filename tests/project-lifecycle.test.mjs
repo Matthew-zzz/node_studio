@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { backup } from "node:sqlite";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { PortalService } from "../server/service.ts";
+import { PortalStore } from "../server/store.ts";
 import { projectRepositories } from "../src/features/portal/model/project-repositories.ts";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 
@@ -11,6 +16,7 @@ async function request(f, input = definition()) {
   return f.store.get("projects", `project:${input.requestId}`);
 }
 const repositoryAction = project => ({ type: "project.repository.create", projectId: project.id });
+const retryNow = f => f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='github.repository.create'").run();
 
 test("curator creates an idempotent client project without GitHub or access to private chats", async () => {
   const f = portalFixture();
@@ -52,6 +58,17 @@ test("only the assigned developer creates one exclusive repository and initial G
     await assert.rejects(f.service.action(developer, { ...action, developerId: developer.viewer.id }), { status: 403 });
     f.store.put("projects", assigned);
     await Promise.all([1, 2, 3].map(() => f.service.action(developer, action)));
+    assert.equal(f.repositories.length, 0, "the HTTP action only queues durable work");
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='github.repository.create'").get().n, 1);
+    const pending = await f.service.snapshot(developer, project.id);
+    assert.equal(pending.projects.find(item => item.id === project.id).repositoryCreation.status, "queued");
+    for (const role of ["client", "curator"]) {
+      const snapshot = await f.service.snapshot(f.login(role).session, project.id);
+      const visible = snapshot.projects.find(item => item.id === project.id);
+      assert.equal(visible.repositoryCreation, undefined);
+      assert.equal(visible.subprojects, undefined);
+    }
+    await f.service.workJobs();
     assert.equal(f.repositories.length, 1);
     const current = f.store.get("projects", project.id);
     assert.equal(current.repo, f.repositories[0]); assert.equal(current.subprojects.length, 1);
@@ -72,12 +89,16 @@ test("a GitHub timeout reuses its durable reservation after service restart", as
     await f.service.action(developer, { type: "project.accept", projectId: project.id });
     const create = f.integrations.createRepository; let failed = false;
     f.integrations.createRepository = async name => { const repo = await create(name); if (!failed) { failed = true; throw new Error("GitHub response lost"); } return repo; };
-    await assert.rejects(f.service.action(developer, repositoryAction(project)), /response lost/);
+    await f.service.action(developer, repositoryAction(project)); await f.service.workJobs();
     assert.equal(f.store.get("projects", project.id).repo, ""); assert.equal(f.repositories.length, 1);
     const reservation = f.store.get("repositoryRequests", project.id);
     assert.ok(reservation); assert.equal(`${reservation.owner}/${reservation.name}`, f.repositories[0]);
+    assert.equal(reservation.status, "retrying"); assert.equal(reservation.attempts, 1);
+    const jobBefore = f.store.db.prepare("SELECT * FROM jobs WHERE kind='github.repository.create'").get();
+    await f.service.action(developer, repositoryAction(project));
+    assert.deepEqual(f.store.db.prepare("SELECT * FROM jobs WHERE kind='github.repository.create'").get(), jobBefore, "duplicate clicks preserve the retry delay and attempt count");
     const restarted = new PortalService(f.store, f.integrations, f.config);
-    await restarted.action(developer, repositoryAction(project));
+    retryNow(f); await restarted.workJobs();
     await restarted.action(developer, repositoryAction(project));
     assert.equal(f.repositories.length, 1); assert.equal(f.issues.get(f.repositories[0]).length, 1);
     assert.equal(f.store.get("projects", project.id).repo, f.repositories[0]);
@@ -91,10 +112,10 @@ test("a lost initial-issue response is retried once and reserved repositories ca
     await f.service.action(developer, { type: "project.accept", projectId: project.id });
     const createIssue = f.integrations.createIssue; let failed = false;
     f.integrations.createIssue = async (...args) => { const issue = await createIssue(...args); if (!failed) { failed = true; throw new Error("Issue response lost"); } return issue; };
-    await assert.rejects(f.service.action(developer, repositoryAction(project)), /Issue response lost/);
+    await f.service.action(developer, repositoryAction(project)); await f.service.workJobs();
     assert.equal(f.store.get("projects", project.id).repo, ""); assert.equal(f.store.all("tasks", project.id).length, 0);
     await assert.rejects(f.service.action(developer, { type: "project.create", requestId: randomUUID(), name: "Other", clientEmail: f.users.other.email, description: "", repositories: [{ name: "Main", repo: f.repositories[0] }] }), { status: 409 });
-    await f.service.action(developer, repositoryAction(project));
+    retryNow(f); await f.service.workJobs();
     assert.equal(f.issues.get(f.repositories[0]).length, 1); assert.equal(f.store.all("tasks", project.id).length, 1);
   } finally { f.close(); }
 });
@@ -109,7 +130,7 @@ test("unavailable GitHub leaves the project usable; switching owners cannot crea
     assert.equal(f.store.get("repositoryRequests", project.id), undefined);
     f.integrations.ready.github = true;
     f.integrations.createIssue = async () => { throw new Error("Unavailable"); };
-    await assert.rejects(f.service.action(developer, repositoryAction(project)), /Unavailable/);
+    await f.service.action(developer, repositoryAction(project)); await f.service.workJobs();
     const changed = new PortalService(f.store, f.integrations, { ...f.config, githubOwner: "another-owner" });
     await assert.rejects(changed.action(developer, repositoryAction(project)), { status: 409 });
     assert.equal(f.repositories.length, 1);
@@ -146,6 +167,7 @@ test("archived projects disappear for every role and queued jobs cannot recreate
     const developer = f.login("developer").session;
     await f.service.action(developer, { type: "project.accept", projectId: project.id });
     await f.service.action(developer, repositoryAction(project));
+    await f.service.workJobs();
     await f.service.action(f.login("client").session, { type: "message", threadId: `chat:${project.id}`, text: "Сделать поиск" });
     const token = "ab".repeat(32);
     const order = f.store.put("orders", { id: input.requestId, projectName: project.name, clientName: "Client", email: input.clientEmail, username: "client", brief: input.brief, totalKopecks: 100, status: "provisioning", checkoutToken: token, projectId: project.id, createdAt: project.createdAt });
@@ -184,10 +206,74 @@ test("archiving during repository creation prevents a late response from binding
     let release; let started;
     const ready = new Promise(resolve => { started = resolve; });
     f.integrations.createRepository = async name => { started(); await new Promise(resolve => { release = resolve; }); return `Matthew-zzz/${name}`; };
-    const pending = f.service.action(developer, repositoryAction(project)); await ready;
+    await f.service.action(developer, repositoryAction(project));
+    const pending = f.service.workJobs(); await ready;
     f.service.projects.archive(project.id); release();
-    await assert.rejects(pending, { status: 404 });
+    await pending;
     assert.equal(f.store.get("projects", project.id).status, "archived"); assert.equal(f.store.get("projects", project.id).repo, "");
     assert.equal(f.store.all("tasks", project.id).length, 0);
+    retryNow(f); await f.service.workJobs();
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='github.repository.create'").get().n, 0);
+  } finally { f.close(); }
+});
+
+test("repository jobs stop after eight failures, report the developer and can safely resume after a fix", async () => {
+  const f = portalFixture();
+  try {
+    const project = await request(f); const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    const create = f.integrations.createRepository; const names = [];
+    f.integrations.createRepository = async name => { names.push(name); throw new Error("GitHub unavailable"); };
+    await f.service.action(developer, repositoryAction(project));
+    for (let i = 0; i < 8; i++) { retryNow(f); await f.service.workJobs(); }
+    assert.equal(names.length, 8); assert.equal(new Set(names).size, 1);
+    assert.equal(f.store.get("repositoryRequests", project.id).status, "failed");
+    const failed = (await f.service.snapshot(developer, project.id)).projects.find(item => item.id === project.id).repositoryCreation;
+    assert.equal(failed.status, "failed"); assert.equal(failed.attempts, 8); assert.equal(failed.nextAttemptAt, undefined);
+    retryNow(f); await f.service.workJobs(); assert.equal(names.length, 8);
+    const event = f.service.errors.query({}).events.find(item => item.operation === "github.repository.create");
+    assert.equal(event.actor.id, developer.viewer.id); assert.equal(event.actor.role, "developer");
+    assert.equal(event.projectId, project.id); assert.equal(event.count, 8);
+    f.integrations.createRepository = create;
+    await f.service.action(developer, repositoryAction(project));
+    assert.equal(f.store.get("repositoryRequests", project.id).status, "queued");
+    await f.service.workJobs();
+    assert.equal(f.store.get("projects", project.id).repo, `Matthew-zzz/${names[0]}`);
+    assert.equal(f.repositories.length, 1); assert.equal(f.issues.get(f.repositories[0]).length, 1);
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='github.repository.create'").get().n, 0);
+  } finally { f.close(); }
+});
+
+test("a restarted store recovers an interrupted repository job without another click", async () => {
+  const f = portalFixture(); const directory = await mkdtemp(join(tmpdir(), "node-repository-restart-")); let recovered;
+  try {
+    const project = await request(f); const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    await f.service.action(developer, repositoryAction(project));
+    f.store.db.prepare("UPDATE jobs SET running=1 WHERE kind='github.repository.create'").run();
+    const path = join(directory, "portal.sqlite"); await backup(f.store.db, path);
+    recovered = new PortalStore(path);
+    const restarted = new PortalService(recovered, f.integrations, f.config);
+    await restarted.workJobs();
+    assert.equal(f.repositories.length, 1);
+    assert.equal(recovered.get("projects", project.id).repo, f.repositories[0]);
+    assert.equal(recovered.db.prepare("SELECT count(*) AS n FROM jobs").get().n, 0);
+  } finally { recovered?.close(); f.close(); await rm(directory, { recursive: true, force: true }); }
+});
+
+test("queued creation rechecks ownership and skips archived projects before contacting GitHub", async () => {
+  const f = portalFixture();
+  try {
+    const project = await request(f); const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    await f.service.action(developer, repositoryAction(project));
+    const assigned = f.store.get("projects", project.id);
+    f.store.put("projects", { ...assigned, developerId: "another-developer" });
+    await f.service.workJobs(); assert.equal(f.repositories.length, 0);
+    assert.equal(f.store.get("repositoryRequests", project.id).status, "retrying");
+    f.store.put("projects", assigned); f.service.projects.archive(project.id);
+    retryNow(f); await f.service.workJobs();
+    assert.equal(f.repositories.length, 0);
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs").get().n, 0);
   } finally { f.close(); }
 });

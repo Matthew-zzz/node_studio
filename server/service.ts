@@ -8,6 +8,7 @@ import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
 import type { Conversation, PortalProject, PortalSnapshot, ProjectOrder, ProjectRepository, Role, Viewer, WorkItem } from "../src/features/portal/model/types.ts";
 import { PROJECT_GREETING, projectRepositories, repositoryKey, sameWorkSource, workItemId } from "../src/features/portal/model/project-repositories.ts";
 import { ProjectRegistry, ProjectSyncError } from "./projects.ts";
+import { RepositoryProvisioner } from "./repository-provisioning.ts";
 import { visibleSnapshot } from "../src/features/portal/model/access.ts";
 import { createPaymentQuote } from "../src/features/payments/model/payment.ts";
 import { TelegramAgent } from "./agent/service.ts";
@@ -32,6 +33,7 @@ export class PortalService {
   readonly agent: TelegramAgent;
   readonly errors: ErrorJournal;
   readonly projects: ProjectRegistry;
+  readonly repositories: RepositoryProvisioner;
   readonly auth: PortalAuth;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
@@ -42,6 +44,7 @@ export class PortalService {
     this.agent = new TelegramAgent(store, integrations, config);
     this.errors = new ErrorJournal(store, config.revision);
     this.projects = new ProjectRegistry(store, integrations, config.githubOwner);
+    this.repositories = new RepositoryProvisioner(store, this.projects);
     this.auth = new PortalAuth(store, integrations, config);
   }
 
@@ -148,7 +151,11 @@ export class PortalService {
     }
     const info = selected && this.synced.get(selected.id);
     const data: PortalSnapshot = {
-      ...EMPTY_SNAPSHOT, viewer, profiles: this.store.profiles(session), csrf: session.csrf, projects: projects.map(project => this.store.get("projects", project.id)!),
+      ...EMPTY_SNAPSHOT, viewer, profiles: this.store.profiles(session), csrf: session.csrf, projects: projects.map(project => {
+        const current = this.store.get("projects", project.id)!;
+        const creation = this.repositories.state(current);
+        return creation ? { ...current, repositoryCreation: creation } : current;
+      }),
       tasks: this.store.all("tasks"), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
@@ -199,8 +206,7 @@ export class PortalService {
     if (type === "project.repository.create") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
-      await this.exclusive(`write:${project.id}`, () => this.projects.createRepository(viewer, project.id));
-      this.synced.delete(project.id); return;
+      this.repositories.request(viewer, project.id); return;
     }
     if (type === "project.repository.add") {
       this.role(viewer, ["developer"]);
@@ -469,6 +475,10 @@ export class PortalService {
           if (job.kind === "github.sync") {
             const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true, payload.subprojectId);
           }
+          if (job.kind === "github.repository.create") {
+            await this.exclusive(`write:${payload.projectId!}`, () => this.repositories.run(payload.projectId!, payload.developerId!, job.attempts + 1));
+            this.synced.delete(payload.projectId!);
+          }
           if (job.kind === "provision") {
             const order = this.store.get("orders", payload.orderId!); if (order && order.status !== "ready") await this.provision(order);
           }
@@ -480,7 +490,11 @@ export class PortalService {
           this.store.db.prepare("DELETE FROM jobs WHERE id=?").run(job.id);
         } catch (error) {
           this.errors.capture(error, { source: "background" });
-          this.store.db.prepare("UPDATE jobs SET running=0,attempts=attempts+1,available=? WHERE id=?").run(Date.now() + Math.min(3_600_000, 5000 * 2 ** job.attempts), job.id);
+          const nextAttemptAt = Date.now() + Math.min(3_600_000, 5000 * 2 ** job.attempts);
+          this.store.transaction(() => {
+            this.store.db.prepare("UPDATE jobs SET running=0,attempts=attempts+1,available=? WHERE id=?").run(nextAttemptAt, job.id);
+            if (job.kind === "github.repository.create") this.repositories.failed(payload.projectId!, job.attempts + 1, nextAttemptAt);
+          });
           if (job.attempts >= 7 && ["provision", "mail"].includes(job.kind)) {
             const order = this.store.get("orders", payload.orderId!);
             if (order) this.store.put("orders", { ...order, status: "needs_setup" });
@@ -492,7 +506,7 @@ export class PortalService {
               this.append(thread, "Node", "system", "ИИ временно недоступен. Передали запрос человеку.");
             }
           }
-          console.error(`Portal job ${job.kind} will retry (${job.attempts + 1}/8).`);
+          console.error(`Portal job ${job.kind} ${job.attempts >= 7 ? "stopped" : "will retry"} (${job.attempts + 1}/8).`);
         } });
       }
     } finally { this.working = false; }

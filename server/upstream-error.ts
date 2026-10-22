@@ -56,6 +56,11 @@ export async function responseError(url: string, response: Response): Promise<Up
     code = "TELEGRAM_FORMAT"; title = "Telegram не принял оформление"; explanation = "Telegram отклонил HTML-разметку сообщения. Приложение пробует отправить текст без выделений."; recommendation = "Проверьте промпт оформления и используйте поддерживаемые Telegram HTML-теги.";
   } else if (provider === "resend" && /domain|verify|verification/.test(hint)) {
     code = "MAIL_DOMAIN"; title = "Не подтверждён отправитель почты"; explanation = "Почтовый сервис отклонил домен или адрес отправителя."; recommendation = "Проверьте верификацию домена и адрес отправителя в Resend.";
+  } else if (provider === "github" && status === 403 && new URL(url).pathname === "/user/repos") {
+    code = "GITHUB_REPOSITORY_CREATE_FORBIDDEN"; title = "GitHub запретил создание репозитория";
+    explanation = "GitHub отклонил создание репозитория для клиентского проекта. Возможны недостаточные разрешения токена или ограничения аккаунта.";
+    recommendation = "Проверьте разрешение Repository creation (write) или Administration (write), доступ подключения к новым репозиториям и ограничения аккаунта. Для классического токена нужен scope repo.";
+    documentation = "https://docs.github.com/en/rest/repos/repos#create-a-repository-for-the-authenticated-user";
   } else if (status === 403) {
     code = "UPSTREAM_PERMISSIONS"; title = "Недостаточно прав во внешнем сервисе"; explanation = "Сервис запретил операцию. Возможны недостаточные разрешения токена или ограничения аккаунта."; recommendation = provider === "github" ? "Проверьте доступ токена к репозиторию, разрешения Issues и Contents, а также состояние аккаунта GitHub." : "Проверьте разрешения ключа и ограничения аккаунта в соответствующем сервисе.";
   } else if (status === 404) {

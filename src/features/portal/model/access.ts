@@ -8,13 +8,14 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
   if (viewer.role === "curator") {
     const conversations = source.conversations.filter(thread => thread.kind === "telegram");
     const ids = new Set(conversations.map(thread => thread.id));
-    const projects = source.projects.filter(project => project.origin === "curator").map(project => { const visible = { ...project, repo: "", repositoryReady: Boolean(project.repo) }; delete visible.subprojects; return visible; });
+    const projects = source.projects.filter(project => project.origin === "curator").map(project => { const visible = { ...project, repo: "", repositoryReady: Boolean(project.repo) }; delete visible.subprojects; delete visible.repositoryCreation; return visible; });
     return { ...blank, projects, conversations, messages: source.messages.filter(message => ids.has(message.threadId)), orders: source.orders.filter(order => !order.projectId || source.projects.some(project => project.id === order.projectId)) };
   }
   const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id).map(project => {
     if (viewer.role !== "client") return project;
     const publicProject = { ...project, repo: "", repositoryReady: Boolean(project.repo) };
     delete publicProject.subprojects;
+    delete publicProject.repositoryCreation;
     return publicProject;
   });
   const ids = new Set(projects.map(project => project.id));

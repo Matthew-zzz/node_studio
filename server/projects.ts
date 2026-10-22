@@ -56,16 +56,23 @@ export class ProjectRegistry {
     });
   }
 
-  async createRepository(viewer: Viewer, projectId: string): Promise<PortalProject> {
+  prepareRepository(viewer: Viewer, projectId: string) {
     this.developer(viewer);
     const project = this.active(projectId);
     if (project.developerId !== viewer.id) throw new PortalError(403, "Сначала возьмите проект в работу.");
     if (project.status !== "active") throw new PortalError(409, "Дождитесь создания проекта.");
-    if (projectRepositories(project).length) return project;
+    if (projectRepositories(project).length) return undefined;
     if (!this.integrations.ready.github) throw new PortalError(503, "Подключите GitHub в настройках сервера.");
     // Save the name before calling GitHub: timeouts and process restarts retry the same repository.
-    const request = this.store.transaction(() => this.store.get("repositoryRequests", project.id) ?? this.store.put("repositoryRequests", { id: project.id, projectId: project.id, owner: this.owner, name: `node-${project.id.replace(/^project:/, "").replaceAll("-", "")}`, createdAt: now() }));
+    const request = this.store.get("repositoryRequests", project.id) ?? this.store.put("repositoryRequests", { id: project.id, projectId: project.id, owner: this.owner, name: `node-${project.id.replace(/^project:/, "").replaceAll("-", "")}`, createdAt: now() });
     if (request.owner.toLowerCase() !== this.owner.toLowerCase()) throw new PortalError(409, "GitHub-аккаунт изменился во время создания. Администратору нужно проверить незавершённое подключение.");
+    return request;
+  }
+
+  async createRepository(viewer: Viewer, projectId: string): Promise<PortalProject> {
+    const request = this.prepareRepository(viewer, projectId);
+    const project = this.active(projectId);
+    if (!request) return project;
     const repo = await this.integrations.createRepository(request.name);
     if (this.active(projectId).developerId !== viewer.id) throw new PortalError(403, "Проект принадлежит другому разработчику.");
     const part: ProjectRepository = { id: "main", name: "Основной", repo, createdAt: now() };

@@ -22,6 +22,9 @@ test('upstream diagnostics distinguish suspension, permissions, quota, rate limi
   const cases = [
     ['https://api.github.com/repos/a/b',403,{message:'Sorry. Your account was suspended'},'GITHUB_ACCOUNT_SUSPENDED'],
     ['https://api.github.com/repos/a/b',403,{message:'Resource not accessible by personal access token'},'UPSTREAM_PERMISSIONS'],
+    ['https://api.github.com/user/repos',403,{message:'Resource not accessible by personal access token'},'GITHUB_REPOSITORY_CREATE_FORBIDDEN'],
+    ['https://api.github.com/user/repos',403,{message:'Your account was suspended'},'GITHUB_ACCOUNT_SUSPENDED'],
+    ['https://api.github.com/user/repos',403,{message:'API rate limit exceeded'},'UPSTREAM_RATE_LIMIT'],
     ['https://api.github.com/repos/a/b',403,{message:'API rate limit exceeded'},'UPSTREAM_RATE_LIMIT'],
     ['https://api.openai.com/v1/responses',429,{error:{code:'insufficient_quota'}},'OPENAI_QUOTA'],
     ['https://api.telegram.org/botVERY_SECRET/sendMessage',403,{description:'Forbidden: bot was blocked by the user'},'TELEGRAM_CHAT_UNAVAILABLE'],

@@ -18,6 +18,7 @@ export interface PortalProject {
   readonly clientEmail: string;
   readonly repo: string;
   readonly repositoryReady?: boolean;
+  readonly repositoryCreation?: RepositoryCreation;
   readonly subprojects?: readonly ProjectRepository[];
   readonly origin?: "order" | "import" | "curator";
   readonly curatorId?: string;
@@ -30,6 +31,13 @@ export interface PortalProject {
 }
 
 export interface ProjectRepository { readonly id: string; readonly name: string; readonly repo: string; readonly createdAt: string }
+
+export interface RepositoryCreation {
+  readonly status: "queued" | "creating" | "retrying" | "failed";
+  readonly attempts: number;
+  readonly updatedAt: string;
+  readonly nextAttemptAt?: string;
+}
 
 export interface WorkItem {
   readonly id: string;

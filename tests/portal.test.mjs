@@ -232,6 +232,7 @@ test("paid order creates a client and project without GitHub; developer creates 
     const developer = f.login("developer").session;
     await f.service.action(developer, { type: "project.accept", projectId: project.id });
     await f.service.action(developer, { type: "project.repository.create", projectId: project.id });
+    await f.service.workJobs();
     assert.equal(f.repositories.length, 1); assert.equal(f.issues.get(f.repositories[0]).length, 1);
   } finally { f.close(); }
 });

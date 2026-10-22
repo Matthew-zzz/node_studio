@@ -66,6 +66,34 @@ export function CreateProject({ controller, onCreated }: { controller: PortalCon
   );
 }
 
+const repositoryMessages = {
+  idle: { title: "Подготовить разработку", description: "Создайте закрытый GitHub-репозиторий для этого проекта. ТЗ станет первой задачей, история и этапы будут обновляться из GitHub." },
+  queued: { title: "Создаём репозиторий", description: "Заявка сохранена. Подготовка начнётся в фоне — можно продолжать работу." },
+  creating: { title: "Создаём репозиторий", description: "Подготавливаем закрытый репозиторий и первую задачу с ТЗ. Можно покинуть страницу — создание продолжится в фоне." },
+  retrying: { title: "Повторим создание автоматически", description: "GitHub не завершил операцию. Заявка сохранена, можно продолжать работу." },
+  failed: { title: "Создание приостановлено", description: "Создание не завершилось после 8 попыток. Администратор получил подробности ошибки. После исправления подключения можно повторить." },
+};
+
+function RepositorySetup({ project, controller }: { project: PortalProject; controller: PortalController }) {
+  const creation = project.repositoryCreation;
+  const pending = creation && creation.status !== "failed";
+  const content = repositoryMessages[creation?.status ?? "idle"];
+  return (
+    <section className={styles.panel} aria-label="Репозиторий проекта">
+      <div role="status" aria-live="polite">
+        <h2>{content.title}</h2>
+        <p className={styles.subtitle}>{content.description}</p>
+        {creation?.nextAttemptAt && <p className={styles.small}>{`Следующая попытка после ${new Date(creation.nextAttemptAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}</p>}
+      </div>
+      {!pending && (
+        <div className={styles.formActions}>
+          <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "project.repository.create", projectId: project.id })}>{creation ? "Повторить создание" : "Создать GitHub-репозиторий"}</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function RepositoryManager({ project, controller }: { project: PortalProject; controller: PortalController }) {
   const [name, setName] = useState(""); const [repo, setRepo] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -73,15 +101,7 @@ export function RepositoryManager({ project, controller }: { project: PortalProj
     if (await controller.run({ type: "project.repository.add", projectId: project.id, name, repo })) { setName(""); setRepo(""); }
   }
   if (project.developerId !== controller.snapshot.viewer?.id) return null;
-  if (!projectRepositories(project).length) return (
-    <section className={styles.panel} aria-label="Репозиторий проекта">
-      <h2>Подготовить разработку</h2>
-      <p className={styles.subtitle}>Создайте закрытый GitHub-репозиторий для этого проекта. ТЗ станет первой задачей, история и этапы будут обновляться из GitHub.</p>
-      <div className={styles.formActions}>
-        <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "project.repository.create", projectId: project.id })}>{controller.busy ? "Создаём репозиторий…" : "Создать GitHub-репозиторий"}</button>
-      </div>
-    </section>
-  );
+  if (!projectRepositories(project).length) return <RepositorySetup project={project} controller={controller} />;
   return (
     <details className={`${styles.panel} ${management.manager}`}>
       <summary>Управление подпроектами</summary>
