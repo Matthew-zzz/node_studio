@@ -8,6 +8,7 @@ import type { AgentPreferences, AgentView } from "@/features/portal/model/agent"
 import { GeneralSettings, PromptSettings } from "@/features/portal/components/agent/settings";
 import { KnowledgeManager } from "@/features/portal/components/agent/knowledge";
 import { AgentPlayground } from "@/features/portal/components/agent/playground";
+import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { Empty } from "@/features/portal/components/ui";
 import { notify } from "@/lib/notifications";
 import portalStyles from "@/features/portal/components/portal.module.css";
@@ -88,15 +89,14 @@ export function AgentAdmin({ controller, view }: { controller: PortalController;
               </article>
             ))}
           </section>
-          <details className={`${portalStyles.panel} ${styles.form}`}>
-            <summary>Экспорт и импорт</summary>
+          <DetailDialog label="Экспорт и импорт" className={portalStyles.panel}>
             <button className={portalStyles.secondary} type="button" disabled={busy} onClick={() => void controller.agent.export().then(download).catch(error => notify.error(error instanceof Error ? error.message : "Не удалось экспортировать настройки."))}>Экспорт настроек и материалов</button>
             <label>
               Импорт настроек JSON
               <input className={styles.file} type="file" accept=".json" disabled={busy} onChange={event => void importSettings(event)} />
             </label>
             <p className={portalStyles.small}>Импорт загружает параметры агента в форму. Материалы добавляются отдельно в базе знаний. Ключи API в экспорт не включаются.</p>
-          </details>
+          </DetailDialog>
         </div>
       )}
       <div className={styles.saveBar} data-dirty={dirty}>

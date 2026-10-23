@@ -47,15 +47,10 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
       {thread.handoffRequested && !thread.ownerId && (
       <p className={styles.handoff}>
         Ожидаем подключения
-        {thread.kind === "telegram" ? "разработчика" : "разработчика"}
+        разработчика
       </p>
 )}
-      {thread.kind === "telegram" && (
-      <p className={styles.handoff}>
-        {thread.username ? `@${thread.username}` : "Без username"}
-        {thread.email ? ` · ${thread.email}` : ""}
-      </p>
-)}
+
       <div ref={log} className={styles.chatLog} role="log" aria-label="Сообщения" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 && <p className={styles.small}>Начните разговор. Здесь сохраняется переписка этого проекта.</p>}
         {messages.map(message => message.role === "system" ? <div key={message.id} className={styles.systemMessage}>{message.html ? <TelegramText html={message.html} /> : message.text}</div> : (
@@ -107,7 +102,6 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
           <textarea aria-label="Сообщение" placeholder={canWrite ? "Напишите сообщение…" : "Подключитесь, чтобы ответить"} maxLength={thread.kind === "telegram" ? 4000 : 8000} rows={2} disabled={!canWrite || busy} value={text} onChange={event => setText(event.target.value)} />
           <button className={styles.primary} type="submit" aria-label="Отправить сообщение" disabled={!canWrite || busy || !text.trim()}><Icon name="arrow" /></button>
         </div>
-        <p className={styles.small}>{human ? "ИИ приостанавливает ответы, пока вы ведёте диалог." : "Можно описать пожелание или попросить позвать разработчика."}</p>
       </form>
     </section>
   );

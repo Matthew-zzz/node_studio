@@ -7,9 +7,11 @@ import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { Conversation } from "@/features/portal/model/types";
 import portal from "./portal.module.css";
 import styles from "./chat-actions.module.css";
+import { FocusDialog } from "@/features/portal/components/focus-dialog";
 
 export function ChatActions({ thread, controller }: { thread: Conversation; controller: PortalController }) {
   const [open, setOpen] = useState(false);
+  const [contacts, setContacts] = useState(false);
   const menu = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -25,7 +27,16 @@ export function ChatActions({ thread, controller }: { thread: Conversation; cont
           <Icon name="document" />
           Итоговый бриф
         </button>
+        {thread.kind === "telegram" && (
+          <button type="button" className={styles.item} onClick={() => { menu.current?.close(); setContacts(true); }}>
+            <Icon name="people" />
+            Контакты клиента
+          </button>
+        )}
       </dialog>
+      <FocusDialog open={contacts} title="Контакты клиента" returnFocus={trigger} onClose={() => setContacts(false)}>
+        <p>{[thread.name, thread.username ? `@${thread.username.replace(/^@/, "")}` : "", thread.email].filter(Boolean).join("\n")}</p>
+      </FocusDialog>
     </>
   );
   const restoreFocus = () => trigger.current?.focus();

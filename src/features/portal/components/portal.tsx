@@ -90,7 +90,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? subprojectId ? `${project?.name} / ${project?.subprojects?.find(part => part.id === subprojectId)?.name}` : project?.name ?? "Мои проекты" : views[activeView].label;
   const content = (viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
     <>
-      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox key={viewer.id} controller={controller} presentation={presentation} selectedThreadId={telegramThread?.id ?? ""} onSelectThread={selectTelegramThread} /> : activeView === "orders" ? <ProjectOrders controller={controller} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox key={viewer.id} controller={controller} presentation={presentation} selectedThreadId={telegramThread?.id ?? ""} onSelectThread={selectTelegramThread} /> : activeView === "orders" ? <ProjectOrders controller={controller} onOpenProject={id => void openProject(id)} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
         <ProjectWorkspace
           key={`${viewer.id}:${project.id}`}
           project={project}
@@ -212,11 +212,9 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
           <main id="main" className={styles.content} aria-busy={busy}>
             <div className={styles.pageHeader}>
               <div>
-                <span className={styles.kicker}>{projectView ? views[activeView].label : viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "developer" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
                 <h1>{pageTitle}</h1>
-                <p className={styles.subtitle}>{projectView ? project?.description : viewer.role === "developer" ? "От первого обращения до готового проекта" : ""}</p>
               </div>
-              {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : !project.developerId ? "Ожидает разработчика" : !(project.repositoryReady ?? Boolean(project.repo)) ? "Подготовка к разработке" : "Ожидаем GitHub"}</span>}
+              {projectView && project && (snapshot.syncError || !project.developerId || !(project.repositoryReady ?? Boolean(project.repo))) && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : !project.developerId ? "Ожидает разработчика" : !(project.repositoryReady ?? Boolean(project.repo)) ? "Подготовка к разработке" : "Ожидаем GitHub"}</span>}
             </div>
             {content}
           </main>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import type { AgentGateway } from "@/features/portal/lib/gateway";
 import type { AgentPreferences, AgentTestMessage, AgentTestResult } from "@/features/portal/model/agent";
+import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import { TelegramText } from "@/features/portal/components/telegram-text";
 import { notify } from "@/lib/notifications";
@@ -66,10 +67,9 @@ export function AgentPlayground({ api, settings }: { api: AgentGateway; settings
               <LongText text={source.text} label="Посмотреть фрагмент" />
             </div>
           ))}
-          <details>
-            <summary>HTML ответа Telegram</summary>
+          <DetailDialog label="HTML ответа Telegram">
             <pre className={styles.rawHtml}>{result.html}</pre>
-          </details>
+          </DetailDialog>
         </section>
       )}
     </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import type { AgentGateway } from "@/features/portal/lib/gateway";
 import type { AgentAdminState, AgentCommand, KnowledgeDocument } from "@/features/portal/model/agent";
+import { DetailDialog, ActionsMenu } from "@/features/portal/components/focus-dialog";
 import { Empty } from "@/features/portal/components/ui";
 import { RagSettings } from "@/features/portal/components/agent/settings";
 import type { AgentEditorProps } from "@/features/portal/components/agent/settings";
@@ -19,17 +20,18 @@ export function KnowledgeManager({ state, api, command, ...editor }: AgentEditor
 }) {
   const [draft, setDraft] = useState<DocumentDraft>(emptyDocument);
   const [archive, setArchive] = useState(false);
+  const [ragOpen, setRagOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const form = useRef<HTMLDetailsElement>(null);
+  const [editing, setEditing] = useState(false);
   async function edit(documentId: string) {
     setLoading(true);
-    try { setDraft(await api.document(documentId)); if (form.current) { form.current.open = true; form.current.scrollIntoView({ block: "start", behavior: "smooth" }); } }
+    try { setDraft(await api.document(documentId)); setEditing(true); }
     catch (error) { notify.error(error instanceof Error ? error.message : "Не удалось открыть материал."); }
     finally { setLoading(false); }
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await command({ type: "document.save", document: draft })) { setDraft(emptyDocument); if (form.current) form.current.open = false; }
+    if (await command({ type: "document.save", document: draft })) { setDraft(emptyDocument); setEditing(false); }
   }
   async function importText(file?: File) {
     if (!file) return;
@@ -42,40 +44,43 @@ export function KnowledgeManager({ state, api, command, ...editor }: AgentEditor
   const documents = state.documents.filter(document => document.archived === archive);
   return (
     <div className={portalStyles.stack}>
-      <RagSettings {...editor} />
-      <details ref={form} className={`${portalStyles.panel} ${styles.form}`}>
-        <summary>{draft.id ? "Редактировать материал" : "Добавить материал"}</summary>
-        <form className={styles.form} onSubmit={event => void submit(event)}>
-          <label>
-            Название материала
-            <input required maxLength={200} value={draft.title} disabled={busy} onChange={event => setDraft({ ...draft, title: event.target.value })} />
-          </label>
-          <label>
-            Импорт материала
-            <input className={styles.file} type="file" accept=".txt,.md,.markdown,.csv,.json" disabled={busy} onChange={event => { void importText(event.target.files?.[0]).catch(() => notify.error("Не удалось прочитать файл.")); event.target.value = ""; }} />
-          </label>
-          <label>
-            Текст материала
-            <textarea aria-label="Текст материала" required rows={12} maxLength={50000} value={draft.content} disabled={busy} onChange={event => setDraft({ ...draft, content: event.target.value })} />
-          </label>
-          <p className={portalStyles.small}>До 50 000 символов. Материал используется ботом в ответах пользователям Telegram.</p>
-          <label className={styles.check}>
-            <input type="checkbox" checked={draft.enabled} disabled={busy} onChange={event => setDraft({ ...draft, enabled: event.target.checked })} />
-            <span>Использовать в ответах</span>
-          </label>
-          <div className={styles.actions}>
-            <button className={portalStyles.primary} type="submit" disabled={busy}>Сохранить материал</button>
-            {draft.id && <button className={portalStyles.secondary} type="button" disabled={busy} onClick={() => setDraft(emptyDocument)}>Новый материал</button>}
-          </div>
-        </form>
-      </details>
+
       <section className={portalStyles.panel} aria-label="Материалы базы знаний">
+        <DetailDialog label={draft.id ? "Редактировать материал" : "Добавить материал"} open={editing} onOpenChange={setEditing} busy={busy} renderTrigger={() => null}>
+          <form className={styles.form} onSubmit={event => void submit(event)}>
+            <label>
+              Название материала
+              <input required maxLength={200} value={draft.title} disabled={busy} onChange={event => setDraft({ ...draft, title: event.target.value })} />
+            </label>
+            <label>
+              Импорт материала
+              <input className={styles.file} type="file" accept=".txt,.md,.markdown,.csv,.json" disabled={busy} onChange={event => { void importText(event.target.files?.[0]).catch(() => notify.error("Не удалось прочитать файл.")); event.target.value = ""; }} />
+            </label>
+            <label>
+              Текст материала
+              <textarea aria-label="Текст материала" required rows={12} maxLength={50000} value={draft.content} disabled={busy} onChange={event => setDraft({ ...draft, content: event.target.value })} />
+            </label>
+            <p className={portalStyles.small}>До 50 000 символов. Материал используется ботом в ответах пользователям Telegram.</p>
+            <label className={styles.check}>
+              <input type="checkbox" checked={draft.enabled} disabled={busy} onChange={event => setDraft({ ...draft, enabled: event.target.checked })} />
+              <span>Использовать в ответах</span>
+            </label>
+            <button className={portalStyles.primary} type="submit" disabled={busy}>Сохранить материал</button>
+          </form>
+        </DetailDialog>
+        <RagSettings {...editor} open={ragOpen} onOpenChange={setRagOpen} renderTrigger={() => null} />
         <div className={styles.toolbar}>
           <h2>{archive ? "Архив материалов" : "База знаний"}</h2>
-          <div className={styles.actions}>
-            <button className={portalStyles.secondary} type="button" disabled={busy} onClick={() => void command({ type: "reindex" })}>Переиндексировать</button>
-            <button className={portalStyles.textButton} type="button" onClick={() => setArchive(!archive)}>{archive ? "Активные материалы" : "Показать архив"}</button>
-          </div>
+          <ActionsMenu
+            label="Управление базой знаний"
+            disabled={busy}
+            actions={[
+            { label: "Добавить материал", icon: "plus", onSelect: () => { setDraft(emptyDocument); setEditing(true); } },
+            { label: "Настройки RAG", icon: "service", onSelect: () => setRagOpen(true) },
+            { label: "Переиндексировать", icon: "database", onSelect: () => void command({ type: "reindex" }) },
+            { label: archive ? "Активные материалы" : "Показать архив", icon: "document", onSelect: () => setArchive(!archive) },
+          ]}
+          />
         </div>
         {!documents.length && <Empty title={archive ? "Архив пуст" : "Добавьте знания студии"} text={archive ? "Здесь появятся убранные из базы материалы." : "Услуги, процессы, ответы на вопросы и правила работы — бот найдёт подходящие фрагменты перед ответом."} icon="document" />}
         {documents.map(document => (
@@ -84,11 +89,14 @@ export function KnowledgeManager({ state, api, command, ...editor }: AgentEditor
               <h3>{document.title}</h3>
               <span className={styles.pill} data-state={document.indexStatus}>{document.archived ? "В архиве" : !document.enabled ? "Выключен" : document.indexStatus === "pending" ? "Индексируется" : document.indexStatus === "error" ? "Ошибка индекса" : "Готов"}</span>
             </div>
-            <p className={portalStyles.small}>{`${document.chunkCount} фрагм. · версия ${document.version}`}</p>
-            <div className={styles.actions}>
-              {!archive && <button className={portalStyles.secondary} type="button" disabled={busy} onClick={() => void edit(document.id)}>Редактировать</button>}
-              <button className={portalStyles.textButton} type="button" disabled={busy} onClick={() => void command({ type: "document.archive", documentId: document.id, version: document.version, archived: !document.archived })}>{archive ? "Вернуть в базу" : "В архив"}</button>
-            </div>
+            <ActionsMenu
+              label={`Действия материала: ${document.title}`}
+              disabled={busy}
+              actions={[
+              ...(!archive ? [{ label: "Редактировать", icon: "document" as const, onSelect: () => void edit(document.id) }] : []),
+              { label: archive ? "Вернуть в базу" : "В архив", icon: "database", onSelect: () => void command({ type: "document.archive", documentId: document.id, version: document.version, archived: !document.archived }) },
+            ]}
+            />
           </article>
         ))}
       </section>

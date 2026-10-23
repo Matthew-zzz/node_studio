@@ -2,8 +2,7 @@
 
 import { Icon } from "@/components/ui/icon";
 import { Chat } from "@/features/portal/components/chat";
-import { ProjectClientBrief } from "@/features/portal/components/client-brief";
-import { CommitHistory, ProjectBrief, Stages, Tasks } from "@/features/portal/components/project-work";
+import { CommitHistory, ProjectInfo, Stages, Tasks } from "@/features/portal/components/project-work";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalProject } from "@/features/portal/model/types";
 import { isProjectView, PROJECT_VIEWS, PROJECT_VIEW_LABELS } from "@/features/portal/model/project-views";
@@ -43,10 +42,9 @@ function ProjectSection({ project, controller, view, companion, subprojectId }: 
   if (view === "tasks") return <Tasks project={project} controller={controller} />;
   return (
     <div className={portalStyles.stack}>
+      <ProjectInfo project={project} controller={controller} />
       <Stages project={project} controller={controller} {...(subprojectId ? { subprojectId } : {})} />
       {companion !== "tasks" && <Tasks project={project} controller={controller} compact />}
-      <ProjectClientBrief brief={controller.snapshot.projectBriefs?.find(brief => brief.projectId === project.id)} />
-      <ProjectBrief project={project} />
     </div>
   );
 }
@@ -64,7 +62,6 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
     <section className={styles.root} data-split={Boolean(secondary)} aria-label="Рабочая область проекта">
       <div className={styles.tools}>
         <div className={management.selector}>
-          <span className={portalStyles.small}>{secondary ? "Два раздела" : PROJECT_VIEW_LABELS[primary]}</span>
           {developer && Boolean(project.subprojects?.length) && (
             <label>
               Область
@@ -91,7 +88,7 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
           </div>
         )}
       </div>
-      {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
+      {developer && primary === "overview" && !project.repo && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>
         {panes.map((view, index) => (
           <section key={view} className={styles.pane} aria-label={secondary ? index === 0 ? "Левая область проекта" : "Правая область проекта" : "Основная область проекта"}>

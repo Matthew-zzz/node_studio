@@ -1,3 +1,4 @@
+import { chooseAction } from "./browser/focus-dialogs.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -126,7 +127,7 @@ try {
       await queue.locator("article").filter({ has: page.getByRole("heading", { name: "one", exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       await tab(page, "Задачи");
       const task = page.getByRole("region", { name: "Задачи проекта", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name: /Подготовленная задача$/ }) });
-      await task.getByText("Управление задачей", { exact: true }).click();
+      await chooseAction(page, task.getByRole("button", { name: /^Действия задачи:/ }), "Управление задачей");
       await task.getByRole("textbox", { name: "Ваша стоимость, ₽", exact: true }).fill("1000");
       await task.getByRole("button", { name: "Выставить оценку", exact: true }).click(); await fits(page, width);
       await page.screenshot({ path: resolve(screenshots, `${width}-developer-tasks.png`) });
@@ -165,7 +166,7 @@ try {
       await page.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
       await page.getByRole("button", { name: "Вернуться к диалогам", exact: true }).click();
       await tab(page, "Проекты");
-      await page.getByText("Создать для существующего клиента", { exact: true }).click();
+      await chooseAction(page, "Создать проект", "Создать для существующего клиента");
       const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
       const name = `Мобильный проект ${width}`;
       await form.getByLabel("Название проекта", { exact: true }).fill(name);
@@ -175,8 +176,8 @@ try {
       await page.getByRole("heading", { name, exact: true }).waitFor(); await fits(page, width);
       await page.screenshot({ path: resolve(screenshots, `${width}-intake.png`) });
       if (width === 390) {
-        const paymentSetup = page.getByRole("region", { name: "Оплата и выдача доступа", exact: true });
-        await paymentSetup.getByText("Подготовить проект", { exact: true }).click();
+        await chooseAction(page, "Создать проект", "Подготовить ссылку на оплату");
+        const paymentSetup = page.getByRole("dialog", { name: "Оплата и выдача доступа", exact: true });
         await paymentSetup.getByLabel("Название проекта", { exact: true }).fill("Новый клиент Mini App");
         await paymentSetup.getByLabel("Имя клиента", { exact: true }).fill("Новый клиент");
         await paymentSetup.getByLabel("Почта клиента", { exact: true }).fill("miniapp-new@example.test");
@@ -195,7 +196,7 @@ try {
         assert.ok(await payment.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
         await payment.screenshot({ path: resolve(screenshots, `${width}-checkout.png`) }); await payment.close();
         await page.getByRole("button", { name: "Создать проект и выдать доступ", exact: true }).click();
-        await page.getByText("Проект передан в общую очередь, доступ отправлен на почту. Репозиторий создаст разработчик после принятия проекта.", { exact: true }).waitFor();
+        await page.getByText("Доступ выдан", { exact: true }).waitFor();
         assert.ok(fixture.sent.some(mail => mail.email === "miniapp-new@example.test"));
       }
 

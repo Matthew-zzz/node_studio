@@ -1,3 +1,4 @@
+import { chooseAction, closeDialog } from "./focus-dialogs.mjs";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { fixtureAt, fixturePassword } from "../helpers/portal-fixture.mjs";
@@ -205,7 +206,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   assert.equal(await queuedProject("one").count(), 0, "selection is restored from the server after reload");
   await openProject(page, width, "one", "Задачи");
   const task = page.getByRole("region", { name: "Задачи проекта", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name: new RegExp(title) }) });
-  await task.locator("summary").filter({ hasText: "Управление задачей" }).click();
+  await chooseAction(page, task.getByRole("button", { name: /^Действия задачи:/ }), "Управление задачей");
   await task.getByLabel("Ваша стоимость, ₽", { exact: true }).fill("1000");
   await task.getByRole("button", { name: "Выставить оценку", exact: true }).click();
   await openChat(page, width);
@@ -236,7 +237,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
 
   await login(page, origin, "developer");
   await openProject(page, width, "one", "Задачи");
-  await task.locator("summary").filter({ hasText: "Управление задачей" }).click();
+  await chooseAction(page, task.getByRole("button", { name: /^Действия задачи:/ }), "Управление задачей");
   await task.getByLabel("Статус", { exact: true }).selectOption("in_progress");
   await task.getByRole("button", { name: "Обновить", exact: true }).click();
   await task.getByText("В работе", { exact: true }).first().waitFor();
@@ -257,17 +258,19 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.screenshot({ path: resolve(screenshots, `${width}-developer-project-menu-dark.png`), fullPage: true });
   if (width <= 650) await page.keyboard.press("Escape");
   await navigate(page, width, "Обзор проекта");
-  const stageEditor = page.getByRole("region", { name: "Этапы проекта", exact: true }).locator("details").filter({ has: page.locator("summary").filter({ hasText: /^Добавить этап$/ }) });
-  await stageEditor.locator("summary").click();
+  await page.getByRole("button", { name: "Добавить этап", exact: true }).click();
+  const stageEditor = page.getByRole("dialog", { name: "Добавить этап", exact: true });
   await stageEditor.getByLabel("Название", { exact: true }).fill("Черновик только для проекта one");
+  await closeDialog(page);
   await openProject(page, width, "three", "Чат");
   await chat.getByText("Личная переписка three", { exact: true }).waitFor();
   assert.equal(await chat.getByText("Личная переписка one", { exact: true }).count(), 0);
   await navigate(page, width, "Общая очередь");
   await queuedProject("two").getByRole("button", { name: "Взять в работу", exact: true }).click();
   await page.getByRole("heading", { name: "two", level: 1, exact: true }).waitFor();
-  await stageEditor.locator("summary").click();
+  await page.getByRole("button", { name: "Добавить этап", exact: true }).click();
   assert.equal(await stageEditor.getByLabel("Название", { exact: true }).inputValue(), "", "unsaved forms cannot move into a different project");
+  await closeDialog(page);
   await navigate(page, width, "Общая очередь");
   await queue.getByRole("heading", { name: "Очередь свободна", exact: true }).waitFor();
   await openProject(page, width, "one", "Обзор проекта");
@@ -296,8 +299,8 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
 
   const projectName = `Новый проект ${width}`;
   await navigate(page, width, "Создание проектов");
-  const paidProject = page.getByRole("region", { name: "Оплата и выдача доступа", exact: true });
-  await page.getByText("Подготовить проект", { exact: true }).click();
+  await chooseAction(page, "Создать проект", "Подготовить ссылку на оплату");
+  const paidProject = page.getByRole("dialog", { name: "Оплата и выдача доступа", exact: true });
   await paidProject.getByLabel("Название проекта", { exact: true }).fill(projectName);
   await page.getByLabel("Имя клиента", { exact: true }).fill("Клиент");
   await paidProject.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");

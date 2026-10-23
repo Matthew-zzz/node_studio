@@ -1,3 +1,4 @@
+import { chooseAction, closeDialog } from "./focus-dialogs.mjs";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { login } from "./portal.mjs";
@@ -20,6 +21,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     }
     const toast = message => page.locator('[data-sonner-toast]:not([data-removed="true"])').filter({ hasText: message });
     async function save(target = page) {
+      if (await target.locator("dialog[data-focus-dialog][open]").count()) await closeDialog(target);
       await target.getByRole('button', { name: 'Сохранить настройки', exact: true }).click();
       await target.locator('[data-sonner-toast]:not([data-removed="true"])').filter({ hasText: 'Настройки агента применены.' }).waitFor();
       await target.getByRole('button', { name: 'Сохранить настройки', exact: true }).waitFor();
@@ -27,9 +29,11 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await login(page, origin, 'admin');
     await page.getByLabel('Имя агента', { exact: true }).fill(`София ${width}`);
     await navigate('Промпты');
-    await page.getByLabel('Системный промпт', { exact: true }).fill('Отвечай как консультант студии. Используй только сведения из базы знаний.');
-    await page.locator('summary').filter({ hasText: /^Приветствие$/ }).click();
-    await page.getByLabel('Приветствие', { exact: true }).fill('<b>Здравствуйте!</b> Если нужен разработчик, просто попросите.');
+    await chooseAction(page, 'Редактировать промпты', 'Системный промпт');
+    await page.getByRole('textbox', { name: 'Системный промпт', exact: true }).fill('Отвечай как консультант студии. Используй только сведения из базы знаний.');
+    await closeDialog(page);
+    await chooseAction(page, 'Редактировать промпты', 'Приветствие');
+    await page.getByRole('textbox', { name: 'Приветствие', exact: true }).fill('<b>Здравствуйте!</b> Если нужен разработчик, просто попросите.');
     await save();
     assert.equal(fixture.service.agent.settings().name, `София ${width}`, 'unsaved changes survive navigation between admin sections');
     await page.reload(); await page.getByTestId('portal').waitFor();
@@ -37,7 +41,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await page.screenshot({ path: resolve(screenshots, `${width}-agent-settings-light.png`), fullPage: true });
 
     await navigate('База знаний');
-    await page.locator('summary').filter({ hasText: /^Добавить материал$/ }).click();
+    await chooseAction(page, 'Управление базой знаний', 'Добавить материал');
     const title = `Работа над проектом ${width}`;
     const content = 'Разработка начинается с брифа. Сначала обсуждаем пожелания, затем согласуем ТЗ. Связаться с разработчиком можно в Telegram.';
     await page.getByLabel('Импорт материала', { exact: true }).setInputFiles({ name: 'process.md', mimeType: 'text/markdown', buffer: Buffer.from(content) });
@@ -62,17 +66,17 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await page.screenshot({ path: resolve(screenshots, `${width}-agent-playground-dark.png`), fullPage: true });
 
     await navigate('База знаний');
-    await page.locator('summary').filter({ hasText: /^Настройки RAG$/ }).click();
+    await chooseAction(page, 'Управление базой знаний', 'Настройки RAG');
     await page.getByLabel('Поиск по базе знаний', { exact: true }).selectOption('hybrid');
     await save(); await fixture.service.workJobs();
     await page.getByRole('button', { name: 'Обновить данные', exact: true }).click();
     await materials.getByText('Готов', { exact: true }).waitFor();
-    await materials.getByRole('button', { name: 'В архив', exact: true }).click();
+    await chooseAction(page, `Действия материала: ${title}`, 'В архив', false);
     await materials.getByRole('heading', { name: 'Добавьте знания студии', exact: true }).waitFor();
     assert.equal((await fixture.service.agent.retrieve('Разработка', fixture.service.agent.settings())).sources.length, 0);
-    await materials.getByRole('button', { name: 'Показать архив', exact: true }).click();
-    await materials.getByRole('button', { name: 'Вернуть в базу', exact: true }).click();
-    await materials.getByRole('button', { name: 'Активные материалы', exact: true }).click();
+    await chooseAction(page, 'Управление базой знаний', 'Показать архив', false);
+    await chooseAction(page, `Действия материала: ${title}`, 'Вернуть в базу', false);
+    await chooseAction(page, 'Управление базой знаний', 'Активные материалы', false);
     await materials.getByRole('heading', { name: title, exact: true }).waitFor();
 
     await navigate('История настроек');

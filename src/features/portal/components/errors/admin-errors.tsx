@@ -9,132 +9,135 @@ import { Empty } from "@/features/portal/components/ui";
 import { notify } from "@/lib/notifications";
 import portal from "@/features/portal/components/portal.module.css";
 import styles from "./errors.module.css";
+import { FocusDialog } from "@/features/portal/components/focus-dialog";
 
 const date = (value: string) => new Date(value).toLocaleString("ru-RU");
 const role = (event: ErrorEvent) => event.actor ? event.actor.role === "telegram" ? "Пользователь Telegram" : event.actor.role === "curator" ? "Бывший сотрудник" : ROLE_LABELS[event.actor.role] : "Без авторизации / не определён";
 
 function ErrorDetails({ event, busy, onResolve }: { event: ErrorEvent; busy: boolean; onResolve: () => void }) {
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <details className={styles.event}>
-      <summary>
-        <div className={styles.heading}>
+    <article className={styles.event}>
+      <button ref={trigger} type="button" className={styles.open} aria-label={`Открыть ошибку: ${event.title}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        <span className={styles.heading}>
           <span className={styles.indicator} data-severity={event.resolvedAt ? "resolved" : event.severity} aria-hidden="true" />
-          <h2>{event.title}</h2>
+          <strong>{event.title}</strong>
           <span className={styles.badge}>{event.count > 1 ? `×${event.count}` : ERROR_PROVIDER_LABELS[event.provider]}</span>
-        </div>
-        <p className={styles.meta}>{`${event.actor?.name ?? "Пользователь не определён"} · ${role(event)}${event.projectName ? ` · ${event.projectName}` : ""}`}</p>
-        <p className={styles.meta}>{`${date(event.lastSeen)} · ${ERROR_PROVIDER_LABELS[event.provider]}${event.upstreamStatus ? ` HTTP ${event.upstreamStatus}` : event.status ? ` HTTP ${event.status}` : ""}${event.resolvedAt ? " · Решена" : ""}`}</p>
-        <span className={styles.more}>Причина и подробности</span>
-      </summary>
-      <div className={styles.details}>
-        <p>{event.explanation}</p>
-        <div className={styles.advice}>
-          <strong>Что сделать</strong>
-          <p>{event.recommendation}</p>
-          {event.documentation && <a href={event.documentation} target="_blank" rel="noreferrer">Инструкция сервиса ↗</a>}
-        </div>
-        <dl className={styles.data}>
-          <div>
-            <dt>Пользователь</dt>
-            <dd>{event.actor ? `${event.actor.name}${event.actor.email ? ` · ${event.actor.email}` : ""}` : "Сессия пользователя не определена"}</dd>
+        </span>
+        <span className={styles.meta}>{`${event.actor?.name ?? "Пользователь не определён"}${event.projectName ? ` · ${event.projectName}` : ""}`}</span>
+      </button>
+      <FocusDialog open={open} title={event.title} returnFocus={trigger} onClose={() => setOpen(false)}>
+        <div className={styles.details}>
+          <p>{event.explanation}</p>
+          <div className={styles.advice}>
+            <strong>Что сделать</strong>
+            <p>{event.recommendation}</p>
+            {event.documentation && <a href={event.documentation} target="_blank" rel="noreferrer">Инструкция сервиса ↗</a>}
           </div>
-          {event.actor && (
+          <dl className={styles.data}>
+            <div>
+              <dt>Пользователь</dt>
+              <dd>{event.actor ? `${event.actor.name}${event.actor.email ? ` · ${event.actor.email}` : ""}` : "Сессия пользователя не определена"}</dd>
+            </div>
+            {event.actor && (
             <div>
               <dt>Роль и ID</dt>
               <dd>{`${role(event)} · ${event.actor.id}`}</dd>
             </div>
           )}
-          {event.projectId && (
+            {event.projectId && (
             <div>
               <dt>Проект</dt>
               <dd>{`${event.projectName} · ${event.projectId}`}</dd>
             </div>
           )}
-          <div>
-            <dt>Источник</dt>
-            <dd>{ERROR_SOURCE_LABELS[event.source]}</dd>
-          </div>
-          {event.subprojectName && (
+            <div>
+              <dt>Источник</dt>
+              <dd>{ERROR_SOURCE_LABELS[event.source]}</dd>
+            </div>
+            {event.subprojectName && (
             <div>
               <dt>Подпроект</dt>
               <dd>{event.subprojectName}</dd>
             </div>
           )}
-          <div>
-            <dt>Запрос</dt>
-            <dd><code>{`${event.method} ${event.path || event.operation}`}</code></dd>
-          </div>
-          {event.operation && event.path && (
+            <div>
+              <dt>Запрос</dt>
+              <dd><code>{`${event.method} ${event.path || event.operation}`}</code></dd>
+            </div>
+            {event.operation && event.path && (
             <div>
               <dt>Действие</dt>
               <dd>{event.operation}</dd>
             </div>
           )}
-          <div>
-            <dt>Код ошибки</dt>
-            <dd><code>{event.code}</code></dd>
-          </div>
-          <div>
-            <dt>Код ошибки / сервис</dt>
-            <dd>{`${event.status ?? "нет ответа"} / ${event.upstreamStatus ?? "—"}`}</dd>
-          </div>
-          {event.requestStatus !== undefined && (
+            <div>
+              <dt>Код ошибки</dt>
+              <dd><code>{event.code}</code></dd>
+            </div>
+            <div>
+              <dt>Код ошибки / сервис</dt>
+              <dd>{`${event.status ?? "нет ответа"} / ${event.upstreamStatus ?? "—"}`}</dd>
+            </div>
+            {event.requestStatus !== undefined && (
             <div>
               <dt>HTTP запроса кабинета</dt>
               <dd>{event.requestStatus === 200 ? "200 · данные получены, ошибка фоновой синхронизации" : event.requestStatus}</dd>
             </div>
           )}
-          {event.upstreamPath && (
+            {event.upstreamPath && (
             <div>
               <dt>Запрос к сервису</dt>
               <dd><code>{event.upstreamPath}</code></dd>
             </div>
           )}
-          <div>
-            <dt>ID запроса</dt>
-            <dd><code>{event.requestId}</code></dd>
-          </div>
-          {event.upstreamRequestId && (
+            <div>
+              <dt>ID запроса</dt>
+              <dd><code>{event.requestId}</code></dd>
+            </div>
+            {event.upstreamRequestId && (
             <div>
               <dt>ID запроса сервиса</dt>
               <dd><code>{event.upstreamRequestId}</code></dd>
             </div>
           )}
-          <div>
-            <dt>Первый / последний сбой</dt>
-            <dd>{`${date(event.firstSeen)} / ${date(event.lastSeen)}`}</dd>
-          </div>
-          <div>
-            <dt>Повторений</dt>
-            <dd>{event.count}</dd>
-          </div>
-          {event.clientOccurredAt && (
-          <div>
-            <dt>Время на устройстве</dt>
-            <dd>{date(event.clientOccurredAt)}</dd>
-          </div>
+            <div>
+              <dt>Первый / последний сбой</dt>
+              <dd>{`${date(event.firstSeen)} / ${date(event.lastSeen)}`}</dd>
+            </div>
+            <div>
+              <dt>Повторений</dt>
+              <dd>{event.count}</dd>
+            </div>
+            {event.clientOccurredAt && (
+            <div>
+              <dt>Время на устройстве</dt>
+              <dd>{date(event.clientOccurredAt)}</dd>
+            </div>
           )}
-          {Boolean(event.trace?.length) && (
-          <div>
-            <dt>Место ошибки</dt>
-            <dd><code>{event.trace?.join("\n")}</code></dd>
-          </div>
+            {Boolean(event.trace?.length) && (
+            <div>
+              <dt>Место ошибки</dt>
+              <dd><code>{event.trace?.join("\n")}</code></dd>
+            </div>
           )}
-          <div>
-            <dt>Версия приложения</dt>
-            <dd><code>{event.revision}</code></dd>
-          </div>
-          {event.resolvedAt && (
+            <div>
+              <dt>Версия приложения</dt>
+              <dd><code>{event.revision}</code></dd>
+            </div>
+            {event.resolvedAt && (
             <div>
               <dt>Отмечена решённой</dt>
               <dd>{`${date(event.resolvedAt)} · ${event.resolvedBy}`}</dd>
             </div>
           )}
-        </dl>
-        <button className={portal.secondary} type="button" disabled={busy} onClick={onResolve}>{event.resolvedAt ? "Вернуть в открытые" : "Отметить решённой"}</button>
-        <p className={portal.small}>Отметка меняет статус записи в журнале. Повторный сбой появится как новая открытая ошибка.</p>
-      </div>
-    </details>
+          </dl>
+          <button className={portal.secondary} type="button" disabled={busy} onClick={onResolve}>{event.resolvedAt ? "Вернуть в открытые" : "Отметить решённой"}</button>
+          <p className={portal.small}>Отметка меняет статус записи в журнале. Повторный сбой появится как новая открытая ошибка.</p>
+        </div>
+      </FocusDialog>
+    </article>
   );
 }
 

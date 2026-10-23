@@ -65,7 +65,6 @@ export function ClientBriefButton({ thread, controller, renderTrigger, onClose }
             <button type="button" className={portal.iconButton} aria-label="Закрыть итоговый бриф" onClick={() => dialog.current?.close()}><Icon name="close" /></button>
           </div>
           <p className={portal.small} role="status">{brief ? statuses[brief.status] : "Подготовим ТЗ по всей сохранённой переписке этого клиента."}</p>
-          {brief && <p className={portal.small}>{`Сообщений в переписке на момент запуска: ${brief.messageCount}.`}</p>}
           {brief?.stale && document && <p className={portal.small}>После предыдущего брифа появились новые сообщения.</p>}
           {brief && (
           <form className={`${portal.form} ${styles.linkForm}`} aria-label="Привязка брифа к проекту" onSubmit={event => { event.preventDefault(); void controller.run({ type: "brief.link", threadId: thread.id, projectId }); }}>
@@ -77,20 +76,19 @@ export function ClientBriefButton({ thread, controller, renderTrigger, onClose }
                 {controller.snapshot.briefProjects?.map(project => <option key={project.id} value={project.id}>{`${project.name} · ${project.clientName} · ${project.clientEmail}`}</option>)}
               </select>
             </label>
-            <p className={portal.small}>Клиент и разработчик увидят готовый бриф в обзоре выбранного проекта. После обновления там появится новая версия.</p>
             <button type="submit" className={portal.secondary} disabled={controller.busy || projectId === linkedProjectId}>Сохранить привязку</button>
           </form>
           )}
-          {document && <BriefDocumentContent document={document} generatedAt={brief?.generatedAt} />}
+          {document && !fullText && <BriefDocumentContent document={document} generatedAt={brief?.generatedAt} />}
           <div className={styles.actions}>
             {document && <button type="button" className={portal.primary} onClick={() => void copy()}>Скопировать ТЗ</button>}
             <button type="button" className={portal.secondary} disabled={pending || controller.busy} onClick={() => void controller.run({ type: "brief.generate", threadId: thread.id, refresh: true })}>{pending ? "Готовим бриф…" : document ? "Обновить бриф" : "Сформировать бриф"}</button>
           </div>
           {document && (
-          <details open={fullText} onToggle={event => setFullText(event.currentTarget.open)}>
-            <summary>ТЗ целиком</summary>
-            <textarea ref={text} readOnly aria-label="Полный текст ТЗ" rows={12} value={briefText(document)} onFocus={() => text.current?.select()} />
-          </details>
+          <div>
+            <button className={portal.textButton} type="button" onClick={() => setFullText(!fullText)}>{fullText ? "Разделы брифа" : "ТЗ целиком"}</button>
+            {fullText && <textarea ref={text} readOnly aria-label="Полный текст ТЗ" rows={12} value={briefText(document)} onFocus={() => text.current?.select()} />}
+          </div>
 )}
         </>
 )}
@@ -117,15 +115,7 @@ export function ProjectBriefButton({ brief, projectName, renderTrigger, onClose 
               </div>
               <button type="button" className={portal.iconButton} aria-label="Закрыть итоговый бриф" onClick={() => dialog.current?.close()}><Icon name="close" /></button>
             </div>
-            {brief ? (
-              <>
-                <BriefDocumentContent document={brief.document} generatedAt={brief.generatedAt} />
-                <details>
-                  <summary>ТЗ целиком</summary>
-                  <textarea className={styles.fullText} readOnly aria-label="Полный текст итогового брифа" rows={12} value={briefText(brief.document)} onFocus={event => event.currentTarget.select()} />
-                </details>
-              </>
-            ) : <Empty title="Бриф ещё не добавлен" text="Он появится здесь, когда разработчик привяжет готовый бриф к этому проекту." icon="document" />}
+            <ProjectBriefContent brief={brief} />
           </>
         )}
       </dialog>
@@ -138,30 +128,23 @@ function BriefDocumentContent({ document, generatedAt }: { document: BriefDocume
     <div className={styles.document}>
       <h3>{document.name}</h3>
       {generatedAt && <p className={portal.small}>{`Обновлён · ${new Date(generatedAt).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })}`}</p>}
-      {BRIEF_SECTIONS.map(section => (
-        <details key={section.key}>
-          <summary>{section.label}</summary>
+      {BRIEF_SECTIONS.filter(section => document[section.key].trim() && !/^Не указано[.]?$/i.test(document[section.key].trim())).map(section => (
+        <section key={section.key}>
+          <h4>{section.label}</h4>
           <p>{document[section.key]}</p>
-        </details>
+        </section>
       ))}
     </div>
   );
 }
 
-export function ProjectClientBrief({ brief }: { brief: SharedBrief | undefined }) {
-  if (!brief) return null;
+export function ProjectBriefContent({ brief }: { brief: SharedBrief | undefined }) {
+  const [fullText, setFullText] = useState(false);
+  if (!brief) return <Empty title="Бриф ещё не добавлен" text="Готовый документ появится здесь после привязки к проекту." icon="document" />;
   return (
-    <section className={portal.panel} aria-label="Итоговый бриф проекта">
-      <h2>Итоговый бриф</h2>
-      <p className={portal.subtitle}>Требования, собранные по переписке с клиентом</p>
-      <details>
-        <summary>Открыть итоговый бриф</summary>
-        <BriefDocumentContent document={brief.document} generatedAt={brief.generatedAt} />
-        <details>
-          <summary>ТЗ целиком</summary>
-          <textarea className={styles.fullText} readOnly aria-label="Полный текст итогового брифа" rows={12} value={briefText(brief.document)} onFocus={event => event.currentTarget.select()} />
-        </details>
-      </details>
+    <section aria-label="Итоговый бриф проекта">
+      {fullText ? <textarea className={styles.fullText} readOnly aria-label="Полный текст итогового брифа" rows={16} value={briefText(brief.document)} onFocus={event => event.currentTarget.select()} /> : <BriefDocumentContent document={brief.document} generatedAt={brief.generatedAt} />}
+      <button type="button" className={portal.textButton} onClick={() => setFullText(!fullText)}>{fullText ? "Разделы брифа" : "ТЗ целиком"}</button>
     </section>
   );
 }

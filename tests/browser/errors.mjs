@@ -1,3 +1,4 @@
+import { closeDialog } from "./focus-dialogs.mjs";
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { login } from './portal.mjs';
@@ -24,13 +25,15 @@ export async function checkErrorJournal(browser, origin, width, screenshots, fix
     await login(admin,origin,'admin');await navigate('Ошибки',admin);
     await admin.getByLabel('Поиск ошибок',{exact:true}).fill('client@example.test');
     await admin.getByLabel('Сервис ошибок',{exact:true}).selectOption('github');
-    const row=admin.locator('details').filter({has:admin.getByRole('heading',{name:'Аккаунт GitHub заблокирован',exact:true})}).first();
-    await row.waitFor();await row.locator('summary').click();
+    const row=admin.locator('article').filter({has:admin.getByRole('button',{name:'Открыть ошибку: Аккаунт GitHub заблокирован',exact:true})}).first();
+    await row.waitFor();await row.getByRole('button',{name:'Открыть ошибку: Аккаунт GitHub заблокирован',exact:true}).click();
     assert.ok((await row.innerText()).includes('GITHUB_ACCOUNT_SUSPENDED'));assert.ok((await row.innerText()).includes('client@example.test'));
     assert.ok((await row.innerText()).includes('502 / 403'));assert.ok((await row.innerText()).includes('GitHub и отправьте обращение'));
     assert.ok(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     await admin.screenshot({path:resolve(screenshots,`${width}-errors-light.png`),fullPage:true});
+    await closeDialog(admin);
     await admin.getByRole('button',{name:'Включить тёмную тему',exact:true}).click();
+    await row.getByRole('button',{name:'Открыть ошибку: Аккаунт GitHub заблокирован',exact:true}).click();
     await admin.screenshot({path:resolve(screenshots,`${width}-errors-dark.png`),fullPage:true});
     await row.getByRole('button',{name:'Отметить решённой',exact:true}).click();
     await admin.getByRole('heading',{name:'Ошибок не найдено',exact:true}).waitFor();
@@ -42,8 +45,9 @@ export async function checkErrorJournal(browser, origin, width, screenshots, fix
     assert.ok(await client.evaluate(()=>JSON.parse(localStorage.getItem('node-request-errors-v1')||'[]').some(item=>item.kind==='network')));
     await clientContext.setOffline(false);await client.evaluate(()=>window.dispatchEvent(new Event('focus')));
     await admin.getByLabel('Статус ошибок',{exact:true}).selectOption('open');await admin.getByLabel('Сервис ошибок',{exact:true}).selectOption('browser');
-    const browserRow=admin.locator('details').filter({has:admin.getByRole('heading',{name:'Браузер не смог связаться с сервером',exact:true})}).first();
-    await admin.getByRole('button',{name:'Обновить журнал',exact:true}).click();await browserRow.waitFor();await browserRow.locator('summary').click();assert.ok((await browserRow.innerText()).includes('client@example.test'));
+    const browserRow=admin.locator('article').filter({has:admin.getByRole('button',{name:'Открыть ошибку: Браузер не смог связаться с сервером',exact:true})}).first();
+    await admin.getByRole('button',{name:'Обновить журнал',exact:true}).click();await browserRow.waitFor();await browserRow.getByRole('button',{name:'Открыть ошибку: Браузер не смог связаться с сервером',exact:true}).click();assert.ok((await browserRow.innerText()).includes('client@example.test'));
+    await closeDialog(admin);
     await client.waitForFunction(()=>!JSON.parse(localStorage.getItem('node-request-errors-v1')||'[]').length);
     const before=fixture.service.errors.query({provider:'browser'}).total;
     await client.route('**/api/portal/snapshot?*',route=>route.fulfill({status:502,contentType:'text/html',body:'<h1>Bad Gateway</h1>'}));
@@ -51,7 +55,7 @@ export async function checkErrorJournal(browser, origin, width, screenshots, fix
     await client.locator('[data-sonner-toast]').filter({hasText:'Не удалось выполнить запрос'}).first().waitFor();
     await client.unroute('**/api/portal/snapshot?*');await client.evaluate(()=>window.dispatchEvent(new Event('focus')));
     await admin.getByRole('button',{name:'Обновить журнал',exact:true}).click();
-    await admin.getByRole('heading',{name:'Ошибка запроса из браузера',exact:true}).waitFor();assert.ok(fixture.service.errors.query({provider:'browser'}).total>before);
+    await admin.getByRole('button',{name:'Открыть ошибку: Ошибка запроса из браузера',exact:true}).waitFor();assert.ok(fixture.service.errors.query({provider:'browser'}).total>before);
     assert.deepEqual(pageErrors,[]);console.log(`Error journal ${width}px: user attribution, decoding, status filters, themes, offline recovery and proxy errors passed`);
   }finally{
     fixture.integrations.issues=previous;

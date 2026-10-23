@@ -1,3 +1,4 @@
+import { chooseAction } from "./focus-dialogs.mjs";
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {login,openProject} from './portal.mjs';
@@ -10,7 +11,10 @@ export async function checkSubprojects(browser,origin,width,screenshots,fixture)
   for(const [repo,prefix] of [[frontend,'Интерфейс'],[backend,'Сервер']])fixture.commits.set(repo,[{sha:'shared-sha',projectId:'',title:`${prefix}: общий коммит`,author:'Разработчик',createdAt:new Date().toISOString()},{sha:`${prefix}-initial`,projectId:'',title:`${prefix}: первый коммит`,author:'Разработчик',createdAt:'2026-01-01T00:00:00Z'}]);
   try{
     const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('console',e=>{if(e.type()==='error')errors.push(e.text());});
-    await login(page,origin,'developer');await page.locator('summary').filter({hasText:/^Создать проект из репозиториев$/}).click();
+    await login(page,origin,'developer');
+    if(width<=650)await page.getByRole('button',{name:'Открыть меню кабинета',exact:true}).click();
+    await page.getByRole('navigation',{name:'Разделы кабинета',exact:true}).getByRole('button',{name:'Создание проектов',exact:true}).click();
+    await chooseAction(page,'Создать проект','Создать проект из репозиториев');
     await page.getByLabel('Название клиентского проекта',{exact:true}).fill('AnimeLove');await page.getByLabel('Почта клиента проекта',{exact:true}).fill('client@example.test');await page.getByLabel('Описание клиентского проекта',{exact:true}).fill('Один продукт и несколько направлений разработки.');
     await page.getByLabel('Название подпроекта 1',{exact:true}).fill('Frontend');await page.getByLabel('Репозиторий подпроекта 1',{exact:true}).fill(frontend);
     await page.getByRole('button',{name:'Добавить подпроект',exact:true}).click();await page.getByLabel('Название подпроекта 2',{exact:true}).fill('Backend');await page.getByLabel('Репозиторий подпроекта 2',{exact:true}).fill(backend);
@@ -22,7 +26,7 @@ export async function checkSubprojects(browser,origin,width,screenshots,fixture)
       if(width<=650)await page.getByRole('dialog',{name:'Меню кабинета',exact:true}).waitFor({state:'hidden'});
     }
     await part('Backend');await page.getByRole('heading',{name:'AnimeLove / Backend',exact:true}).waitFor();
-    const stages=page.getByRole('region',{name:'Этапы проекта',exact:true});await stages.locator('summary').filter({hasText:/^Добавить этап$/}).click();assert.equal(await page.getByLabel('Подпроект этапа',{exact:true}).inputValue(),backId);
+    const stages=page.getByRole('region',{name:'Этапы проекта',exact:true});await stages.getByRole('button',{name:'Добавить этап',exact:true}).click();assert.equal(await page.getByLabel('Подпроект этапа',{exact:true}).inputValue(),backId);
     await stages.getByLabel('Название',{exact:true}).fill('Разработка API');await stages.getByLabel('Описание',{exact:true}).fill('Серверные методы');await stages.getByRole('button',{name:'Сохранить этап',exact:true}).click();await stages.getByRole('heading',{name:'Разработка API',exact:true}).waitFor();
     assert.ok(fixture.issues.get(backend).some(t=>t.title==='Разработка API'));assert.ok(!fixture.issues.get(frontend).some(t=>t.title==='Разработка API'));
     if(width<=650)await page.getByRole('button',{name:'Открыть меню кабинета',exact:true}).click();
@@ -34,7 +38,7 @@ export async function checkSubprojects(browser,origin,width,screenshots,fixture)
     await page.getByLabel('Раздел слева',{exact:true}).selectOption('history');await page.getByLabel('Подпроект',{exact:true}).selectOption('all');const history=page.getByRole('region',{name:'История коммитов',exact:true});assert.equal(await history.locator('article').count(),4);
     await page.evaluate(()=>{document.activeElement?.blur();window.scrollTo(0,0);});await page.screenshot({path:resolve(screenshots,`${width}-subprojects-developer-light.png`),fullPage:true});await page.getByRole('button',{name:'Включить тёмную тему',exact:true}).click();await page.screenshot({path:resolve(screenshots,`${width}-subprojects-developer-dark.png`),fullPage:true});
     await page.getByRole('button',{name:'Один раздел',exact:true}).click();await page.getByLabel('Подпроект',{exact:true}).selectOption('all');await openProject(page,width,'AnimeLove','Обзор проекта');
-    await page.locator('summary').filter({hasText:/^Управление подпроектами$/}).click();await page.getByLabel('Название нового подпроекта',{exact:true}).fill('Worker');await page.getByLabel('Репозиторий нового подпроекта',{exact:true}).fill(worker);await page.getByRole('button',{name:'Подключить подпроект',exact:true}).click();await page.waitForFunction(()=>document.querySelector('select[aria-label="Подпроект"]')?.options.length===4);
+    await chooseAction(page,'О проекте','Управление подпроектами');await page.getByLabel('Название нового подпроекта',{exact:true}).fill('Worker');await page.getByLabel('Репозиторий нового подпроекта',{exact:true}).fill(worker);await page.getByRole('button',{name:'Подключить подпроект',exact:true}).click();await page.waitForFunction(()=>document.querySelector('select[aria-label="Подпроект"]')?.options.length===4);
     await login(page,origin,'client');await openProject(page,width,'AnimeLove','Задачи');
     assert.equal(await page.getByLabel('Подпроект',{exact:true}).count(),0);assert.equal(await page.getByRole('group',{name:'Подпроекты проекта AnimeLove',exact:true}).count(),0);
     for(const title of ['Задача интерфейса','Задача сервера','Фоновая обработка'])await page.getByRole('heading',{name:title,exact:true}).waitFor();

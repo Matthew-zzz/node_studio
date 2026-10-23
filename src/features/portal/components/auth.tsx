@@ -8,6 +8,7 @@ import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { notify } from "@/lib/notifications";
 import styles from "./portal.module.css";
 import { EmailVerification } from "@/features/portal/components/email-verification";
+import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ROLE_LABELS } from "@/features/portal/model/types";
 import type { Role } from "@/features/portal/model/types";
 
@@ -54,10 +55,9 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
       </section>
       <div className={styles.authFooter}>
         <a href="https://t.me/node_studio_bot" target="_blank" rel="noopener noreferrer">Помощь со входом ↗</a>
-        <details>
-          <summary>Как получить доступ</summary>
+        <DetailDialog label="Как получить доступ">
           <p>После согласования и полной оплаты проекта студия отправит доступ на вашу почту. Если письмо не пришло, напишите в поддержку.</p>
-        </details>
+        </DetailDialog>
       </div>
     </main>
   );

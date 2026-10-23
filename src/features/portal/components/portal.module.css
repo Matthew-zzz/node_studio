@@ -81,7 +81,7 @@
 .openMenu, .mobileProfiles { display: none; }
 .mobileMenu { inset: 0 auto 0 0; width: min(300px, calc(100% - 40px)); height: 100svh; max-height: 100svh; margin: 0; padding: 32px 20px 25px; border: 0; border-right: 1px solid var(--p-line); background: var(--p-panel); color: var(--p-text); overflow-y: auto; }
 .mobileMenu[open] { display: flex; flex-direction: column; gap: 32px; }
-.mobileMenu::backdrop { background: var(--overlay); backdrop-filter: blur(3px); }
+.mobileMenu::backdrop { background: var(--overlay); backdrop-filter: blur(10px); }
 .mobileMenu > .logo { padding-right: 30px; }
 .closeMenu { position: absolute; top: 27px; right: 15px; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--p-line); border-radius: 9px; background: transparent; color: var(--p-muted); }
 .closeMenu svg { width: 16px; height: 16px; }
@@ -178,7 +178,7 @@
 .takeover { padding: 13px 20px; background: var(--p-inset); border-top: 1px solid var(--p-line); }
 .takeover button { width: 100%; }
 .dialog { background: var(--p-panel); color: var(--p-text); border: 1px solid var(--p-line); border-radius: 18px; padding: 30px; width: min(420px, calc(100% - 32px)); max-height: calc(100svh - 40px); overflow-y: auto; box-shadow: 0 24px 100px #0003; }
-.dialog::backdrop { background: var(--overlay); backdrop-filter: blur(4px); }
+.dialog::backdrop { background: var(--overlay); backdrop-filter: blur(10px); }
 .dialog h2 { margin-block: 14px 10px; font-size: 23px; }
 .dialog .formActions { display: grid; margin-top: 23px; }
 .dialogTotal { font-size: 34px; letter-spacing: -1px; margin-top: 18px !important; }

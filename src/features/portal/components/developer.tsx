@@ -3,17 +3,15 @@
 import { useState } from "react";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
-import { CreateProject } from "@/features/portal/components/project-manager";
 import styles from "./portal.module.css";
 
 interface DeveloperQueueProps {
   controller: PortalController;
   onAcceptProject: (projectId: string, tab: "overview" | "chat") => void;
   onOpenChat: (projectId: string) => void;
-  onCreateProject: (projectId: string) => void;
 }
 
-export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCreateProject }: DeveloperQueueProps) {
+export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: DeveloperQueueProps) {
   const [search, setSearch] = useState("");
   const { snapshot, busy } = controller;
   const projects = snapshot.projects.filter(project => project.status === "active" && !project.developerId);
@@ -23,7 +21,6 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCrea
 
   return (
     <div className={styles.stack}>
-      <CreateProject controller={controller} onCreated={onCreateProject} />
       {handoffs.length > 0 && (
         <section className={styles.panel} aria-label="Ожидают разработчика">
           <div className={styles.panelHeader}>

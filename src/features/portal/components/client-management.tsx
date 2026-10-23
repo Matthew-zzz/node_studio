@@ -3,6 +3,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
+import { ActionsDialog, ActionsMenu, FocusDialog } from "@/features/portal/components/focus-dialog";
+import { CreateProject } from "@/features/portal/components/project-manager";
 import { ClientProjectForm } from "@/features/portal/components/client-project-form";
 import { ClientBriefButton } from "@/features/portal/components/client-brief";
 import { Empty, LongText } from "@/features/portal/components/ui";
@@ -66,15 +68,15 @@ export function TelegramInbox({ controller, presentation = "web", selectedThread
         <div className={styles.filters} role="group" aria-label="Фильтр диалогов">
           <button type="button" aria-label="Все диалоги" aria-pressed={filter === "all"} onClick={() => changeSelection("all", search)}>
             Все
-            <span>{conversations.length}</span>
+
           </button>
           <button type="button" aria-label="Ждут разработчика" aria-pressed={filter === "waiting"} onClick={() => changeSelection("waiting", search)}>
-            Ждут разработчика
-            <span>{waiting.length}</span>
+            Ждут ответа
+
           </button>
           <button type="button" aria-label="Мои диалоги" aria-pressed={filter === "mine"} onClick={() => changeSelection("mine", search)}>
             Мои
-            <span>{mine.length}</span>
+
           </button>
         </div>
         <div className={styles.searchField}>
@@ -114,7 +116,8 @@ export function TelegramInbox({ controller, presentation = "web", selectedThread
 
 const orderStatus = { pending: "Ожидает оплаты", paid: "Оплачено · тест", provisioning: "Создаём проект…", ready: "Доступ выдан", needs_setup: "Нужна настройка подключений" };
 
-export function ProjectOrders({ controller, checkoutPath = "/checkout/" }: { controller: PortalController; checkoutPath?: string }) {
+export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenProject }: { controller: PortalController; checkoutPath?: string; onOpenProject: (id: string) => void }) {
+  const [mode, setMode] = useState<"client" | "payment" | "import" | null>(null);
   const [name, setName] = useState(""); const [client, setClient] = useState(""); const [email, setEmail] = useState("");
   const [username, setUsername] = useState(""); const [brief, setBrief] = useState(""); const [amount, setAmount] = useState("");
   const kopecks = parseRubles(amount);
@@ -122,17 +125,28 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/" }: { con
     event.preventDefault();
     if (!kopecks) { notify.error("Введите корректную стоимость в рублях."); return; }
     if (await controller.run({ type: "order.create", order: { projectName: name, clientName: client, email, username, brief, totalKopecks: kopecks } })) {
-      setName(""); setClient(""); setEmail(""); setUsername(""); setBrief(""); setAmount("");
+      setName(""); setClient(""); setEmail(""); setUsername(""); setBrief(""); setAmount(""); setMode(null);
     }
   }
+  const projects = controller.snapshot.projects.filter(project => project.origin === "developer");
   return (
-    <div className={styles.stack}>
-      <ClientProjectForm controller={controller} />
-      <section className={styles.panel} aria-label="Оплата и выдача доступа">
-        <h2>Оплата и выдача доступа</h2>
-        <p className={styles.subtitle}>Данные клиента и согласованный объём основной работы.</p>
-        <details style={{ marginTop: 16 }}>
-          <summary>Подготовить проект</summary>
+    <section className={styles.panel} aria-label="Проекты клиентов">
+      <div className={styles.panelHeader}>
+        <h2>Проекты клиентов</h2>
+        <ActionsMenu
+          label="Создать проект"
+          triggerLabel="Создать проект"
+          actions={[
+          { label: "Создать для существующего клиента", icon: "people", onSelect: () => setMode("client") },
+          { label: "Подготовить ссылку на оплату", icon: "document", onSelect: () => setMode("payment") },
+          { label: "Создать проект из репозиториев", icon: "code", onSelect: () => setMode("import") },
+        ]}
+        />
+      </div>
+      <FocusDialog open={mode !== null} title={mode === "client" ? "Создать для существующего клиента" : mode === "import" ? "Создать проект из репозиториев" : "Оплата и выдача доступа"} busy={controller.busy} onClose={() => setMode(null)}>
+        {mode === "client" && <ClientProjectForm controller={controller} onCreated={() => setMode(null)} />}
+        {mode === "import" && <CreateProject controller={controller} embedded onCreated={id => { setMode(null); onOpenProject(id); }} />}
+        {mode === "payment" && (
           <form className={styles.form} onSubmit={event => void submit(event)}>
             <label>
               Название проекта
@@ -165,43 +179,43 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/" }: { con
             <p className={styles.small}>Основная работа оплачивается без наценки. После оплаты можно создать проект и выдать доступ клиенту.</p>
             <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>Подготовить ссылку на оплату</button></div>
           </form>
-        </details>
-      </section>
-      <section className={styles.panel} aria-label="Создание проектов">
-        <div className={styles.panelHeader}>
-          <h2>Подготовленные проекты</h2>
-          <span className={styles.small}>{controller.snapshot.orders.length}</span>
-        </div>
-        {controller.snapshot.orders.length === 0 && <Empty title="Первый проект впереди" text="Подготовьте данные клиента. Статус оплаты обновится автоматически." icon="document" />}
-        {[...controller.snapshot.orders].reverse().map(order => (
-          <article className={styles.order} key={order.id}>
-            <div className={styles.taskTop}>
-              <h3>{order.projectName}</h3>
-              <span className={styles.badge} data-status={order.status}>{orderStatus[order.status]}</span>
-            </div>
-            <p className={styles.small}>
-              {order.clientName}
-              {' '}
-              · 
-              {' '}
-              {order.email}
-            </p>
-            <p className={styles.small}>
-              @
-              {order.username.replace(/^@/, "")}
-              {' '}
-              ·
-              {formatRubles(order.totalKopecks)}
-            </p>
-            <LongText text={order.brief} label="Согласованное ТЗ" />
-            <div className={styles.formActions}>
-              {order.status === "pending" && <a className={styles.orderLink} href={`${checkoutPath}#${encodeURIComponent(order.checkoutToken)}`} target="_blank" rel="noopener noreferrer">Открыть ссылку на оплату ↗</a>}
-              {["paid", "needs_setup"].includes(order.status) && <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "order.provision", orderId: order.id })}>Создать проект и выдать доступ</button>}
-              {order.status === "ready" && <span className={styles.small}>Проект передан в общую очередь, доступ отправлен на почту. Репозиторий создаст разработчик после принятия проекта.</span>}
-            </div>
-          </article>
-        ))}
-      </section>
-    </div>
+        )}
+      </FocusDialog>
+      {projects.length === 0 && controller.snapshot.orders.length === 0 && <Empty title="Пока нет проектов" text="Создайте проект или подготовьте ссылку на оплату." icon="document" />}
+      {[...projects].reverse().map(project => (
+        <article key={project.id} className={styles.order}>
+          <div className={styles.taskTop}>
+            <h3>{project.name}</h3>
+            <span className={styles.badge}>{project.developerId ? "В работе" : "В общей очереди"}</span>
+          </div>
+          <p className={styles.small}>{project.clientEmail}</p>
+          <div className={styles.formActions}>
+            <button className={styles.secondary} type="button" onClick={() => onOpenProject(project.id)}>Открыть проект</button>
+            <LongText text={project.brief} label="ТЗ проекта" />
+          </div>
+        </article>
+      ))}
+      {[...controller.snapshot.orders].reverse().map(order => (
+        <article className={styles.order} key={order.id}>
+          <div className={styles.taskTop}>
+            <h3>{order.projectName}</h3>
+            <span className={styles.badge} data-status={order.status}>{orderStatus[order.status]}</span>
+          </div>
+          <p className={styles.small}>{`${order.email} · ${formatRubles(order.totalKopecks)}`}</p>
+          <div className={styles.formActions}>
+            {order.status === "pending" && <a className={styles.orderLink} href={`${checkoutPath}#${encodeURIComponent(order.checkoutToken)}`} target="_blank" rel="noopener noreferrer">Открыть ссылку на оплату ↗</a>}
+            {["paid", "needs_setup"].includes(order.status) && <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "order.provision", orderId: order.id })}>Создать проект и выдать доступ</button>}
+            {order.status === "ready" && <button type="button" className={styles.secondary} onClick={() => onOpenProject(order.projectId)}>Открыть проект</button>}
+            <ActionsDialog
+              label={`Действия заказа: ${order.projectName}`}
+              actions={[
+              { label: "Согласованное ТЗ", icon: "document", content: <p>{order.brief}</p> },
+              { label: "Контакты клиента", icon: "people", content: <p>{`${order.clientName}\n${order.email}\n@${order.username.replace(/^@/, "")}`}</p> },
+            ]}
+            />
+          </div>
+        </article>
+      ))}
+    </section>
   );
 }

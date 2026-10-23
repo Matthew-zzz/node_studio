@@ -1,3 +1,4 @@
+import { chooseAction, closeDialog } from "./focus-dialogs.mjs";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { login, openProject } from "./portal.mjs";
@@ -13,7 +14,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await login(page, origin, "developer");
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
     await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
-    await page.getByText("Создать для существующего клиента", { exact: true }).click();
+    await chooseAction(page, "Создать проект", "Создать для существующего клиента");
     const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
     await form.getByLabel("Название проекта", { exact: true }).fill(name);
     await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
@@ -32,8 +33,9 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
     await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Общая очередь", exact: true }).click();
     const card = page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
-    await card.locator("summary").filter({ hasText: "Изучить ТЗ проекта" }).click();
+    await card.getByRole("button", { name: "Изучить ТЗ проекта", exact: true }).click();
     await card.getByText(brief, { exact: true }).waitFor();
+    await closeDialog(page);
     assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
     await page.evaluate(() => document.activeElement?.blur());
     await page.screenshot({ path: resolve(screenshots, `${width}-project-review.png`), fullPage: true });
@@ -64,7 +66,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     const created = fixture.store.get("projects", project.id);
     assert.equal(created.repo, fixture.repositories.at(-1)); assert.equal(created.subprojects.length, 1);
     assert.equal(fixture.issues.get(created.repo).length, 1);
-    await page.locator("summary").filter({ hasText: /^Управление подпроектами$/ }).click();
+    await chooseAction(page, "О проекте", "Управление подпроектами");
     await page.getByRole("link", { name: created.repo, exact: true }).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.screenshot({ path: resolve(screenshots, `${width}-project-repository.png`), fullPage: true });

@@ -1,3 +1,4 @@
+import { chooseAction, closeDialog, checkProjectDescriptionFocus } from "./focus-dialogs.mjs";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { fixtureAt } from "../helpers/portal-fixture.mjs";
@@ -26,7 +27,7 @@ export async function checkClientBrief(page, origin, width, screenshots, miniapp
   await show();
   const dialog = page.getByRole("dialog", { name: /^Итоговый бриф:/ });
   await dialog.getByText("Бриф готов", { exact: true }).waitFor();
-  for (const title of ["Цель проекта", "Пользователи и сценарии", "Функциональные требования", "Дизайн и платформы", "Интеграции и данные", "Ограничения, бюджет и сроки", "Критерии готовности", "Открытые вопросы и противоречия"]) assert.ok(await dialog.getByText(title, { exact: true }).isVisible());
+  for (const title of ["Цель проекта", "Пользователи и сценарии", "Функциональные требования", "Дизайн и платформы", "Критерии готовности", "Открытые вопросы и противоречия"]) assert.ok(await dialog.getByText(title, { exact: true }).isVisible());
   await dialog.getByText("ТЗ целиком", { exact: true }).click();
   const text = await dialog.getByRole("textbox", { name: "Полный текст ТЗ", exact: true }).inputValue();
   assert.ok(text.startsWith("Техническое задание:")); assert.ok(text.includes("Каталог с поиском")); assert.ok(text.length <= 16000);
@@ -92,13 +93,14 @@ export async function checkProjectChatActions(page, { miniapp = false, ready = f
 }
 
 export async function checkSharedProjectBrief(page) {
+  await checkProjectDescriptionFocus(page);
+  await chooseAction(page, "О проекте", "Итоговый бриф");
   const brief = page.getByRole("region", { name: "Итоговый бриф проекта", exact: true });
-  await brief.getByText("Открыть итоговый бриф", { exact: true }).click();
   await brief.getByText("ТЗ целиком", { exact: true }).click();
   const text = brief.getByRole("textbox", { name: "Полный текст итогового брифа", exact: true });
   assert.ok((await text.inputValue()).includes("Поиск товаров и фильтры"));
   assert.ok(await text.getAttribute("readonly") !== null);
   assert.equal(await brief.getByRole("button", { name: "Обновить бриф", exact: true }).count(), 0);
   assert.ok(await brief.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
-  await brief.getByText("Открыть итоговый бриф", { exact: true }).click();
+  await closeDialog(page);
 }

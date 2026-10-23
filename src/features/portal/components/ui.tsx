@@ -8,6 +8,7 @@ import { STATUS_LABELS } from "@/features/portal/model/types";
 import type { WorkStatus } from "@/features/portal/model/types";
 import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import styles from "./portal.module.css";
+import { DetailDialog } from "@/features/portal/components/focus-dialog";
 
 export function WorkspaceBrand() {
   return (
@@ -50,10 +51,9 @@ export function WorkBadge({ status }: { status: WorkStatus }) {
 
 export function LongText({ text, label = "Подробнее" }: { text: string; label?: string }) {
   return (
-    <details>
-      <summary>{label}</summary>
+    <DetailDialog label={label}>
       <p>{text || "Описание пока не добавлено."}</p>
-    </details>
+    </DetailDialog>
   );
 }
 
