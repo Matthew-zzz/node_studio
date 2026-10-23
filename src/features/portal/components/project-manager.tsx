@@ -9,7 +9,8 @@ import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
 import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { LongText } from "@/features/portal/components/ui";
-import { RepositoryNameField } from "@/features/portal/components/repository-name-field";
+import { RepositoryChoice } from "@/features/portal/components/repository-choice";
+import type { RepositoryMode } from "@/features/portal/components/repository-choice";
 
 export function CreateProject({ controller, onCreated, embedded = false }: { controller: PortalController; onCreated: (id: string) => void; embedded?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -67,7 +68,7 @@ export function CreateProject({ controller, onCreated, embedded = false }: { con
 }
 
 const repositoryMessages = {
-  idle: { title: "Подготовить разработку", description: "Создайте закрытый GitHub-репозиторий для этого проекта. ТЗ станет первой задачей, история и этапы будут обновляться из GitHub." },
+  idle: { title: "Подготовить разработку", description: "Подключите существующий или создайте закрытый GitHub-репозиторий. Задачи и история будут обновляться из GitHub." },
   queued: { title: "Создаём репозиторий", description: "Заявка сохранена. Подготовка начнётся в фоне — можно продолжать работу." },
   creating: { title: "Создаём репозиторий", description: "Подготавливаем закрытый репозиторий и первую задачу с ТЗ. Можно покинуть страницу — создание продолжится в фоне." },
   retrying: { title: "Повторим создание автоматически", description: "GitHub не завершил операцию. Заявка сохранена, можно продолжать работу." },
@@ -76,6 +77,7 @@ const repositoryMessages = {
 
 function RepositorySetup({ project, controller }: { project: PortalProject; controller: PortalController }) {
   const [repositoryName, setRepositoryName] = useState(project.repositoryName ?? "");
+  const [repositoryMode, setRepositoryMode] = useState<RepositoryMode>("new"); const [repo, setRepo] = useState("");
   const creation = project.repositoryCreation;
   const pending = creation && creation.status !== "failed";
   const content = repositoryMessages[creation?.status ?? "idle"];
@@ -88,9 +90,9 @@ function RepositorySetup({ project, controller }: { project: PortalProject; cont
       </div>
       {creation && project.repositoryName && <p className={styles.small}>{project.repositoryName}</p>}
       {!pending && (
-      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run({ type: "project.repository.create", projectId: project.id, ...(!creation ? { repositoryName: repositoryName.trim() } : {}) }); }}>
-        {!creation && <RepositoryNameField value={repositoryName} onChange={setRepositoryName} disabled={controller.busy} />}
-        <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>{creation ? "Повторить создание" : "Создать GitHub-репозиторий"}</button></div>
+      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run(!creation && repositoryMode === "existing" ? { type: "project.repository.attach", projectId: project.id, repo: repo.trim() } : { type: "project.repository.create", projectId: project.id, ...(!creation ? { repositoryName: repositoryName.trim() } : {}) }); }}>
+        {!creation && <RepositoryChoice mode={repositoryMode} onModeChange={setRepositoryMode} name={repositoryName} onNameChange={setRepositoryName} repo={repo} onRepoChange={setRepo} disabled={controller.busy} />}
+        <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>{creation ? "Повторить создание" : repositoryMode === "existing" ? "Подключить репозиторий" : "Создать GitHub-репозиторий"}</button></div>
       </form>
 )}
     </section>

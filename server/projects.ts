@@ -41,7 +41,7 @@ export class ProjectRegistry {
       || this.store.all("repositoryRequests").some(request => request.projectId !== projectId && `${request.owner}/${request.name}`.toLowerCase() === full)) throw new PortalError(409, "Название репозитория уже используется другим проектом. Выберите другое.");
   }
 
-  request(viewer: Viewer, input: Record<string, unknown>): PortalProject {
+  async request(viewer: Viewer, input: Record<string, unknown>): Promise<PortalProject> {
     if (viewer.mustChangePassword || viewer.role !== "developer") throw new PortalError(403, "Создать проект для клиента может только разработчик.");
     const requestId = text(input.requestId, 100);
     if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId)) throw new PortalError(400, "Обновите форму создания проекта.");
@@ -49,15 +49,22 @@ export class ProjectRegistry {
     if (!client || client.role !== "client") throw new PortalError(404, "Клиент с этой почтой не найден. Для нового клиента подготовьте проект с оплатой и выдачей доступа.");
     const name = text(input.name, 160); const description = text(input.description, 1000, 0); const brief = text(input.brief, 16000);
     const repositoryName = this.repositoryName(input.repositoryName);
+    const reference = input.repository === undefined || input.repository === "" ? "" : this.repositoryReference(input.repository);
+    if (reference && repositoryName) throw new PortalError(400, "Выберите новый или существующий репозиторий.");
+    const existing = this.store.get("projects", `project:${requestId}`);
+    const checkExisting = (project: PortalProject) => {
+      if (project.status === "archived" || project.clientId !== client.id || project.createdBy !== viewer.id) throw new PortalError(409, "Проект с этим идентификатором уже существует.");
+      if ((project.repositoryName ?? "") !== repositoryName || reference && project.repo.toLowerCase() !== reference.toLowerCase()) throw new PortalError(409, "Проект уже создан с другим репозиторием. Обновите страницу.");
+      return project;
+    };
+    if (existing) return checkExisting(existing);
+    const part = reference ? await this.repository({ name: "Основной", repo: reference }, "main") : undefined;
     return this.store.transaction(() => {
       const existing = this.store.get("projects", `project:${requestId}`);
-      if (existing) {
-        if (existing.status === "archived" || existing.clientId !== client.id || existing.createdBy !== viewer.id) throw new PortalError(409, "Проект с этим идентификатором уже существует.");
-        if ((existing.repositoryName ?? "") !== repositoryName) throw new PortalError(409, "Проект уже создан с другим названием репозитория. Обновите страницу.");
-        return existing;
-      }
+      if (existing) return checkExisting(existing);
       if (repositoryName) this.availableName(repositoryName, `project:${requestId}`);
-      const project = this.store.put("projects", { id: `project:${requestId}`, name, description, brief, ...(repositoryName ? { repositoryName } : {}), clientId: client.id, clientName: client.name, clientEmail: client.email, repo: "", origin: "developer", createdBy: viewer.id, status: "active", createdAt: now() });
+      if (part) this.uniqueRepositories([part]);
+      const project = this.store.put("projects", { id: `project:${requestId}`, name, description, brief, ...(repositoryName ? { repositoryName } : {}), clientId: client.id, clientName: client.name, clientEmail: client.email, repo: part?.repo ?? "", ...(part ? { subprojects: [part] } : {}), origin: "developer", createdBy: viewer.id, status: "active", createdAt: now() });
       const thread = this.store.put("conversations", { id: `chat:${project.id}`, projectId: project.id, kind: "project", name, username: "", email: client.email, telegramId: "", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
       this.store.put("messages", { id: id(), threadId: thread.id, author: "Node ИИ", role: "assistant", text: PROJECT_GREETING, createdAt: now() });
       return project;
@@ -114,15 +121,44 @@ export class ProjectRegistry {
     });
   }
 
+  private repositoryReference(input: unknown) {
+    const repo = text(input, 200).replace(/^https:\/\/github\.com\//, "").replace(/\.git\/?$/, "").replace(/\/$/, "");
+    const [owner, repository, extra] = repo.split("/");
+    if (!owner || !repository || repository === "." || repository === ".." || extra || owner.toLowerCase() !== this.owner.toLowerCase() || !/^[a-zA-Z0-9_.-]+$/.test(repository)) throw new PortalError(400, "Укажите репозиторий подключённого GitHub-аккаунта в формате владелец/репозиторий.");
+    return `${this.owner}/${repository}`;
+  }
+
   private async repository(input: unknown, sourceId: string): Promise<ProjectRepository> {
     const value = object(input); const name = text(value.name, 80);
-    const repo = text(value.repo, 200).replace(/^https:\/\/github\.com\//, "").replace(/\.git\/?$/, "").replace(/\/$/, "");
-    const [owner, repository, extra] = repo.split("/");
-    if (!owner || !repository || extra || owner.toLowerCase() !== this.owner.toLowerCase() || !/^[a-zA-Z0-9_.-]+$/.test(repository)) throw new PortalError(400, "Укажите репозиторий подключённого GitHub-аккаунта в формате владелец/репозиторий.");
-    const checked = await this.integrations.repository(`${this.owner}/${repository}`);
+    if (!this.integrations.ready.github) throw new PortalError(503, "Подключите GitHub в настройках сервера.");
+    const checked = await this.integrations.repository(this.repositoryReference(value.repo));
     if (!checked.issuesEnabled) throw new PortalError(409, "Включите Issues в настройках подключаемого репозитория.");
     if (!checked.writable) throw new PortalError(403, "У подключения нет прав записи в этот репозиторий.");
     return { id: sourceId, name, repo: checked.fullName, createdAt: now() };
+  }
+
+  async attach(viewer: Viewer, projectId: string, input: unknown): Promise<PortalProject> {
+    this.developer(viewer);
+    const reference = this.repositoryReference(input);
+    const check = () => {
+      const project = this.active(projectId);
+      if (project.developerId !== viewer.id) throw new PortalError(403, "Сначала возьмите проект в работу.");
+      if (project.status !== "active") throw new PortalError(409, "Дождитесь создания проекта.");
+      if (project.repo) {
+        if (project.repo.toLowerCase() === reference.toLowerCase()) return project;
+        throw new PortalError(409, "У проекта уже есть основной репозиторий. Добавьте другой как подпроект.");
+      }
+      if (this.store.get("repositoryRequests", projectId)) throw new PortalError(409, "Создание нового репозитория уже запущено. Дождитесь его завершения.");
+    };
+    const existing = check(); if (existing) return existing;
+    const part = await this.repository({ name: "Основной", repo: reference }, "main");
+    return this.store.transaction(() => {
+      const existing = check(); if (existing) return existing;
+      this.uniqueRepositories([part], projectId);
+      const project = { ...this.active(projectId), repo: part.repo, subprojects: [part] };
+      delete project.repositoryName;
+      return this.store.put("projects", project);
+    });
   }
 
   private uniqueRepositories(repositories: readonly ProjectRepository[], exceptId = "") {

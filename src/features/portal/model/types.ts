@@ -184,9 +184,10 @@ export type PortalAction =
   | ResendPaymentAction
   | { type: "brief.generate"; threadId: string; refresh?: boolean }
   | { type: "brief.link"; threadId: string; projectId: string }
-  | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string; repositoryName?: string }
+  | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string; repositoryName?: string; repository?: string }
   | { type: "project.create"; requestId: string; name: string; clientEmail: string; description: string; repositories: { name: string; repo: string }[] }
   | { type: "project.repository.create"; projectId: string; repositoryName?: string }
+  | { type: "project.repository.attach"; projectId: string; repo: string }
   | { type: "project.repository.add"; projectId: string; name: string; repo: string }
   | { type: "project.accept"; projectId: string }
   | { type: "project.delete"; projectId: string; confirmation: string }

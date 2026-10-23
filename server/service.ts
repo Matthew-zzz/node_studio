@@ -230,7 +230,7 @@ export class PortalService {
     }
     if (type === "brief.generate") { this.briefs.request(viewer, text(action.threadId, 100), this.agent.settings().model, action.refresh === true); return; }
     if (type === "brief.link") { this.briefs.link(viewer, text(action.threadId, 100), text(action.projectId, 100, 0)); return; }
-    if (type === "project.request") { this.projects.request(viewer, action); return; }
+    if (type === "project.request") { await this.projects.request(viewer, action); return; }
     if (type === "project.create") { await this.projects.create(viewer, action); return; }
     if (type === "project.delete") {
       this.role(viewer, ["developer"]);
@@ -257,6 +257,12 @@ export class PortalService {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
       await this.exclusive(`write:${project.id}`, () => this.projects.add(viewer, project, action));
+      this.synced.delete(project.id); return;
+    }
+    if (type === "project.repository.attach") {
+      this.role(viewer, ["developer"]);
+      const project = this.project(viewer, text(action.projectId, 100));
+      await this.exclusive(`write:${project.id}`, () => this.projects.attach(viewer, project.id, action.repo));
       this.synced.delete(project.id); return;
     }
     if (type === "project.accept") {

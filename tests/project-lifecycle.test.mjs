@@ -19,6 +19,73 @@ async function request(f, input = definition()) {
 const repositoryAction = project => ({ type: "project.repository.create", projectId: project.id });
 const retryNow = f => f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='github.repository.create'").run();
 
+test("project intake accepts an existing GitHub repository and loads its history without creating or changing remote resources", async () => {
+  const f = portalFixture();
+  try {
+    const repo = "Matthew-zzz/Existing-project"; const issues = structuredClone(f.issues.get("Matthew-zzz/fixture-one"));
+    f.issues.set(repo, issues); f.commits.set(repo, [{ sha: "e".repeat(40), title: "init: existing project", author: "Developer", createdAt: new Date().toISOString() }]);
+    const input = { ...definition(), repository: "https://github.com/Matthew-zzz/Existing-project.git" }; const project = await request(f, input);
+    assert.equal(project.repo, repo); assert.equal(project.subprojects[0].id, "main"); assert.equal(project.developerId, undefined);
+    await request(f, input); assert.equal(f.store.all("conversations", project.id).length, 1);
+    assert.equal(f.store.db.prepare("SELECT count(*) n FROM jobs WHERE kind='github.repository.create'").get().n, 0); assert.equal(f.repositories.length, 0);
+    const snapshot = await f.service.snapshot(f.login("client").session, project.id);
+    assert.ok(snapshot.tasks.some(task => task.projectId === project.id)); assert.ok(snapshot.commits.some(commit => commit.title === "init: existing project"));
+    assert.equal(snapshot.projects.find(item => item.id === project.id).repositoryReady, true); assert.ok(!JSON.stringify(snapshot).includes(repo));
+    assert.deepEqual(f.issues.get(repo), issues);
+    await assert.rejects(request(f, { ...definition(), repository: "Matthew-zzz/existing-PROJECT" }), { status: 409 });
+    await assert.rejects(request(f, { ...input, repository: "Matthew-zzz/different" }), { status: 409 });
+  } finally { f.close(); }
+});
+
+test("existing repository intake validates ownership, availability, Issues and write access without leaving a partial project", async () => {
+  const f = portalFixture();
+  try {
+    for (const repository of ["other-owner/repo", "https://example.test/repo", "Matthew-zzz/..", "Matthew-zzz/.", "Matthew-zzz/repo/issues", "Matthew-zzz/repo?token=bad", 123]) await assert.rejects(request(f, { ...definition(), repository }), { status: 400 });
+    await assert.rejects(request(f, { ...definition(), repository: "Matthew-zzz/old", repositoryName: "new" }), { status: 400 });
+    const input = { ...definition(), repository: "Matthew-zzz/Existing" }; const before = f.store.all("projects").length;
+    const original = f.integrations.repository;
+    f.integrations.repository = async () => ({ fullName: input.repository, issuesEnabled: false, writable: true }); await assert.rejects(request(f, input), { status: 409 });
+    f.integrations.repository = async () => ({ fullName: input.repository, issuesEnabled: true, writable: false }); await assert.rejects(request(f, input), { status: 403 });
+    f.integrations.repository = original; f.integrations.ready.github = false; await assert.rejects(request(f, input), { status: 503 });
+    assert.equal(f.store.all("projects").length, before); assert.equal(f.store.get("projects", `project:${input.requestId}`), undefined);
+  } finally { f.close(); }
+});
+
+test("only the assigned developer can attach an existing primary repository; duplicate requests are safe and do not create new repositories", async () => {
+  const f = portalFixture(); const { request: http, login } = portalApi(f);
+  try {
+    const project = await request(f, { ...definition(), repositoryName: "planned-new-name" }); const action = { type: "project.repository.attach", projectId: project.id, repo: "https://github.com/Matthew-zzz/Existing.git" };
+    for (const role of ["client", "admin"]) assert.equal((await http("action", action, await login(role))).statusCode, 403);
+    const developer = await login("developer"); assert.equal((await http("action", action, developer)).statusCode, 403);
+    await http("action", { type: "project.accept", projectId: project.id }, developer);
+    assert.equal((await http("action", action, developer, { "x-csrf-token": "bad" })).statusCode, 403);
+    assert.equal((await http("action", action, developer, { origin: "https://attacker.test" })).statusCode, 403);
+    assert.equal((await http("action", action, developer)).statusCode, 200); assert.equal((await http("action", action, developer)).statusCode, 200);
+    const attached = f.store.get("projects", project.id); assert.equal(attached.repo, "Matthew-zzz/Existing"); assert.equal(attached.repositoryName, undefined);
+    assert.equal(attached.subprojects.length, 1); assert.equal(f.store.get("repositoryRequests", project.id), undefined); assert.equal(f.repositories.length, 0);
+    assert.equal((await http("action", { ...action, repo: "Matthew-zzz/different" }, developer)).statusCode, 409);
+    const second = await request(f); await http("action", { type: "project.accept", projectId: second.id }, developer);
+    assert.equal((await http("action", { ...action, projectId: second.id }, developer)).statusCode, 409);
+  } finally { f.close(); }
+});
+
+test("attaching a repository rechecks archived projects and a competing new-repository job after the GitHub lookup", async () => {
+  const f = portalFixture();
+  try {
+    const developer = f.login("developer").session; const original = f.integrations.repository;
+    for (const change of ["archive", "queue"]) {
+      const project = await request(f); await f.service.action(developer, { type: "project.accept", projectId: project.id });
+      f.integrations.repository = async repo => {
+        if (change === "archive") await f.service.action(developer, { type: "project.delete", projectId: project.id, confirmation: project.name });
+        else await f.service.action(developer, repositoryAction(project));
+        return original(repo);
+      };
+      await assert.rejects(f.service.action(developer, { type: "project.repository.attach", projectId: project.id, repo: "Matthew-zzz/Existing" }), { status: change === "archive" ? 404 : 409 });
+      assert.equal(f.store.get("projects", project.id).repo, "");
+    }
+  } finally { f.close(); }
+});
+
 test("custom repository names are saved at project creation, reserved case-insensitively and hidden from the client", async () => {
   const f = portalFixture();
   try {
