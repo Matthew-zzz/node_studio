@@ -25,7 +25,7 @@ export function Recovery({ presentation = "web" }: { presentation?: "web" | "min
     event.preventDefault(); setBusy(true);
     try {
       await gateway.auth.revoke(token); setDone(true); setToken(""); history.replaceState(null, "", location.pathname);
-      if (typeof BroadcastChannel !== "undefined") { const channel = new BroadcastChannel("nodo-portal-profiles"); channel.postMessage("changed"); channel.close(); }
+      if (typeof BroadcastChannel !== "undefined") { const channel = new BroadcastChannel(gateway.profileChannel); channel.postMessage("changed"); channel.close(); }
     } catch (error) { notify.error(error instanceof Error ? error.message : "Не удалось завершить сеансы."); }
     finally { setBusy(false); }
   }

@@ -83,7 +83,7 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
   }, [refresh, invalidate, gateway]);
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
-    const connection = new BroadcastChannel("nodo-portal-profiles");
+    const connection = new BroadcastChannel(gateway.profileChannel);
     channel.current = connection;
     connection.onmessage = () => {
       authSequence.current++;
@@ -92,7 +92,7 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
       void refresh();
     };
     return () => { connection.close(); channel.current = null; };
-  }, [refresh, invalidate]);
+  }, [refresh, invalidate, gateway]);
 
   async function perform(action: () => Promise<void>, success?: string, projectId?: string, activeNotification = false): Promise<boolean> {
     if (pending.current) return false;

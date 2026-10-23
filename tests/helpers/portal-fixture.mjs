@@ -9,7 +9,7 @@ export const fixtureAt = origin => fixtures.get(origin);
 
 export function portalFixture(origin = "http://localhost:3000") {
   const store = new PortalStore(":memory:");
-  const config = readConfig({ PORTAL_ORIGIN: origin, PORTAL_MOCK_PAYMENTS: "true", PORTAL_MOCK_PROVISIONING: "true", PORTAL_ENCRYPTION_KEY: "ab".repeat(32), PORTAL_GITHUB_WEBHOOK_SECRET: "github-test-secret", PORTAL_TELEGRAM_WEBHOOK_SECRET: "telegram-test-secret" });
+  const config = readConfig({ PORTAL_ORIGIN: origin, PORTAL_MOCK_PAYMENTS: "true", PORTAL_MOCK_PROVISIONING: "true", PORTAL_ENCRYPTION_KEY: "ab".repeat(32), PORTAL_GITHUB_WEBHOOK_SECRET: "github-test-secret", PORTAL_TELEGRAM_WEBHOOK_SECRET: "telegram-test-secret", PORTAL_TELEGRAM_TOKEN: "123456:fixture-bot-token" });
   const users = {};
   for (const role of ["client", "developer", "admin"]) users[role] = store.createUser(`${role}@example.test`, role, role, fixturePassword, false);
   users.other = store.createUser("other@example.test", "Другой клиент", "client", fixturePassword, false);

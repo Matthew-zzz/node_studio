@@ -54,9 +54,9 @@ try {
       else if (width <= 650) await page.getByRole("button", { name: "Открыть профили", exact: true }).click();
       assert.equal(await page.getByRole("button", { name: /Добавить профиль: (Разработчик|Администратор)/ }).count(), 0);
       assert.equal(await page.getByRole("button", { name: "Разработчики", exact: true }).count(), 0);
-      const snapshot = await page.request.get(origin + "/api/portal/snapshot", { headers: mini ? { "X-Portal-Client": "miniapp" } : {} }).then(response => response.json());
+      const snapshot = await page.request.get(origin + "/api/portal/snapshot", { headers: mini ? { "X-Portal-Client": "miniapp", "X-Telegram-Context": "browser" } : {} }).then(response => response.json());
       assert.deepEqual(snapshot.profiles.map(profile => profile.role), ["client"]);
-      const forged = await page.request.post(origin + "/api/portal/admin/staff", { headers: { Origin: origin, "X-CSRF-Token": snapshot.csrf, ...(mini ? { "X-Portal-Client": "miniapp" } : {}) }, data: { type: "developer.create", requestId: "forged", email: "forged@example.test", name: "Forged", role: "admin" } });
+      const forged = await page.request.post(origin + "/api/portal/admin/staff", { headers: { Origin: origin, "X-CSRF-Token": snapshot.csrf, ...(mini ? { "X-Portal-Client": "miniapp", "X-Telegram-Context": "browser" } : {}) }, data: { type: "developer.create", requestId: "forged", email: "forged@example.test", name: "Forged", role: "admin" } });
       assert.equal(forged.status(), 403); assert.deepEqual(errors, []); await fits();
       console.log(`Staff ${presentation} ${width}px: admin creates and invites a developer, email login works, client UI and direct API deny staff creation.`);
     } catch (error) { await page.screenshot({ path: resolve(screenshots, `${presentation}-${width}-failure.png`), fullPage: true }).catch(() => {}); throw error; }

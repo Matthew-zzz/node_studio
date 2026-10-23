@@ -67,4 +67,6 @@ export function initializeAuthSchema(db: DatabaseSync) {
   }
   db.exec("DROP INDEX IF EXISTS one_developer");
   initializeProfileProofs(db);
+  if (!db.prepare("PRAGMA table_info(auth_challenges)").all().some(column => column.name === "context")) db.exec("ALTER TABLE auth_challenges ADD COLUMN context TEXT NOT NULL DEFAULT 'web'");
+  db.exec("CREATE TABLE IF NOT EXISTS auth_session_contexts (group_id TEXT PRIMARY KEY,context TEXT NOT NULL)");
 }

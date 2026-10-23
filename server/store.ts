@@ -253,6 +253,7 @@ export class PortalStore {
       this.db.prepare("DELETE FROM sessions WHERE group_id=?").run(session.groupId);
       this.db.prepare("DELETE FROM auth_verifications WHERE group_id=?").run(session.groupId);
       this.db.prepare("DELETE FROM auth_profile_verifications WHERE group_id=?").run(session.groupId);
+      this.db.prepare("DELETE FROM auth_session_contexts WHERE group_id=?").run(session.groupId);
       this.db.prepare("DELETE FROM auth_challenges WHERE group_id=?").run(session.groupId);
     });
   }
@@ -284,6 +285,7 @@ export class PortalStore {
   }
 
   private updateIdentityPassword(email: string, password: string, keepGroup = "") {
+    this.db.prepare("DELETE FROM auth_session_contexts WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("DELETE FROM auth_profile_verifications WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("DELETE FROM auth_verifications WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("DELETE FROM sessions WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);

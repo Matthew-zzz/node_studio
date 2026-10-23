@@ -16,7 +16,7 @@ const SECURITY_LINK_TTL = 24 * 60 * 60_000;
 const opaque = (value: string) => /^[a-f0-9]{64}$/.test(value);
 const masked = (email: string) => { const [name, domain] = email.split("@"); return `${name!.slice(0, 2)}***@${domain}`; };
 export interface LoginMetadata { address: string; agent: string }
-interface ChallengeRow { id: string; user_id: string | null; email: string; credential_hash: string; code_hash: string; created_at: number; expires: number; attempts: number; resend_at: number; group_id: string; parent_token: string; requested_role: Role }
+interface ChallengeRow { id: string; user_id: string | null; email: string; credential_hash: string; code_hash: string; created_at: number; expires: number; attempts: number; resend_at: number; group_id: string; parent_token: string; requested_role: Role; context: string }
 interface RecoveryRow { token_hash: string; user_id: string; email: string; credential_hash: string; expires: number }
 type Authenticated = { token: string; session: Session };
 type Started = Authenticated | { token: string; challenge: EmailChallenge };
@@ -35,6 +35,7 @@ export class PortalAuth {
       this.store.db.prepare("DELETE FROM sessions WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_verifications WHERE expires<=? OR group_id NOT IN (SELECT group_id FROM sessions)").run(epoch);
       this.store.db.prepare("DELETE FROM auth_profile_verifications WHERE expires<=? OR group_id NOT IN (SELECT group_id FROM sessions)").run(epoch);
+      this.store.db.prepare("DELETE FROM auth_session_contexts WHERE group_id NOT IN (SELECT group_id FROM sessions)").run();
       this.store.db.prepare("DELETE FROM auth_challenges WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_recoveries WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_limits WHERE since<?").run(epoch - 86_400_000);
@@ -57,11 +58,22 @@ export class PortalAuth {
     return Boolean(this.store.db.prepare("SELECT 1 FROM auth_verifications WHERE group_id=? AND email=? AND expires>?").get(session.groupId, email, Date.now()));
   }
 
-  session(token: string): Session | undefined {
+  session(token: string, context = "web"): Session | undefined {
     const session = this.store.session(token);
-    if (!session || !this.verified(session, session.viewer.email) || !this.profileVerified(session, session.viewer)) return;
+    if (!session || !this.matchesContext(session, context) || !this.verified(session, session.viewer.email) || !this.profileVerified(session, session.viewer)) return;
     if (session.viewer.mustChangePassword) this.store.transaction(() => this.store.confirmProfile(session));
     return session;
+  }
+
+  private matchesContext(session: Session, context: string) {
+    const bound = this.store.db.prepare("SELECT context FROM auth_session_contexts WHERE group_id=?").get(session.groupId);
+    return bound ? bound.context === context : context === "web";
+  }
+
+  private bindContext(session: Session, context: string) {
+    const bound = this.store.db.prepare("SELECT context FROM auth_session_contexts WHERE group_id=?").get(session.groupId);
+    if (bound && bound.context !== context) throw new PortalError(401, "Подтвердите вход в текущем профиле.");
+    this.store.db.prepare("INSERT OR IGNORE INTO auth_session_contexts(group_id,context) VALUES(?,?)").run(session.groupId, context);
   }
 
   private profileVerified(session: Session, user: Viewer) {
@@ -85,9 +97,9 @@ export class PortalAuth {
     return !row.user_id || (row.credential_hash === this.store.credentialHash(row.user_id) && user?.email === row.email && user.role === row.requested_role);
   }
 
-  private challenge(token: string, current?: Session): ChallengeRow {
+  private challenge(token: string, current?: Session, context = "web"): ChallengeRow {
     const row = opaque(token) ? this.store.db.prepare("SELECT * FROM auth_challenges WHERE id=?").get(tokenHash(token)) as unknown as ChallengeRow | undefined : undefined;
-    if (!row || row.expires <= Date.now() || row.attempts >= 5 || !this.validIdentity(row)
+    if (!row || row.context !== context || row.expires <= Date.now() || row.attempts >= 5 || !this.validIdentity(row)
       || (row.group_id && (!current || current.groupId !== row.group_id || row.parent_token !== current.tokenHash
         || !allowedProfileRoles(current.viewer.role).includes(row.requested_role)
         || !this.store.db.prepare("SELECT 1 FROM sessions WHERE token_hash=? AND expires>?").get(row.parent_token, Date.now())))) {
@@ -96,24 +108,30 @@ export class PortalAuth {
     return row;
   }
 
-  pending(token: string, current?: Session) { return this.describe(this.challenge(token, current)); }
+  pending(token: string, current?: Session, context = "web") { return this.describe(this.challenge(token, current, context)); }
 
-  async begin(inputEmail: string, role: Role | undefined, metadata: LoginMetadata, current?: Session): Promise<Started> {
+  cancel(token: string, current?: Session, context = "web") {
+    try { const row = this.challenge(token, current, context); this.store.db.prepare("DELETE FROM auth_challenges WHERE id=?").run(row.id); }
+    catch (error) { if (!(error instanceof PortalError) || error.status !== 401) throw error; }
+  }
+
+  async begin(inputEmail: string, role: Role | undefined, metadata: LoginMetadata, current?: Session, context = "web"): Promise<Started> {
     this.cleanup(); this.mailReady();
+    if (current && !this.matchesContext(current, context)) throw new PortalError(401, "Подтвердите вход в текущем профиле.");
     const email = inputEmail.trim().toLowerCase(); const requestedRole = role ?? "client";
     if (current && !allowedProfileRoles(current.viewer.role).includes(requestedRole)) throw new PortalError(403, "Добавлять профили сотрудников может только администратор.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту.");
     this.limit(`login-ip:${metadata.address}`, 30, 900_000);
     const user = this.store.findUser(email, requestedRole);
     if (user) updateErrorContext({ actor: user });
-    if (user && current && current.viewer.role === user.role && this.verified(current, email)) return this.store.loginVerified(user.id, current, result => this.store.confirmProfile(result.session));
+    if (user && current && current.viewer.role === user.role && this.verified(current, email)) return this.store.loginVerified(user.id, current, result => { this.bindContext(result.session, context); this.store.confirmProfile(result.session); });
     const token = randomBytes(32).toString("hex"); const epoch = Date.now(); const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
-    const row: ChallengeRow = { id: tokenHash(token), user_id: user?.id ?? null, email, credential_hash: user ? this.store.credentialHash(user.id) : "", code_hash: this.codeHash(tokenHash(token), code), created_at: epoch, expires: epoch + CODE_TTL, attempts: 0, resend_at: epoch + RESEND_DELAY, group_id: current?.groupId ?? "", parent_token: current?.tokenHash ?? "", requested_role: requestedRole };
+    const row: ChallengeRow = { id: tokenHash(token), user_id: user?.id ?? null, email, credential_hash: user ? this.store.credentialHash(user.id) : "", code_hash: this.codeHash(tokenHash(token), code), created_at: epoch, expires: epoch + CODE_TTL, attempts: 0, resend_at: epoch + RESEND_DELAY, group_id: current?.groupId ?? "", parent_token: current?.tokenHash ?? "", requested_role: requestedRole, context };
     this.store.transaction(() => {
       this.limit(`send:${email}`, 10, 3_600_000);
       if (this.store.db.prepare("SELECT 1 FROM auth_challenges WHERE email=? AND resend_at>? LIMIT 1").get(email, epoch)) throw new PortalError(429, "Код уже запрошен. Подождите минуту перед новым запросом.");
-      this.store.db.prepare("INSERT INTO auth_challenges(id,user_id,email,credential_hash,code_hash,created_at,expires,resend_at,group_id,parent_token,requested_role) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-        .run(row.id, row.user_id, row.email, row.credential_hash, row.code_hash, row.created_at, row.expires, row.resend_at, row.group_id, row.parent_token, row.requested_role);
+      this.store.db.prepare("INSERT INTO auth_challenges(id,user_id,email,credential_hash,code_hash,created_at,expires,resend_at,group_id,parent_token,requested_role,context) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+        .run(row.id, row.user_id, row.email, row.credential_hash, row.code_hash, row.created_at, row.expires, row.resend_at, row.group_id, row.parent_token, row.requested_role, row.context);
       if (user) this.queueCode(row, code);
     });
     return { token, challenge: this.describe(row) };
@@ -124,8 +142,8 @@ export class PortalAuth {
     this.store.enqueue("auth.mail", { email: row.email, content: seal(content, this.config.encryptionKey), subject: "Код для входа — Node Studio", challengeId: row.id, codeHash: row.code_hash }, `code:${row.id}:${row.code_hash}`);
   }
 
-  async resend(token: string, current?: Session): Promise<EmailChallenge> {
-    const row = this.challenge(token, current); this.mailReady();
+  async resend(token: string, current?: Session, context = "web"): Promise<EmailChallenge> {
+    const row = this.challenge(token, current, context); this.mailReady();
     if (row.resend_at > Date.now()) throw new PortalError(429, "Повторный код можно запросить через минуту.");
     let code: string; do { code = randomInt(0, 1_000_000).toString().padStart(6, "0"); } while (this.codeHash(row.id, code) === row.code_hash);
     const epoch = Date.now();
@@ -135,11 +153,11 @@ export class PortalAuth {
       this.store.db.prepare("UPDATE auth_challenges SET code_hash=?,expires=?,resend_at=? WHERE id=?").run(next.code_hash, next.expires, next.resend_at, row.id);
       if (row.user_id) this.queueCode(next, code);
     });
-    return this.pending(token, current);
+    return this.pending(token, current, context);
   }
 
-  verify(token: string, code: string, metadata: LoginMetadata, current?: Session): Authenticated {
-    const row = this.challenge(token, current);
+  verify(token: string, code: string, metadata: LoginMetadata, current?: Session, context = "web"): Authenticated {
+    const row = this.challenge(token, current, context);
     this.limit(`verify:${row.email}`, 20, 900_000);
     this.limit(`verify-ip:${metadata.address}`, 50, 900_000);
     this.store.db.prepare("UPDATE auth_challenges SET attempts=attempts+1 WHERE id=?").run(row.id);
@@ -148,6 +166,7 @@ export class PortalAuth {
     const user = this.store.user(row.user_id)!; updateErrorContext({ actor: user });
     return this.store.loginVerified(user.id, row.group_id ? current : undefined, result => {
       if (!this.store.db.prepare("DELETE FROM auth_challenges WHERE id=?").run(row.id).changes) throw new PortalError(401, "Код уже использован.");
+      this.bindContext(result.session, context);
       this.store.db.prepare("INSERT INTO auth_verifications(group_id,email,expires) VALUES(?,?,?) ON CONFLICT(group_id,email) DO UPDATE SET expires=excluded.expires").run(result.session.groupId, user.email, this.store.sessionDeadline(result.session));
       this.store.confirmProfile(result.session);
       this.loginNotice(result.session.viewer, metadata);

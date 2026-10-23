@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { telegramWebApp } from "@/features/telegram/model/web-app";
+import { miniappContextVersion } from "@/features/telegram/lib/auth-context";
 
 export const TELEGRAM_READY_EVENT = "node-telegram-ready";
 function subscribe(listener: () => void) {
@@ -9,6 +10,14 @@ function subscribe(listener: () => void) {
   return () => window.removeEventListener(TELEGRAM_READY_EVENT, listener);
 }
 export function useTelegram() { return useSyncExternalStore(subscribe, telegramWebApp, () => null); }
+
+function subscribeContext(listener: () => void) {
+  window.addEventListener(TELEGRAM_READY_EVENT, listener); window.addEventListener("focus", listener); window.addEventListener("pageshow", listener);
+  document.addEventListener("visibilitychange", listener);
+  const timer = setInterval(listener, 1000);
+  return () => { clearInterval(timer); window.removeEventListener(TELEGRAM_READY_EVENT, listener); window.removeEventListener("focus", listener); window.removeEventListener("pageshow", listener); document.removeEventListener("visibilitychange", listener); };
+}
+export function useTelegramContext() { return useSyncExternalStore(subscribeContext, miniappContextVersion, () => "pending"); }
 
 export function useTelegramBack(visible: boolean, onBack: () => void) {
   const app = useTelegram();

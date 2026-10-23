@@ -1,16 +1,26 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { setHostTheme, useTheme } from "@/lib/use-theme";
-import { TELEGRAM_READY_EVENT, useTelegram } from "@/features/telegram/lib/use-telegram";
+import { TELEGRAM_READY_EVENT, useTelegram, useTelegramContext } from "@/features/telegram/lib/use-telegram";
+import { miniappContext } from "@/features/telegram/lib/auth-context";
+import { notify } from "@/lib/notifications";
 import styles from "./telegram.module.css";
 
 export function TelegramHost({ children }: { children: ReactNode }) {
   const app = useTelegram();
+  const context = useTelegramContext();
+  const [ready, setReady] = useState(false); const [failed, setFailed] = useState(false);
   const { theme } = useTheme();
   const viewport = useRef<HTMLDivElement>(null);
+  useEffect(() => { notify.clear(); }, [context]);
+  useEffect(() => {
+    if (!app) return;
+    const activate = () => window.dispatchEvent(new Event(TELEGRAM_READY_EVENT));
+    app.onEvent("activated", activate); return () => app.offEvent("activated", activate);
+  }, [app]);
   useEffect(() => {
     if (!app) return;
     const updateTheme = () => setHostTheme(app.colorScheme);
@@ -53,8 +63,14 @@ export function TelegramHost({ children }: { children: ReactNode }) {
   }
   return (
     <div ref={viewport} className={styles.viewport} data-theme={theme} onClick={openLink}>
-      <Script src="https://telegram.org/js/telegram-web-app.js?64" strategy="afterInteractive" onReady={() => { window.dispatchEvent(new Event(TELEGRAM_READY_EVENT)); }} />
-      {children}
+      <Script src="https://telegram.org/js/telegram-web-app.js?64" strategy="afterInteractive" onReady={() => { window.dispatchEvent(new Event(TELEGRAM_READY_EVENT)); setReady(true); }} onError={() => setFailed(true)} />
+      {ready && miniappContext().available ? <Fragment key={context}>{children}</Fragment> : (
+        <main className={styles.launch} role="status">
+          <h1>Node</h1>
+          <p>{failed ? "Не удалось загрузить Telegram. Проверьте соединение и повторите." : ready ? "Не удалось подтвердить профиль. Закройте и откройте миниапп из Telegram." : "Открываем приложение…"}</p>
+          {failed && <button type="button" onClick={() => location.reload()}>Повторить</button>}
+        </main>
+)}
     </div>
   );
 }

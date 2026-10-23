@@ -2,23 +2,20 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { PortalService } from "./service.ts";
 import type { PortalConfig } from "./config.ts";
-import { PortalError, id, tokenHash } from "./store.ts";
+import { PortalError, id } from "./store.ts";
 import { object, optionalRole, text } from "./validation.ts";
 import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
 import { withErrorContext, updateErrorContext } from "./error-context.ts";
 import type { ErrorProvider } from "../src/features/portal/model/errors.ts";
+import { requestAuthContext } from "./telegram-auth-context.ts";
+import type { RequestAuthContext } from "./telegram-auth-context.ts";
 
-function cookieNames(request: IncomingMessage, config: PortalConfig) {
-  const prefix = config.secureCookies ? "__Host-" : "";
-  return request.headers["x-portal-client"] === "miniapp"
-    ? { session: `${prefix}node_miniapp_session`, challenge: `${prefix}node_miniapp_challenge` }
-    : { session: `${prefix}nodo_session`, challenge: `${prefix}node_challenge` };
-}
-
-export function requestSession(request: IncomingMessage, service: PortalService, config: PortalConfig) {
-  const name = cookieNames(request, config).session;
+export function requestSession(request: IncomingMessage, service: PortalService, config: PortalConfig, verifiedContext?: RequestAuthContext) {
+  let context: RequestAuthContext;
+  try { context = verifiedContext ?? requestAuthContext(request.headers, config); } catch { return; }
+  const name = context.sessionCookie;
   const token = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${name}=`))?.slice(name.length + 1) ?? "";
-  return service.auth.session(token);
+  return service.auth.session(token, context.scope);
 }
 
 export function equalSecret(actual: string, expected: string): boolean {
@@ -43,8 +40,6 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
   }
   return async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const requestId = id();
-    const names = cookieNames(request, config);
-    const cookieName = names.session; const challengeName = names.challenge;
     function cookie(name: string, value: string, age: number) {
       const embedded = config.secureCookies && request.headers["x-portal-client"] === "miniapp";
       return `${name}=${value}; Path=/; HttpOnly; SameSite=${embedded ? "None" : "Lax"}; Max-Age=${age}${config.secureCookies ? "; Secure" : ""}${embedded ? "; Partitioned" : ""}`;
@@ -61,7 +56,9 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         const path = url.pathname.replace(/\/$/, "");
         updateErrorContext({ path });
         if (request.method === "GET" && path === "/api/portal/health") { send(200, { status: "ok", service: "node-studio-portal", version: 1, revision: config.revision }); return; }
-        const session = requestSession(request, service, config);
+        const context = requestAuthContext(request.headers, config);
+        const cookieName = context.sessionCookie; const challengeName = context.challengeCookie;
+        const session = requestSession(request, service, config, context);
         const challengeToken = challengeCookie(request, challengeName);
         updateErrorContext({ actor: session?.viewer ?? null });
         if (!["GET", "POST"].includes(request.method ?? "")) throw new PortalError(405, "Метод не поддерживается.");
@@ -102,16 +99,16 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         }
         if (request.method === "GET" && path === "/api/portal/auth/challenge") {
           if (!challengeToken) { send(200, { challenge: null }); return; }
-          try { send(200, { challenge: service.auth.pending(challengeToken, session) }); }
+          try { send(200, { challenge: service.auth.pending(challengeToken, session, context.scope) }); }
           catch (error) { if (!(error instanceof PortalError)) throw error; response.setHeader("Set-Cookie", cookie(challengeName, "", 0)); send(200, { challenge: null }); }
           return;
         }
         if (request.method === "POST" && path === "/api/portal/auth/verify") {
-          await authenticated(service.auth.verify(challengeToken, text(body.code, 6), metadata, session)); return;
+          await authenticated(service.auth.verify(challengeToken, text(body.code, 6), metadata, session, context.scope)); return;
         }
-        if (request.method === "POST" && path === "/api/portal/auth/resend") { const challenge = await service.auth.resend(challengeToken, session); response.setHeader("Set-Cookie", cookie(challengeName, challengeToken, 600)); send(200, challenge); return; }
+        if (request.method === "POST" && path === "/api/portal/auth/resend") { const challenge = await service.auth.resend(challengeToken, session, context.scope); response.setHeader("Set-Cookie", cookie(challengeName, challengeToken, 600)); send(200, challenge); return; }
         if (request.method === "POST" && path === "/api/portal/auth/cancel") {
-          if (challengeToken) service.store.db.prepare("DELETE FROM auth_challenges WHERE id=?").run(tokenHash(challengeToken));
+          if (challengeToken) service.auth.cancel(challengeToken, session, context.scope);
           response.setHeader("Set-Cookie", cookie(challengeName, "", 0)); send(200, { ok: true }); return;
         }
         if (request.method === "POST" && path === "/api/portal/auth/forgot") {
@@ -125,7 +122,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (request.method === "POST" && path === "/api/portal/auth/reset") throw new PortalError(410, "Смена пароля отключена. Для входа используется код из письма.");
         if (request.method === "POST" && ["/api/portal/login", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
           if (path === "/api/portal/login") {
-            const result = await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata);
+            const result = await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata, undefined, context.scope);
             if ("challenge" in result) { response.setHeader("Set-Cookie", cookie(challengeName, result.token, 600)); send(200, result.challenge); }
             else await authenticated(result);
             return;
@@ -159,7 +156,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (path === "/api/portal/admin/agent") { send(200, await service.agentAction(session, body)); return; }
         if (path === "/api/portal/profiles/add" || path === "/api/portal/profiles/switch") {
           const result = path.endsWith("/add")
-            ? await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata, session)
+            ? await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata, session, context.scope)
             : service.auth.switchProfile(session, text(body.userId, 100));
           if ("challenge" in result) { response.setHeader("Set-Cookie", cookie(challengeName, result.token, 600)); send(200, result.challenge); }
           else await authenticated(result);

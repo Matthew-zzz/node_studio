@@ -2,8 +2,10 @@ import { chooseAction, closeDialog, checkProjectDescriptionFocus } from "./focus
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { fixtureAt } from "../helpers/portal-fixture.mjs";
+import { browserTelegramHeaders } from "../helpers/telegram.mjs";
 
 export async function checkClientBrief(page, origin, width, screenshots, miniapp = false) {
+  const headers = miniapp ? await browserTelegramHeaders(page) : {};
   if (miniapp) await page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Открыть диалог:/ }).first().click();
   const button = page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
   const show = async () => {
@@ -34,7 +36,7 @@ export async function checkClientBrief(page, origin, width, screenshots, miniapp
   assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
   const bounds = await dialog.boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
   await page.screenshot({ path: resolve(screenshots, `${width}-${miniapp ? "miniapp-" : ""}client-brief.png`) });
-  const snapshot = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers: miniapp ? { "X-Portal-Client": "miniapp" } : {} })).json();
+  const snapshot = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers })).json();
   const generatedAt = snapshot.clientBriefs[0].generatedAt;
   const form = dialog.getByRole("form", { name: "Привязка брифа к проекту", exact: true });
   await form.getByLabel("Проект для брифа", { exact: true }).selectOption("one");
@@ -56,12 +58,12 @@ export async function checkClientBrief(page, origin, width, screenshots, miniapp
     assert.ok((await dialog.getByRole("textbox", { name: "Полный текст ТЗ", exact: true }).inputValue()).includes("Поиск товаров и фильтры"));
     await page.screenshot({ path: resolve(screenshots, `${width}-${miniapp ? "miniapp-" : ""}brief-updated-toast.png`) });
   } finally { release(); fixture.integrations.brief = original; }
-  const refreshed = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers: miniapp ? { "X-Portal-Client": "miniapp" } : {} })).json();
+  const refreshed = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers })).json();
   assert.notEqual(refreshed.clientBriefs[0].generatedAt, generatedAt);
   assert.equal(refreshed.clientBriefs[0].projectId, "one");
   await dialog.getByRole("button", { name: "Закрыть итоговый бриф", exact: true }).click();
   await show(); await dialog.getByText("Бриф готов", { exact: true }).waitFor();
-  const repeat = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers: miniapp ? { "X-Portal-Client": "miniapp" } : {} })).json();
+  const repeat = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers })).json();
   assert.equal(repeat.clientBriefs[0].generatedAt, refreshed.clientBriefs[0].generatedAt);
   if (miniapp) { await page.waitForFunction(() => window.__telegram.backVisible); await page.evaluate(() => window.__telegram.back()); await dialog.waitFor({ state: "hidden" }); }
   else await dialog.getByRole("button", { name: "Закрыть итоговый бриф", exact: true }).click();

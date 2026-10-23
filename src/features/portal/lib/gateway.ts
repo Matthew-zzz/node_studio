@@ -5,6 +5,7 @@ import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, Ag
 import type { ErrorPage, ErrorQuery } from "@/features/portal/model/errors";
 import { createRequestReporter } from "@/features/portal/lib/request-reporter";
 import type { CreateDeveloper, StaffState } from "@/features/portal/model/staff";
+import { miniappContext, miniappContextVersion } from "@/features/telegram/lib/auth-context";
 
 export interface AgentGateway {
   state(): Promise<AgentAdminState>;
@@ -15,6 +16,7 @@ export interface AgentGateway {
 }
 
 export interface PortalGateway {
+  readonly profileChannel: string;
   auth: {
     pending(): Promise<{ challenge: EmailChallenge | null }>;
     verify(code: string): Promise<PortalSnapshot>;
@@ -42,10 +44,15 @@ export interface PortalGateway {
 export function createApiGateway(presentation: "web" | "miniapp" = "web"): PortalGateway {
   let csrf = "";
   let viewerId = ""; let identityReady = false;
-  const clientHeaders = presentation === "miniapp" ? { "X-Portal-Client": "miniapp" } : {};
-  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation);
+  const context = presentation === "miniapp" ? miniappContext() : null;
+  const clientHeaders = context?.headers ?? {};
+  let disposed = false;
+  const isCurrent = () => !disposed && (!context || context.version === miniappContextVersion());
+  const profileChannel = context ? `node-miniapp-profiles-${context.identity}` : "nodo-portal-profiles";
+  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation, context ? { key: context.identity, headers: clientHeaders, isCurrent } : undefined);
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
+    if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
     const authenticating = ["login", "logout", "profiles/add", "profiles/switch", "auth/verify", "auth/revoke", "auth/logout-all"].includes(path);
     const requestId = ++sequence;
     const requestViewerId = viewerId;
@@ -62,6 +69,7 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
       throw new Error("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова.");
     }
     const value = await response.json().catch(() => null) as { error?: string; errorId?: string; viewer?: PortalSnapshot["viewer"] } | null;
+    if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
     if (!response.ok && !value?.errorId) reporter.record(path, body === undefined ? "GET" : "POST", "http", response.status, requestViewerId);
     else if (response.ok && (!value || typeof value !== "object")) { reporter.record(path, body === undefined ? "GET" : "POST", "invalid_response", response.status, requestViewerId); throw new Error("Сервер вернул неожиданный ответ. Повторите попытку позже."); }
     if (!response.ok) {
@@ -79,6 +87,7 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
     return value as T;
   }
   return {
+    profileChannel,
     auth: {
       pending() { return request("auth/challenge"); },
       verify(code) { return request("auth/verify", { code }); },
@@ -88,8 +97,8 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
       revoke(token) { return request("auth/revoke", { token }); },
       logoutAll() { return request("auth/logout-all", {}); },
     },
-    activate() { reporter.activate(); },
-    dispose() { reporter.dispose(); },
+    activate() { disposed = false; reporter.activate(); },
+    dispose() { disposed = true; reporter.dispose(); },
     errors: {
       list(query) { return request(`admin/errors?${new URLSearchParams({ state: query.state, provider: query.provider, search: query.search, page: String(query.page) })}`); },
       resolve(id, resolved) { return request("admin/errors", { id, resolved }); },

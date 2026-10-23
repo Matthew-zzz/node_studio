@@ -5,7 +5,7 @@ import { portalApi, emailCode } from "./helpers/http.mjs";
 import { configureTelegramMenu } from "../server/telegram-menu.ts";
 import { readConfig } from "../server/config.ts";
 
-const headers = { "x-portal-client": "miniapp" };
+const headers = { "x-portal-client": "miniapp", "x-telegram-context": "browser" };
 
 
 test("Mini App requires email proof and uses separate secure partitioned cookies without changing web sessions", async () => {
@@ -16,14 +16,14 @@ test("Mini App requires email proof and uses separate secure partitioned cookies
     assert.equal((await request("snapshot", undefined, web, headers)).body.viewer, null);
     const pending = await request("login", { email: f.users.client.email, password: fixturePassword, role: "client", initDataUnsafe: { user: { id: f.users.admin.id, role: "admin" } } }, undefined, headers);
     assert.equal(pending.body.kind, "verification");
-    assert.ok(pending.cookie.includes("__Host-node_miniapp_challenge="));
+    assert.ok(pending.cookie.includes("__Host-node_miniapp_challenge_v2_browser="));
     const challengeCookie = pending.headers["Set-Cookie"];
     assert.ok(challengeCookie.includes("SameSite=None")); assert.ok(challengeCookie.includes("Secure; Partitioned"));
     assert.equal((await request("snapshot", undefined, pending, headers)).body.viewer, null);
     assert.equal((await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending)).statusCode, 401, "a Mini App code cannot be consumed using the web cookie context");
     const miniapp = await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending, headers);
     assert.equal(miniapp.body.viewer.id, f.users.client.id); assert.equal(miniapp.body.viewer.role, "client");
-    const cookie = miniapp.headers["Set-Cookie"].find(value => value.startsWith("__Host-node_miniapp_session="));
+    const cookie = miniapp.headers["Set-Cookie"].find(value => value.startsWith("__Host-node_miniapp_session_v2_browser="));
     assert.ok(cookie.includes("HttpOnly; SameSite=None")); assert.ok(cookie.endsWith("Secure; Partitioned"));
     assert.ok(Number(cookie.match(/Max-Age=(\d+)/)[1]) <= 43200);
     assert.equal((await request("admin/agent", undefined, miniapp, headers)).statusCode, 403);

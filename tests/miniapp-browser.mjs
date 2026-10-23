@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
+import { telegramLaunch } from "./helpers/telegram.mjs";
 import { completeEmailCode, preparePortalFixture, selectLoginRole } from "./browser/portal.mjs";
 import { checkClientBrief, checkSharedProjectBrief, checkProjectChatActions } from "./browser/client-briefs.mjs";
 
@@ -14,14 +15,15 @@ const frontend = server.listeners("request")[0]; server.removeAllListeners("requ
 let fixture; let worker; let browser;
 server.on("request", (request, response) => void (request.url.startsWith("/api/portal/") ? fixture.handler(request, response) : frontend(request, response)));
 
-async function installTelegram(context) {
+async function installTelegram(context, initData) {
   await context.route("https://telegram.org/js/telegram-web-app.js*", route => route.fulfill({ contentType: "application/javascript", body: "/* SDK transport fixture; browser tests provide the native client bridge. */" }));
-  await context.addInitScript(() => {
+  await context.addInitScript(initData => {
     const events = new Map(); const back = new Set();
     const state = { ready: 0, expanded: 0, backVisible: false, background: "", bodyBackground: "", bottomBar: "", links: [], emit: event => events.get(event)?.forEach(handler => handler()), back: () => back.forEach(handler => handler()) };
     window.__telegram = state;
     window.Telegram = { WebApp: {
       platform: "ios", colorScheme: "dark", viewportStableHeight: innerHeight,
+      initData,
       initDataUnsafe: { user: { id: 1, username: "admin", role: "admin" } },
       ready: () => state.ready++, expand: () => state.expanded++, isVersionAtLeast: () => true,
       onEvent: (event, handler) => { if (!events.has(event)) events.set(event, new Set()); events.get(event).add(handler); },
@@ -35,7 +37,7 @@ async function installTelegram(context) {
       document.documentElement.style.setProperty("--tg-content-safe-area-inset-top", "8px");
       document.documentElement.style.setProperty("--tg-safe-area-inset-bottom", "20px");
     });
-  });
+  }, initData);
 }
 async function signIn(page, origin, role) {
   await page.goto(`${origin}/miniapp/`);
@@ -80,7 +82,7 @@ try {
     fixture = portalFixture(origin); preparePortalFixture(fixture);
     worker = setInterval(() => void fixture.service.workJobs(), 100);
     const context = await browser.newContext({ viewport: { width, height: 800 }, reducedMotion: "reduce" });
-    await installTelegram(context);
+    await installTelegram(context, telegramLaunch(fixture.config.telegramToken, 1));
     const page = await context.newPage(); page.setDefaultTimeout(15000); const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     try {

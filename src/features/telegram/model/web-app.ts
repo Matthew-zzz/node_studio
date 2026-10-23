@@ -1,4 +1,5 @@
 export interface TelegramWebApp {
+  initData?: string;
   platform: string;
   colorScheme: "light" | "dark";
   viewportStableHeight: number;
@@ -17,7 +18,7 @@ export interface TelegramWebApp {
 
 declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
 
-// Telegram presentation data never authenticates a user or selects an account.
+// Presentation fields remain untrusted. Only server-validated initData can scope an email login.
 export function telegramWebApp(): TelegramWebApp | null {
   if (typeof window === "undefined") return null;
   const app = window.Telegram?.WebApp;
