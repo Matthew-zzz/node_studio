@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
-import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
+import { portalFixture } from "./helpers/portal-fixture.mjs";
 import { completeEmailCode, preparePortalFixture } from "./browser/portal.mjs";
 import { checkClientBrief, checkSharedProjectBrief, checkProjectChatActions } from "./browser/client-briefs.mjs";
 
@@ -46,8 +46,8 @@ async function signIn(page, origin, role) {
   }
   await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(role);
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
-  await page.getByLabel("Пароль", { exact: true }).fill(fixturePassword);
-  await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
+
+  await page.getByRole("button", { name: "Получить код", exact: true }).click();
   await page.getByLabel("Код из письма", { exact: true }).waitFor();
   await completeEmailCode(page, origin, `${role}@example.test`);
   await page.waitForFunction(role => document.querySelector('[data-testid="portal"]')?.dataset.role === role, role);
@@ -85,7 +85,7 @@ try {
     page.on("pageerror", error => errors.push(error.message));
     try {
       await page.goto(`${origin}/miniapp/`);
-      await page.getByRole("button", { name: "Войти в кабинет", exact: true }).waitFor();
+      await page.getByRole("button", { name: "Получить код", exact: true }).waitFor();
       assert.equal(await page.getByTestId("portal").count(), 0, "Telegram metadata never authenticates an account");
       await page.waitForFunction(() => window.__telegram.ready > 0 && window.__telegram.expanded > 0);
       await signIn(page, origin, "client"); await fits(page, width);
@@ -116,8 +116,7 @@ try {
       await page.getByRole("button", { name: "Добавить профиль: Разработчик", exact: true }).click();
       const add = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
       await add.getByLabel("Почта профиля", { exact: true }).fill("developer@example.test");
-      await add.getByLabel("Пароль профиля", { exact: true }).fill(fixturePassword);
-      await add.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
+      await add.getByRole("button", { name: "Получить код и добавить", exact: true }).click();
       await page.getByLabel("Код из письма", { exact: true }).waitFor();
       await completeEmailCode(page, origin, "developer@example.test");
       await page.waitForFunction(() => document.querySelector('[data-testid="portal"]')?.dataset.role === "developer");
@@ -229,7 +228,7 @@ try {
       await page.getByRole("link", { name: "Поддержка студии", exact: true }).click();
       assert.ok((await page.evaluate(() => window.__telegram.links)).includes("https://t.me/node_studio_bot"));
       assert.deepEqual(errors, []);
-      console.log(`Mini App ${width}px: MFA, roles, native back/theme, keyboard, intake project, GitHub creation, client draft, developer pricing and stub payment passed`);
+      console.log(`Mini App ${width}px: email code, roles, native back/theme, keyboard, intake project, GitHub creation, client draft, developer pricing and stub payment passed`);
     } catch (error) {
       await page.screenshot({ path: resolve(screenshots, `${width}-failure.png`) }).catch(() => undefined);
       console.error((await page.locator("body").innerText()).slice(0, 7000));

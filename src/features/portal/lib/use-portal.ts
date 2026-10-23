@@ -139,23 +139,22 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
       selected.current = projectId; pages.current = 1;
     }, successMessages["project.accept"], projectId),
     more: async () => { pages.current++; await refresh(); },
-    login: (email: string, password: string, role?: Role) => perform(() => authenticate(() => gateway.login(email, password, role))),
-    addProfile: async (email: string, password: string, role?: Role) => {
+    login: (email: string, role?: Role) => perform(() => authenticate(() => gateway.login(email, role))),
+    addProfile: async (email: string, role?: Role) => {
       let awaitingCode = false;
       const success = await perform(async () => {
-        const result = await gateway.addProfile(email, password, role);
+        const result = await gateway.addProfile(email, role);
         awaitingCode = "kind" in result;
         await authenticate(() => Promise.resolve(result));
       });
       return success && !awaitingCode;
     },
     verifyCode: (code: string) => perform(() => authenticate(() => gateway.auth.verify(code))),
-    resendCode: () => perform(async () => { setChallenge(await gateway.auth.resend()); }, "Новый код отправлен на почту."),
+    resendCode: () => perform(async () => { setChallenge(await gateway.auth.resend()); }, "Новый код запрошен."),
     cancelCode: () => perform(async () => { authSequence.current++; await gateway.auth.cancel(); setChallenge(null); }),
-    forgotPassword: (email: string, role: Role) => perform(() => gateway.auth.forgot(email, role), "Если аккаунт найден, ссылка для восстановления придёт на почту."),
     switchProfile: (userId: string) => perform(() => authenticate(() => gateway.switchProfile(userId))),
-    password: (current: string, replacement: string) => perform(() => authenticate(() => gateway.password(current, replacement)), "Пароль сохранён."),
     logout: () => perform(async () => { authSequence.current++; await gateway.logout(); notify.clear(); setChallenge(null); backgroundError.current = ""; selected.current = ""; pages.current = 1; viewerId.current = ""; setSnapshot(EMPTY_SNAPSHOT); channel.current?.postMessage("changed"); }, "Вы вышли из всех профилей на этом устройстве."),
+    logoutAll: () => perform(async () => { authSequence.current++; await gateway.auth.logoutAll(); notify.clear(); setChallenge(null); backgroundError.current = ""; selected.current = ""; pages.current = 1; viewerId.current = ""; setSnapshot(EMPTY_SNAPSHOT); channel.current?.postMessage("changed"); }, "Все сеансы завершены. Для входа запросите новый код."),
   };
 }
 

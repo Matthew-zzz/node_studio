@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
-import { portalApi } from "./helpers/http.mjs";
+import { portalApi, emailCode } from "./helpers/http.mjs";
 import { configureTelegramMenu } from "../server/telegram-menu.ts";
 import { readConfig } from "../server/config.ts";
 
 const headers = { "x-portal-client": "miniapp" };
-const codeFor = f => f.sent.filter(mail => mail.subject === "Код для входа — Node Studio").at(-1).content.match(/\b\d{6}\b/)[0];
+
 
 test("Mini App requires email proof and uses separate secure partitioned cookies without changing web sessions", async () => {
   const f = portalFixture("https://studio.example.test"); const { request, login } = portalApi(f);
@@ -20,8 +20,8 @@ test("Mini App requires email proof and uses separate secure partitioned cookies
     const challengeCookie = pending.headers["Set-Cookie"];
     assert.ok(challengeCookie.includes("SameSite=None")); assert.ok(challengeCookie.includes("Secure; Partitioned"));
     assert.equal((await request("snapshot", undefined, pending, headers)).body.viewer, null);
-    assert.equal((await request("auth/verify", { code: codeFor(f) }, pending)).statusCode, 401, "a Mini App code cannot be consumed using the web cookie context");
-    const miniapp = await request("auth/verify", { code: codeFor(f) }, pending, headers);
+    assert.equal((await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending)).statusCode, 401, "a Mini App code cannot be consumed using the web cookie context");
+    const miniapp = await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending, headers);
     assert.equal(miniapp.body.viewer.id, f.users.client.id); assert.equal(miniapp.body.viewer.role, "client");
     const cookie = miniapp.headers["Set-Cookie"].find(value => value.startsWith("__Host-node_miniapp_session="));
     assert.ok(cookie.includes("HttpOnly; SameSite=None")); assert.ok(cookie.endsWith("Secure; Partitioned"));
@@ -39,7 +39,7 @@ test("Mini App local development keeps HttpOnly Lax cookies and never creates a 
   const f = portalFixture(); const { request } = portalApi(f);
   try {
     const result = await request("login", { role: "admin", email: f.users.admin.email, password: "Wrong-password", initData: "forged" }, undefined, headers);
-    assert.equal(result.statusCode, 401); assert.equal(result.cookie, "");
+    assert.equal(result.statusCode, 200); assert.equal(result.body.kind, "verification"); assert.ok(!result.cookie.includes("nodo_session="));
     const pending = await request("login", { role: "client", email: f.users.client.email, password: fixturePassword }, undefined, headers);
     assert.ok(pending.headers["Set-Cookie"].includes("HttpOnly; SameSite=Lax"));
     assert.ok(!pending.headers["Set-Cookie"].includes("Partitioned"));

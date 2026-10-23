@@ -35,15 +35,16 @@ test("persistent volume keeps secrets, passwords, conversations and sessions acr
     assert.equal(access.length, 2); assert.equal((await stat(join(directory, "initial-access.json"))).mode & 0o777, 0o600);
     assert.equal((await stat(join(directory, "runtime-secrets.json"))).mode & 0o777, 0o600);
     const developer = access.find(user => user.role === "developer");
-    const login = store.login(developer.email, developer.password, "test");
-    store.changePassword(login.session, developer.password, "Updated-runtime-password-2026");
+    assert.ok(access.every(user => !user.password));
+    const login = store.loginVerified(store.findUser(developer.email, "developer").id);
+    const credential = store.credentialHash(login.session.viewer.id);
     store.put("messages", { id: "persistent", threadId: "test", author: "Клиент", role: "client", text: "Сохранённая переписка", createdAt: new Date().toISOString() });
     const encryptionKey = config.encryptionKey; store.close(); store = undefined;
     config = readConfig(environment); store = new PortalStore(config.database); initializeRuntime(store, config);
     assert.equal(config.encryptionKey, encryptionKey);
     assert.equal(store.session(login.token).viewer.mustChangePassword, false);
     assert.equal(store.get("messages", "persistent").text, "Сохранённая переписка");
-    assert.equal(store.login(developer.email, "Updated-runtime-password-2026", "test").session.viewer.role, "developer");
+    assert.equal(store.credentialHash(login.session.viewer.id), credential);
     assert.equal(store.db.prepare("SELECT count(*) AS total FROM users").get().total, 2);
   } finally { store?.close(); await rm(directory, { recursive: true, force: true }); }
 });

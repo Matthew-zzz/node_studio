@@ -19,9 +19,9 @@ export interface PortalGateway {
     verify(code: string): Promise<PortalSnapshot>;
     resend(): Promise<EmailChallenge>;
     cancel(): Promise<void>;
-    forgot(email: string, role: Role): Promise<void>;
     recovery(token: string): Promise<RecoveryDetails>;
-    reset(token: string, replacement: string): Promise<void>;
+    revoke(token: string): Promise<void>;
+    logoutAll(): Promise<void>;
   };
   agent: AgentGateway;
   errors: { list(query: ErrorQuery): Promise<ErrorPage>; resolve(id: string, resolved: boolean): Promise<void> };
@@ -29,11 +29,10 @@ export interface PortalGateway {
   activate(): void;
   snapshot(projectId?: string, pages?: number): Promise<PortalSnapshot>;
   action(action: PortalAction): Promise<void>;
-  login(email: string, password: string, role?: Role): Promise<LoginResult>;
-  addProfile(email: string, password: string, role?: Role): Promise<LoginResult>;
+  login(email: string, role?: Role): Promise<LoginResult>;
+  addProfile(email: string, role?: Role): Promise<LoginResult>;
   switchProfile(userId: string): Promise<PortalSnapshot>;
   logout(): Promise<void>;
-  password(current: string, replacement: string): Promise<PortalSnapshot>;
   checkout(token: string): Promise<Checkout>;
   payOrder(token: string, outcome: "succeeded" | "failed"): Promise<Checkout>;
 }
@@ -45,7 +44,7 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
   const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation);
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
-    const authenticating = ["login", "logout", "password", "profiles/add", "profiles/switch", "auth/verify", "auth/reset"].includes(path);
+    const authenticating = ["login", "logout", "profiles/add", "profiles/switch", "auth/verify", "auth/revoke", "auth/logout-all"].includes(path);
     const requestId = ++sequence;
     const requestViewerId = viewerId;
     const requestGeneration = authenticating ? ++generation : generation;
@@ -83,9 +82,9 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
       verify(code) { return request("auth/verify", { code }); },
       resend() { return request("auth/resend", {}); },
       cancel() { return request("auth/cancel", {}); },
-      forgot(email, role) { return request("auth/forgot", { email, role }); },
       recovery(token) { return request("auth/recovery", { token }); },
-      reset(token, replacement) { return request("auth/reset", { token, replacement }); },
+      revoke(token) { return request("auth/revoke", { token }); },
+      logoutAll() { return request("auth/logout-all", {}); },
     },
     activate() { reporter.activate(); },
     dispose() { reporter.dispose(); },
@@ -102,11 +101,10 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
     },
     snapshot(projectId = "", pages = 1) { return request(`snapshot?project=${encodeURIComponent(projectId)}&pages=${pages}`); },
     action(action) { return request("action", action); },
-    login(email, password, role) { return request("login", { email, password, role }); },
-    addProfile(email, password, role) { return request("profiles/add", { email, password, role }); },
+    login(email, role) { return request("login", { email, role }); },
+    addProfile(email, role) { return request("profiles/add", { email, role }); },
     switchProfile(userId) { return request("profiles/switch", { userId }); },
     logout() { return request("logout", {}); },
-    password(current, replacement) { return request("password", { current, replacement }); },
     checkout(token) { return request("checkout", { token }); },
     payOrder(token, outcome) { return request("checkout/pay", { token, outcome }); },
   };

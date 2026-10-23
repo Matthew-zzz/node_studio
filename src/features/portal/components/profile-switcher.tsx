@@ -20,7 +20,6 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const popover = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -36,7 +35,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
 
   function addProfile(nextRole: Role | null = null) {
     popover.current?.hidePopover();
-    setRole(nextRole); setEmail(viewer?.email ?? ""); setPassword(""); setOpen(true);
+    setRole(nextRole); setEmail(viewer?.email ?? ""); setOpen(true);
   }
 
   async function switchProfile(userId: string) {
@@ -46,7 +45,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const complete = await controller.addProfile(email, password, role ?? undefined); setPassword("");
+    const complete = await controller.addProfile(email, role ?? undefined);
     if (complete) { setOpen(false); onChange(); }
   }
 
@@ -96,7 +95,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
         <div ref={popover} popover="auto" id={popoverId} className={styles.mobilePopover}>{list}</div>
       </>
 )}
-      <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { if (controller.challenge) void controller.cancelCode(); setOpen(false); setPassword(""); } }}>
+      <dialog ref={dialog} className={portal.dialog} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); if (!controller.busy) { if (controller.challenge) void controller.cancelCode(); setOpen(false); } }}>
         <Notifications modal />
         <span className={portal.kicker}>{role ? ROLE_LABELS[role] : "Рабочее пространство"}</span>
         <h2 id={titleId}>{controller.challenge ? "Подтвердите вход" : "Добавить профиль"}</h2>
@@ -110,14 +109,10 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
               </label>
               <label>
                 Почта профиля
-                <input type="email" autoComplete="username" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
+                <input type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} />
               </label>
-              <label>
-                Пароль профиля
-                <input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={event => setPassword(event.target.value)} />
-              </label>
-              <button type="submit" className={portal.primary} disabled={controller.busy}>{controller.busy ? "Входим…" : "Добавить и перейти"}</button>
-              <button type="button" className={portal.textButton} disabled={controller.busy} onClick={() => { setOpen(false); setPassword(""); }}>Отменить</button>
+              <button type="submit" className={portal.primary} disabled={controller.busy}>{controller.busy ? "Входим…" : "Получить код и добавить"}</button>
+              <button type="button" className={portal.textButton} disabled={controller.busy} onClick={() => { setOpen(false); }}>Отменить</button>
             </form>
           </>
 )}

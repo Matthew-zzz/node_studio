@@ -482,11 +482,9 @@ export class PortalService {
     this.store.transaction(() => {
       const existingProject = this.store.get("projects", projectId);
       if (existingProject?.status === "archived") return;
-      let client = this.store.findUser(order.email, "client"); let access = "Войдите с вашей почтой и текущим паролем.";
+      let client = this.store.findUser(order.email, "client");
       if (!client) {
-        const password = randomBytes(18).toString("base64url");
-        client = this.store.createUser(order.email, order.clientName, "client", password);
-        access = `Логин: ${order.email}\nВременный пароль: ${password}\nПри первом входе смените пароль.`;
+        client = this.store.createUser(order.email, order.clientName, "client", randomBytes(32).toString("base64url"), false);
       }
       if (client.role !== "client") throw new PortalError(409, "Почта уже занята сотрудником.");
       if (!existingProject) this.store.put("projects", { id: projectId, name: order.projectName, description: "Разработка проекта", clientId: client.id, clientName: client.name, clientEmail: client.email, repo: "", origin: "order", brief: order.brief, status: "active", createdAt: now() });
@@ -496,8 +494,12 @@ export class PortalService {
         this.append(thread, "Node ИИ", "assistant", projectGreeting);
       }
       this.store.put("orders", { ...order, projectId, status: "provisioning" });
-      this.store.enqueue("mail", { email: order.email, orderId: order.id, content: this.seal(`Ваш проект «${order.projectName}» доступен в кабинете Node Studio.\n${this.config.origin}/cabinet/\n\n${access}\n\nПоддержка: https://t.me/node_studio_bot`) }, `access:${order.id}`);
+      this.store.enqueue("mail", { email: order.email, orderId: order.id, content: this.seal(this.accessMessage(order)) }, `access:${order.id}`);
     });
+  }
+
+  private accessMessage(order: ProjectOrder) {
+    return `Ваш проект «${order.projectName}» доступен в кабинете Node Studio.\n${this.config.origin}/cabinet/\n\nПочта для входа: ${order.email}\nВыберите профиль «Клиент» и получите одноразовый код на эту почту.\n\nПоддержка: https://t.me/node_studio_bot`;
   }
 
   /** Durable outbox: webhook handlers acknowledge only after saving work to SQLite. */
@@ -536,8 +538,9 @@ export class PortalService {
             const order = this.store.get("orders", payload.orderId!); if (order && order.status !== "ready") await this.provision(order);
           }
           if (job.kind === "mail") {
-            await this.integrations.mail(payload.email!, this.unseal(payload.content!), job.id);
-            const order = this.store.get("orders", payload.orderId!); if (order) this.store.put("orders", { ...order, status: "ready" });
+            // Rebuild legacy queued invitations too: no temporary passwords leave the server.
+            await this.integrations.mail(payload.email!, order ? this.accessMessage(order) : this.unseal(payload.content!), job.id);
+            const completedOrder = this.store.get("orders", payload.orderId!); if (completedOrder) this.store.put("orders", { ...completedOrder, status: "ready" });
           }
           if (job.kind === "assistant") await this.answer(payload.threadId!, payload.messageId!);
           this.store.db.prepare("DELETE FROM jobs WHERE id=?").run(job.id);

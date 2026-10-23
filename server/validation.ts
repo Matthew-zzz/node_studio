@@ -18,11 +18,6 @@ export function integer(value: unknown, min = 1, max = 1_000_000_000): number {
   return Number(value);
 }
 
-export function passwordInput(value: unknown): string {
-  if (typeof value !== "string" || value.length < 1 || value.length > 256 || value.includes("\0")) throw new PortalError(400, "Введите пароль до 256 символов.");
-  return value;
-}
-
 export function status(value: unknown): WorkStatus {
   if (!["new", "in_progress", "done", "canceled"].includes(String(value))) throw new PortalError(400, "Неизвестный статус.");
   return value as WorkStatus;

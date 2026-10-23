@@ -21,7 +21,10 @@ test("profiles require individual login, rotate authentication, isolate devices 
     assert.equal((await request("profiles/switch", { userId: f.users.developer.id, role: "developer" }, client)).statusCode, 404);
     assert.equal((await request("profiles/add", credentials("developer"), client, { "x-csrf-token": "" })).statusCode, 403);
     assert.equal((await request("profiles/add", credentials("developer"), client, { origin: "https://another.test" })).statusCode, 403);
-    assert.equal((await request("profiles/add", { ...credentials("developer"), password: "Incorrect-password" }, client)).statusCode, 401);
+    const pending = await portalApi(f).request("profiles/add", credentials("developer"), client);
+    assert.equal(pending.body.kind, "verification");
+    assert.equal((await portalApi(f).request("auth/verify", { code: "invalid" }, pending)).statusCode, 400);
+    f.store.db.exec("UPDATE auth_challenges SET resend_at=0");
     assert.equal((await request("snapshot", undefined, client)).body.viewer.id, f.users.client.id);
     const developer = await request("profiles/add", credentials("developer"), client);
     assert.equal(developer.statusCode, 200);

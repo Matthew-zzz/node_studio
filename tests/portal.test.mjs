@@ -224,9 +224,9 @@ test("paid order creates a client and project without GitHub; developer creates 
     const project = f.store.get("projects", `project:${order.id}`);
     assert.equal(project.repo, ""); assert.equal(project.developerId, undefined);
     assert.equal(f.store.all("tasks", project.id).length, 0);
-    const client = f.store.findUser("new@example.test"); assert.equal(client.mustChangePassword, true);
-    const mail = f.sent.find(item => item.deliveryId === `access:${order.id}`); assert.ok(mail.content.includes("Временный пароль"));
-    assert.ok(!queued.includes("Временный пароль")); assert.ok(!queued.includes(mail.content.match(/Временный пароль: (.+)/)[1]));
+    const client = f.store.findUser("new@example.test"); assert.equal(client.mustChangePassword, false);
+    const mail = f.sent.find(item => item.deliveryId === `access:${order.id}`); assert.ok(mail.content.includes("одноразовый код"));
+    assert.ok(!mail.content.toLowerCase().includes("пароль")); assert.ok(!queued.includes("одноразовый код"));
     assert.equal(f.store.get("orders", order.id).status, "ready");
     await f.service.action(intake, { type: "order.provision", orderId: order.id }); assert.equal(f.repositories.length, 0);
     const developer = f.login("developer").session;

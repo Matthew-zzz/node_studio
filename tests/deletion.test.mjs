@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
-import { portalApi } from "./helpers/http.mjs";
+import { portalApi, emailCode } from "./helpers/http.mjs";
 
 const orderInput = { projectName: "Клиентский проект", clientName: "Клиент", email: "client@example.test", username: "client_v", brief: "Каталог и поиск", totalKopecks: 100_000 };
 async function createOrder(f) {
@@ -28,7 +28,7 @@ test("deletion API requires an authenticated developer, verified session and CSR
     const challenge = await api.request("login", { email: "developer@example.test", password: fixturePassword, role: "developer" });
     assert.equal(challenge.body.kind, "verification");
     for (const action of actions) assert.equal((await api.request("action", action, challenge)).statusCode, 401);
-    const code = f.sent.filter(mail => mail.email === "developer@example.test" && mail.subject === "Код для входа — Node Studio").at(-1).content.match(/\b\d{6}\b/)[0];
+    const code = await emailCode(f, "developer@example.test");
     const developer = await api.request("auth/verify", { code }, challenge);
     assert.equal(developer.statusCode, 200);
     for (const action of actions) assert.equal((await api.request("action", action, developer, { "x-csrf-token": "invalid" })).statusCode, 403);

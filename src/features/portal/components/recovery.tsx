@@ -14,7 +14,6 @@ export function Recovery({ presentation = "web" }: { presentation?: "web" | "min
   const gateway = useMemo(() => createApiGateway(presentation), [presentation]);
   const { theme, setTheme } = usePortalTheme();
   const [token, setToken] = useState(""); const [email, setEmail] = useState(""); const [error, setError] = useState("");
-  const [replacement, setReplacement] = useState(""); const [repeat, setRepeat] = useState("");
   const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
   useEffect(() => {
     gateway.activate(); let active = true;
@@ -23,14 +22,11 @@ export function Recovery({ presentation = "web" }: { presentation?: "web" | "min
     return () => { active = false; gateway.dispose(); };
   }, [gateway]);
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (replacement !== repeat) { notify.error("Пароли не совпадают."); return; }
-    setBusy(true);
+    event.preventDefault(); setBusy(true);
     try {
-      await gateway.auth.reset(token, replacement); setDone(true); setReplacement(""); setRepeat(""); setToken("");
-      history.replaceState(null, "", location.pathname);
+      await gateway.auth.revoke(token); setDone(true); setToken(""); history.replaceState(null, "", location.pathname);
       if (typeof BroadcastChannel !== "undefined") { const channel = new BroadcastChannel("nodo-portal-profiles"); channel.postMessage("changed"); channel.close(); }
-    } catch (error) { notify.error(error instanceof Error ? error.message : "Не удалось сменить пароль."); }
+    } catch (error) { notify.error(error instanceof Error ? error.message : "Не удалось завершить сеансы."); }
     finally { setBusy(false); }
   }
   return (
@@ -42,28 +38,15 @@ export function Recovery({ presentation = "web" }: { presentation?: "web" | "min
           <ThemeSwitch theme={theme} onChange={setTheme} />
         </div>
         <section className={`${styles.panel} ${styles.authCard}`}>
-          <h1>{done ? "Доступ защищён" : "Смена пароля"}</h1>
-          {done ? <p>Пароль изменён. Все сеансы ваших профилей завершены. Войдите с новым паролем и подтвердите вход кодом из письма.</p> : error ? <p>{error}</p> : !token ? <p role="status">Проверяем ссылку…</p> : (
+          <h1>{done ? "Все сеансы завершены" : "Защита аккаунта"}</h1>
+          {done ? <p>Для входа запросите новый код из письма. Если вход выполнили не вы, проверьте безопасность вашей почты.</p> : error ? <p>{error}</p> : !token ? <p role="status">Проверяем ссылку…</p> : (
             <>
-              <p>
-                Новым паролем будут пользоваться все профили на
-                {" "}
-                <strong>{email}</strong>
-                . Все текущие сеансы завершатся.
-              </p>
+              <p>{`Завершить все сеансы профилей на ${email}? Для повторного входа потребуется новый код.`}</p>
               <form className={styles.form} onSubmit={event => void submit(event)}>
-                <label>
-                  Новый пароль · от 12 символов
-                  <input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={replacement} onChange={event => setReplacement(event.target.value)} />
-                </label>
-                <label>
-                  Повторите новый пароль
-                  <input type="password" autoComplete="new-password" minLength={12} maxLength={256} required value={repeat} onChange={event => setRepeat(event.target.value)} />
-                </label>
-                <button className={styles.primary} type="submit" disabled={busy}>{busy ? "Сохраняем…" : "Сменить пароль и завершить все сеансы"}</button>
+                <button className={styles.primary} type="submit" disabled={busy}>{busy ? "Завершаем…" : "Завершить все сеансы"}</button>
               </form>
             </>
-)}
+          )}
           <Link className={styles.textButton} href={presentation === "miniapp" ? "/miniapp/" : "/cabinet/"}>Перейти ко входу</Link>
         </section>
       </main>

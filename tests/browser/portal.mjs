@@ -1,13 +1,13 @@
 import { chooseAction, closeDialog } from "./focus-dialogs.mjs";
 import assert from "node:assert/strict";
+import { emailCode } from "../helpers/http.mjs";
 import { resolve } from "node:path";
-import { fixtureAt, fixturePassword } from "../helpers/portal-fixture.mjs";
+import { fixtureAt } from "../helpers/portal-fixture.mjs";
 import { checkClientBrief } from "./client-briefs.mjs";
 
 export async function completeEmailCode(page, origin, email) {
   const fixture = fixtureAt(origin);
-  const code = fixture.sent.filter(mail => mail.email === email && mail.subject === "Код для входа — Node Studio").at(-1)?.content.match(/\b\d{6}\b/)?.[0];
-  assert.ok(code, "the code is read only from the isolated test mail adapter");
+  const code = await emailCode(fixture, email);
   await page.getByLabel("Код из письма", { exact: true }).fill(code);
   await page.getByRole("button", { name: "Подтвердить и войти", exact: true }).click();
 }
@@ -25,15 +25,14 @@ export function preparePortalFixture(portal) {
   }
 }
 
-export async function login(page, origin, role, password = fixturePassword) {
+export async function login(page, origin, role) {
   await page.goto(origin + "/cabinet/");
   const signOut = page.getByRole("button", { name: "Выйти", exact: true });
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
   if (await signOut.count()) await signOut.click();
   await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(["developer", "admin"].includes(role) ? role : "client");
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
-  await page.getByLabel("Пароль", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
+  await page.getByRole("button", { name: "Получить код", exact: true }).click();
   await page.getByLabel("Код из письма", { exact: true }).waitFor();
   await completeEmailCode(page, origin, `${role}@example.test`);
   await page.getByTestId("portal").waitFor();
@@ -63,17 +62,17 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
       await profiles.getByRole("button", { name: `Добавить профиль: ${label}`, exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
       await dialog.getByLabel("Почта профиля", { exact: true }).fill(`${role}@example.test`);
-      await dialog.getByLabel("Пароль профиля", { exact: true }).fill("Invalid-profile-password");
-      await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
-      const error = dialog.locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Проверьте почту и пароль." });
+      await dialog.getByRole("button", { name: "Получить код и добавить", exact: true }).click();
+      await page.getByLabel("Код из письма", { exact: true }).waitFor();
+      const validCode = await emailCode(fixtureAt(origin), `${role}@example.test`);
+      await page.getByLabel("Код из письма", { exact: true }).fill(validCode === "000000" ? "111111" : "000000");
+      await page.getByRole("button", { name: "Подтвердить и войти", exact: true }).click();
+      const error = page.getByRole("dialog", { name: "Подтвердите вход", exact: true }).locator('[data-sonner-toast][data-type="error"]').filter({ hasText: "Код указан неверно" });
       await error.waitFor();
       const bounds = await error.boundingBox();
       assert.ok(bounds.y < 100 && bounds.x >= 0 && bounds.x + bounds.width <= width + 1, "modal error is at the top and fits the viewport");
       await error.getByRole("button", { name: "Закрыть уведомление", exact: true }).click();
-      assert.notEqual(await root.getAttribute("data-role"), role, "failed login cannot switch profiles");
-      await dialog.getByLabel("Пароль профиля", { exact: true }).fill(fixturePassword);
-      await dialog.getByRole("button", { name: "Добавить и перейти", exact: true }).click();
-      await page.getByLabel("Код из письма", { exact: true }).waitFor();
+      assert.notEqual(await root.getAttribute("data-role"), role, "an invalid email code cannot switch profiles");
       await completeEmailCode(page, origin, `${role}@example.test`);
       await waitForRole(role);
     }
@@ -337,11 +336,7 @@ export async function checkPortalAuthentication(browser, origin) {
   try {
     const page = await context.newPage();
     await login(page, origin, "temporary");
-    await page.getByRole("heading", { name: "Задайте свой пароль", exact: true }).waitFor();
-    await page.getByLabel("Временный пароль", { exact: true }).fill(fixturePassword);
-    await page.getByLabel("Новый пароль · от 12 символов", { exact: true }).fill("My-browser-password-2026");
-    await page.getByLabel("Повторите новый пароль", { exact: true }).fill("My-browser-password-2026");
-    await page.getByRole("button", { name: "Сохранить пароль", exact: true }).click();
+    assert.equal(await page.locator('input[type="password"]').count(), 0);
     await page.getByRole("heading", { name: "Проект появится здесь", exact: true }).waitFor();
     await login(page, origin, "client");
     await page.evaluate(() => localStorage.setItem("nodo.portal.demo.v1", JSON.stringify({ version: 1, role: "admin", data: { projects: [] } })));

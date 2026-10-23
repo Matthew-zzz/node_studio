@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { PortalService } from "./service.ts";
 import type { PortalConfig } from "./config.ts";
 import { PortalError, id, tokenHash } from "./store.ts";
-import { object, optionalRole, passwordInput, text } from "./validation.ts";
+import { object, optionalRole, text } from "./validation.ts";
 import { EMPTY_SNAPSHOT } from "../src/features/portal/model/types.ts";
 import { withErrorContext, updateErrorContext } from "./error-context.ts";
 import type { ErrorProvider } from "../src/features/portal/model/errors.ts";
@@ -115,16 +115,17 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
           response.setHeader("Set-Cookie", cookie(challengeName, "", 0)); send(200, { ok: true }); return;
         }
         if (request.method === "POST" && path === "/api/portal/auth/forgot") {
-          service.auth.requestRecovery(text(body.email, 254), optionalRole(body.role), address); send(200, { ok: true }); return;
+          throw new PortalError(410, "Для входа запросите код на почту.");
         }
         if (request.method === "POST" && path === "/api/portal/auth/recovery") { send(200, service.auth.recoveryDetails(text(body.token, 64))); return; }
-        if (request.method === "POST" && path === "/api/portal/auth/reset") {
-          service.auth.reset(text(body.token, 64), passwordInput(body.replacement));
+        if (request.method === "POST" && path === "/api/portal/auth/revoke") {
+          service.auth.revoke(text(body.token, 64));
           response.setHeader("Set-Cookie", [cookie(cookieName, "", 0), cookie(challengeName, "", 0)]); send(200, { ok: true }); return;
         }
+        if (request.method === "POST" && path === "/api/portal/auth/reset") throw new PortalError(410, "Смена пароля отключена. Для входа используется код из письма.");
         if (request.method === "POST" && ["/api/portal/login", "/api/portal/checkout", "/api/portal/checkout/pay"].includes(path)) {
           if (path === "/api/portal/login") {
-            const result = await service.auth.begin(text(body.email, 254), passwordInput(body.password), optionalRole(body.role), metadata);
+            const result = await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata);
             if ("challenge" in result) { response.setHeader("Set-Cookie", cookie(challengeName, result.token, 600)); send(200, result.challenge); }
             else await authenticated(result);
             return;
@@ -156,7 +157,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (path === "/api/portal/admin/agent") { send(200, await service.agentAction(session, body)); return; }
         if (path === "/api/portal/profiles/add" || path === "/api/portal/profiles/switch") {
           const result = path.endsWith("/add")
-            ? await service.auth.begin(text(body.email, 254), passwordInput(body.password), optionalRole(body.role), metadata, session)
+            ? await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata, session)
             : service.store.switchProfile(session, text(body.userId, 100));
           if ("challenge" in result) { response.setHeader("Set-Cookie", cookie(challengeName, result.token, 600)); send(200, result.challenge); }
           else await authenticated(result);
@@ -165,9 +166,10 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (path === "/api/portal/logout") {
           service.store.logout(session); response.setHeader("Set-Cookie", [cookie(cookieName, "", 0), cookie(challengeName, "", 0)]); send(200, { ok: true }); return;
         }
-        if (path === "/api/portal/password") {
-          service.store.changePassword(session, passwordInput(body.current), passwordInput(body.replacement));
-          send(200, await service.snapshot(session)); return;
+        if (path === "/api/portal/password") throw new PortalError(410, "Для входа используется код из письма.");
+        if (path === "/api/portal/auth/logout-all") {
+          service.auth.logoutAll(session);
+          response.setHeader("Set-Cookie", [cookie(cookieName, "", 0), cookie(challengeName, "", 0)]); send(200, { ok: true }); return;
         }
         if (path === "/api/portal/action") { await service.action(session, body); send(200, { ok: true }); return; }
         throw new PortalError(404, "Страница не найдена.");

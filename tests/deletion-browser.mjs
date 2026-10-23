@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
-import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
+import { portalFixture } from "./helpers/portal-fixture.mjs";
 import { completeEmailCode, login, openProject, preparePortalFixture } from "./browser/portal.mjs";
 import { chooseAction, closeDialog } from "./browser/focus-dialogs.mjs";
 
@@ -63,8 +63,8 @@ try {
       else {
         await page.goto(origin + "/miniapp/");
         await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption("developer");
-        await page.getByLabel("Почта", { exact: true }).fill("developer@example.test"); await page.getByLabel("Пароль", { exact: true }).fill(fixturePassword);
-        await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
+        await page.getByLabel("Почта", { exact: true }).fill("developer@example.test");
+        await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
         await completeEmailCode(page, origin, "developer@example.test"); await page.getByTestId("portal").waitFor();
       }
       await documentFonts(page); await navigate("Создание проектов");

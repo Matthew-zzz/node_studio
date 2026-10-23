@@ -19,7 +19,7 @@ async function fetchApplication(path, options = {}) {
   try { return await fetch(origin + path, { ...options, headers: { ...options.headers, Connection: "close" }, signal: AbortSignal.timeout(15000) }); }
   catch (cause) { throw new Error(`Container request failed: ${options.method || "GET"} ${path}`, { cause }); }
 }
-async function login(email, password, current) {
+async function login(email, current) {
   // The disposable container has no SMTP credentials. Exercise the production email-proof
   // service with an in-memory mail adapter through operator access, never a public bypass.
   const source = `
@@ -36,12 +36,13 @@ async function login(email, password, current) {
     const auth=new PortalAuth(store,integrations,config);
     const current=input.current?auth.session(input.current.split('=')[1]):undefined;
     const metadata={address:'container-test',agent:'Isolated container test'};
-    const begun=await auth.begin(input.email,input.password,undefined,metadata,current);
+    const begun=await auth.begin(input.email,store.findUser(input.email)?.role,metadata,current);
+    if('challenge' in begun)for(const row of store.db.prepare("SELECT id,payload FROM jobs WHERE kind='auth.mail'").all()){await auth.deliverMail(JSON.parse(row.payload),row.id);store.db.prepare('DELETE FROM jobs WHERE id=?').run(row.id);}
     const result='challenge' in begun?auth.verify(begun.token,code,metadata,current):begun;
     store.db.exec("DELETE FROM jobs WHERE kind='auth.mail'");
     console.log(JSON.stringify({token:result.token}));store.close();
   `;
-  const generated = execFileSync("docker", [...docker, "exec", "--no-TTY", "app", "node", "--input-type=module", "-e", source], { env: environment, input: JSON.stringify({ email, password, current }), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
+  const generated = execFileSync("docker", [...docker, "exec", "--no-TTY", "app", "node", "--input-type=module", "-e", source], { env: environment, input: JSON.stringify({ email, current }), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
   const cookie = `nodo_session=${JSON.parse(generated).token}`;
   const response = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);
@@ -68,23 +69,18 @@ try {
   // Generated test credentials stay in process memory and never enter CI logs.
   const access = JSON.parse(compose("exec", "--no-TTY", "app", "node", "-e", "process.stdout.write(require('node:fs').readFileSync('/data/initial-access.json','utf8'))"));
   const developer = access.find(user => user.role === "developer");
-  const unconfiguredMail = await fetchApplication("/api/portal/login", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ email: developer.email, password: developer.password }) });
+  const unconfiguredMail = await fetchApplication("/api/portal/login", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ email: developer.email, role: "developer" }) });
   assert.equal(unconfiguredMail.status, 503, "an isolated server without mail never falls back to password-only login");
   await unconfiguredMail.arrayBuffer();
-  let first = await login(developer.email, developer.password);
-  assert.equal(first.snapshot.viewer.mustChangePassword, true);
-  const password = "Container-verified-password-2026";
-  const changed = await fetchApplication("/api/portal/password", {
-    method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": first.snapshot.csrf },
-    body: JSON.stringify({ current: developer.password, replacement: password }),
-  });
-  assert.equal(changed.status, 200);
-  assert.equal((await changed.json()).viewer.mustChangePassword, false);
+  let first = await login(developer.email);
+  assert.equal(first.snapshot.viewer.mustChangePassword, false);
+  const changed = await fetchApplication("/api/portal/password", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": first.snapshot.csrf }, body: "{}" });
+  assert.equal(changed.status, 410); await changed.arrayBuffer();
   const account = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
   assert.equal(account.projects.length, 0, "a fresh installation does not seed customer projects");
   assert.equal(account.messages.length, 0, "a fresh installation does not seed customer messages");
   const intake = access.find(user => user.role === "admin");
-  const added = await login(intake.email, intake.password, first.cookie);
+  const added = await login(intake.email, first.cookie);
   const profiles = added.snapshot;
   assert.equal(profiles.viewer.role, "admin"); assert.equal(profiles.profiles.length, 2);
   const back = await fetchApplication("/api/portal/profiles/switch", {
@@ -95,7 +91,7 @@ try {
   first = { snapshot: await back.json(), cookie: back.headers.get("set-cookie").split(";")[0] };
   compose("up", "--detach", "--no-build", "--force-recreate", "--wait", "--wait-timeout", "90");
   console.log("Docker container replaced; checking persistent account and session.");
-  assert.equal((await login(developer.email, password)).snapshot.viewer.mustChangePassword, false, "recreating the container preserves the account");
+  assert.equal((await login(developer.email)).snapshot.viewer.mustChangePassword, false, "recreating the container preserves the account");
   const restored = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
   assert.equal(restored.viewer.role, "developer", "session survives a container replacement");
   assert.equal(restored.profiles.length, 2, "remembered profiles survive a container replacement");
@@ -104,7 +100,7 @@ try {
     body: JSON.stringify({ userId: profiles.viewer.id }),
   });
   assert.equal(switched.status, 200); assert.equal((await switched.json()).viewer.role, "admin");
-  console.log("Docker verified: frontend + API, health, non-root runtime, first login, password change and persistent accounts, sessions and profile switching across recreation.");
+  console.log("Docker verified: frontend + API, health, non-root runtime, code-only login and persistent accounts, sessions and profile switching across recreation.");
 } catch (error) {
   // Application logs contain no bootstrap credentials or incoming request bodies.
   spawnSync("docker", [...docker, "logs", "--tail", "40"], { env: environment, stdio: "inherit" });

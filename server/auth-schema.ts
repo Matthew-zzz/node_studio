@@ -33,10 +33,11 @@ export function initializeAuthSchema(db: DatabaseSync) {
       PRIMARY KEY(group_id,email)
     );
     CREATE TABLE IF NOT EXISTS auth_challenges (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       email TEXT NOT NULL COLLATE NOCASE, credential_hash TEXT NOT NULL, code_hash TEXT NOT NULL,
       created_at INTEGER NOT NULL, expires INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
-      resend_at INTEGER NOT NULL, group_id TEXT NOT NULL DEFAULT '', parent_token TEXT NOT NULL DEFAULT ''
+      resend_at INTEGER NOT NULL, group_id TEXT NOT NULL DEFAULT '', parent_token TEXT NOT NULL DEFAULT '',
+      requested_role TEXT NOT NULL DEFAULT 'client' CHECK(requested_role IN ('client','developer','admin'))
     );
     CREATE TABLE IF NOT EXISTS auth_recoveries (
       token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -46,4 +47,22 @@ export function initializeAuthSchema(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS auth_challenges_email ON auth_challenges(email);
     CREATE INDEX IF NOT EXISTS auth_recoveries_email ON auth_recoveries(email);
   `);
+  const challengeColumns = db.prepare("PRAGMA table_info(auth_challenges)").all();
+  if (challengeColumns.some(column => column.name === "user_id" && column.notnull) || !challengeColumns.some(column => column.name === "requested_role")) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.exec(`CREATE TABLE auth_challenges_next (
+        id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        email TEXT NOT NULL COLLATE NOCASE, credential_hash TEXT NOT NULL, code_hash TEXT NOT NULL,
+        created_at INTEGER NOT NULL, expires INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+        resend_at INTEGER NOT NULL, group_id TEXT NOT NULL DEFAULT '', parent_token TEXT NOT NULL DEFAULT '',
+        requested_role TEXT NOT NULL DEFAULT 'client' CHECK(requested_role IN ('client','developer','admin'))
+      );
+      INSERT INTO auth_challenges_next SELECT c.id,c.user_id,c.email,c.credential_hash,c.code_hash,c.created_at,c.expires,c.attempts,c.resend_at,c.group_id,c.parent_token,coalesce(u.role,'client') FROM auth_challenges c LEFT JOIN users u ON u.id=c.user_id;
+      DROP TABLE auth_challenges;
+      ALTER TABLE auth_challenges_next RENAME TO auth_challenges;
+      CREATE INDEX auth_challenges_email ON auth_challenges(email);
+      COMMIT;`);
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+  }
 }

@@ -240,7 +240,7 @@ export class PortalStore {
   switchProfile(session: Session, userId: string): { token: string; session: Session } {
     const row = this.db.prepare(`SELECT users.*,sessions.token_hash,sessions.expires FROM sessions JOIN users ON users.id=sessions.user_id
       WHERE group_id=? AND user_id=? AND expires>?`).get(session.groupId, userId, Date.now()) as (UserRow & { token_hash: string; expires: number }) | undefined;
-    if (!row) throw new PortalError(404, "Сессия профиля завершена. Добавьте его заново с почтой и паролем.");
+    if (!row) throw new PortalError(404, "Сессия профиля завершена. Подтвердите вход кодом из письма.");
     return this.transaction(() => {
       this.db.prepare("DELETE FROM sessions WHERE token_hash=?").run(row.token_hash);
       // Switching rotates the token and CSRF but never extends the original login lifetime.
@@ -276,10 +276,15 @@ export class PortalStore {
   }
 
   grantIdentityProfiles(session: Session) {
-    const account = this.db.prepare("SELECT email,password FROM users WHERE id=?").get(session.viewer.id)!;
-    const users = this.db.prepare("SELECT * FROM users WHERE email=? AND password=?").all(account.email!, account.password!) as UserRow[];
+    const account = this.db.prepare("SELECT email FROM users WHERE id=?").get(session.viewer.id)!;
+    this.db.prepare("UPDATE users SET must_change=0 WHERE email=?").run(account.email!);
+    session.viewer = this.user(session.viewer.id)!;
+    const users = this.db.prepare("SELECT * FROM users WHERE email=?").all(account.email!) as UserRow[];
+    let count = this.profiles(session).length;
     for (const user of users) if (!this.db.prepare("SELECT 1 FROM sessions WHERE group_id=? AND user_id=?").get(session.groupId, user.id)) {
+      if (count >= 8) break;
       this.createSession(viewer(user), session.groupId, this.sessionDeadline(session));
+      count++;
     }
   }
 
@@ -296,6 +301,9 @@ export class PortalStore {
     if (row && verifyPassword(replacement, String(row.password))) throw new PortalError(400, "Новый пароль должен отличаться от текущего.");
     this.updateIdentityPassword(email, hashPassword(replacement));
   }
+
+  /** The legacy credential column also acts as a revocation version; its random value is never used for HTTP login. */
+  revokeIdentitySessions(email: string) { this.updateIdentityPassword(email, hashPassword(randomBytes(32).toString("base64url"))); }
 
   delivered(deliveryId: string): boolean {
     return this.db.prepare("INSERT OR IGNORE INTO deliveries(id,created_at) VALUES(?,?)").run(deliveryId, now()).changes > 0;

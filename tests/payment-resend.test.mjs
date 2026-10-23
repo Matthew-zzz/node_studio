@@ -140,7 +140,7 @@ test("paid, superseded, deleted and archived payments are never resent and inval
   } finally { f.close(); }
 });
 
-test("resend API requires MFA, developer role, CSRF and ownership; metadata never reaches other roles", async () => {
+test("resend API requires email proof, developer role, CSRF and ownership; metadata never reaches other roles", async () => {
   const f = setup();
   try {
     const payment = await order(f); const action = resend(payment); const api = portalApi(f);
