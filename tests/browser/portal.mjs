@@ -25,12 +25,19 @@ export function preparePortalFixture(portal) {
   }
 }
 
+export async function selectLoginRole(page, role) {
+  if (["developer", "admin"].includes(role)) {
+    await page.getByRole("button", { name: "Вход для сотрудников", exact: true }).click();
+    await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(role);
+  }
+}
+
 export async function login(page, origin, role) {
   await page.goto(origin + "/cabinet/");
   const signOut = page.getByRole("button", { name: "Выйти", exact: true });
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
   if (await signOut.count()) await signOut.click();
-  await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(["developer", "admin"].includes(role) ? role : "client");
+  await selectLoginRole(page, role);
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
   await page.getByRole("button", { name: "Получить код", exact: true }).click();
   await page.getByLabel("Код из письма", { exact: true }).waitFor();
@@ -49,7 +56,7 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
   const context = await browser.newContext({ viewport: { width, height: 900 } });
   try {
     const page = await context.newPage();
-    await login(page, origin, "client");
+    await login(page, origin, "admin");
     const root = page.getByTestId("portal");
     const profiles = page.getByRole("group", { name: "Переключение профилей", exact: true });
     async function openProfiles() {
@@ -57,7 +64,12 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
       await profiles.waitFor({ state: "visible" });
     }
     async function waitForRole(role) { await page.waitForFunction(role => document.querySelector('[data-testid="portal"]')?.dataset.role === role, role); }
-    for (const [role, label] of [["developer", "Разработчик"], ["admin", "Администратор"]]) {
+    for (const [role, label] of [["developer", "Разработчик"], ["client", "Клиент"]]) {
+      if (role === "client") {
+        await openProfiles();
+        await profiles.getByRole("button", { name: "Переключиться: Администратор, admin", exact: true }).click();
+        await waitForRole("admin");
+      }
       await openProfiles();
       await profiles.getByRole("button", { name: `Добавить профиль: ${label}`, exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Добавить профиль", exact: true });

@@ -11,6 +11,7 @@ import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
 import { ProjectWorkspace } from "@/features/portal/components/project-workspace";
 import { AgentAdmin } from "@/features/portal/components/agent/admin";
 import { AdminErrors } from "@/features/portal/components/errors/admin-errors";
+import { AdminStaff } from "@/features/portal/components/admin-staff";
 import { isAgentView } from "@/features/portal/model/agent";
 import { Empty, ThemeSwitch, WorkspaceBrand } from "@/features/portal/components/ui";
 import { usePortal } from "@/features/portal/lib/use-portal";
@@ -90,7 +91,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? subprojectId ? `${project?.name} / ${project?.subprojects?.find(part => part.id === subprojectId)?.name}` : project?.name ?? "Мои проекты" : views[activeView].label;
   const content = (viewer.mustChangePassword ? <AccountSettings controller={controller} /> : (
     <>
-      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <AccountSettings controller={controller} /> : activeView === "inbox" ? <TelegramInbox key={viewer.id} controller={controller} presentation={presentation} selectedThreadId={telegramThread?.id ?? ""} onSelectThread={selectTelegramThread} /> : activeView === "orders" ? <ProjectOrders controller={controller} onOpenProject={id => void openProject(id)} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "staff" ? <AdminStaff key={viewer.id} controller={controller} /> : activeView === "settings" ? <AccountSettings controller={controller} /> : activeView === "inbox" ? <TelegramInbox key={viewer.id} controller={controller} presentation={presentation} selectedThreadId={telegramThread?.id ?? ""} onSelectThread={selectTelegramThread} /> : activeView === "orders" ? <ProjectOrders controller={controller} onOpenProject={id => void openProject(id)} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
         <ProjectWorkspace
           key={`${viewer.id}:${project.id}`}
           project={project}

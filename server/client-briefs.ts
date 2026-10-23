@@ -80,6 +80,7 @@ export class ClientBriefs {
       if (!projectId) { this.store.db.prepare("DELETE FROM records WHERE kind='briefLinks' AND id=?").run(threadId); return; }
       const project = this.store.get("projects", projectId);
       if (!project || project.status === "archived") throw new PortalError(404, "Проект не найден.");
+      if (project.developerId && project.developerId !== viewer.id) throw new PortalError(403, "Проект принадлежит другому разработчику.");
       if (this.store.all("briefLinks").some(link => link.projectId === projectId && link.threadId !== threadId)) throw new PortalError(409, "У проекта уже есть другой бриф. Сначала снимите его привязку.");
       this.store.put("briefLinks", { id: threadId, threadId, projectId, createdBy: viewer.id, updatedAt: now() });
     });

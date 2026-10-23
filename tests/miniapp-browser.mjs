@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
-import { completeEmailCode, preparePortalFixture } from "./browser/portal.mjs";
+import { completeEmailCode, preparePortalFixture, selectLoginRole } from "./browser/portal.mjs";
 import { checkClientBrief, checkSharedProjectBrief, checkProjectChatActions } from "./browser/client-briefs.mjs";
 
 const screenshots = resolve("test-results/screenshots/miniapp"); await mkdir(screenshots, { recursive: true });
@@ -44,7 +44,7 @@ async function signIn(page, origin, role) {
     await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
     await page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click();
   }
-  await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(role);
+  await selectLoginRole(page, role);
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
 
   await page.getByRole("button", { name: "Получить код", exact: true }).click();
@@ -113,13 +113,8 @@ try {
       await page.getByRole("button", { name: "Включить светлую тему", exact: true }).click();
       await page.evaluate(() => { window.Telegram.WebApp.colorScheme = "dark"; window.__telegram.emit("themeChanged"); });
       assert.equal(await page.getByTestId("portal").getAttribute("data-theme"), "light");
-      await page.getByRole("button", { name: "Добавить профиль: Разработчик", exact: true }).click();
-      const add = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
-      await add.getByLabel("Почта профиля", { exact: true }).fill("developer@example.test");
-      await add.getByRole("button", { name: "Получить код и добавить", exact: true }).click();
-      await page.getByLabel("Код из письма", { exact: true }).waitFor();
-      await completeEmailCode(page, origin, "developer@example.test");
-      await page.waitForFunction(() => document.querySelector('[data-testid="portal"]')?.dataset.role === "developer");
+      assert.equal(await page.getByRole("button", { name: "Добавить профиль: Разработчик", exact: true }).count(), 0);
+      await signIn(page, origin, "developer");
       fixture.store.db.exec("DELETE FROM auth_limits");
       await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });

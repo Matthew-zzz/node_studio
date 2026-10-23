@@ -4,6 +4,7 @@ import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, AgentTestMessage, AgentTestResult, KnowledgeDocument } from "@/features/portal/model/agent";
 import type { ErrorPage, ErrorQuery } from "@/features/portal/model/errors";
 import { createRequestReporter } from "@/features/portal/lib/request-reporter";
+import type { CreateDeveloper, StaffState } from "@/features/portal/model/staff";
 
 export interface AgentGateway {
   state(): Promise<AgentAdminState>;
@@ -24,6 +25,7 @@ export interface PortalGateway {
     logoutAll(): Promise<void>;
   };
   agent: AgentGateway;
+  staff: { state(): Promise<StaffState>; create(input: CreateDeveloper): Promise<StaffState> };
   errors: { list(query: ErrorQuery): Promise<ErrorPage>; resolve(id: string, resolved: boolean): Promise<void> };
   dispose(): void;
   activate(): void;
@@ -98,6 +100,10 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
       preview(settings, messages) { return request("admin/agent", { type: "preview", settings, messages }); },
       document(id) { return request(`admin/agent/document?id=${encodeURIComponent(id)}`); },
       export() { return request("admin/agent/export"); },
+    },
+    staff: {
+      state() { return request("admin/staff"); },
+      create(input) { return request("admin/staff", input); },
     },
     snapshot(projectId = "", pages = 1) { return request(`snapshot?project=${encodeURIComponent(projectId)}&pages=${pages}`); },
     action(action) { return request("action", action); },

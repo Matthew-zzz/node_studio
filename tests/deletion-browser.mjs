@@ -62,6 +62,7 @@ try {
       if (!miniapp) await login(page, origin, "developer");
       else {
         await page.goto(origin + "/miniapp/");
+        await page.getByRole("button", { name: "Вход для сотрудников", exact: true }).click();
         await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption("developer");
         await page.getByLabel("Почта", { exact: true }).fill("developer@example.test");
         await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();

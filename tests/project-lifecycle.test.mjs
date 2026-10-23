@@ -55,7 +55,7 @@ test("only the assigned developer creates one exclusive repository and initial G
     await f.service.action(developer, { type: "project.accept", projectId: project.id });
     const assigned = f.store.get("projects", project.id);
     f.store.put("projects", { ...assigned, developerId: "another-developer" });
-    await assert.rejects(f.service.action(developer, { ...action, developerId: developer.viewer.id }), { status: 403 });
+    await assert.rejects(f.service.action(developer, { ...action, developerId: developer.viewer.id }), { status: 404 });
     f.store.put("projects", assigned);
     await Promise.all([1, 2, 3].map(() => f.service.action(developer, action)));
     assert.equal(f.repositories.length, 0, "the HTTP action only queues durable work");

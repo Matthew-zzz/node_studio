@@ -8,6 +8,7 @@ import { ROLE_LABELS } from "../src/features/portal/model/types.ts";
 import type { EmailChallenge, RecoveryDetails } from "../src/features/portal/model/auth.ts";
 import { seal, unseal } from "./secret-box.ts";
 import { updateErrorContext } from "./error-context.ts";
+import { allowedProfileRoles } from "../src/features/portal/model/profile-policy.ts";
 
 const CODE_TTL = 10 * 60_000;
 const RESEND_DELAY = 60_000;
@@ -33,6 +34,7 @@ export class PortalAuth {
     this.store.transaction(() => {
       this.store.db.prepare("DELETE FROM sessions WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_verifications WHERE expires<=? OR group_id NOT IN (SELECT group_id FROM sessions)").run(epoch);
+      this.store.db.prepare("DELETE FROM auth_profile_verifications WHERE expires<=? OR group_id NOT IN (SELECT group_id FROM sessions)").run(epoch);
       this.store.db.prepare("DELETE FROM auth_challenges WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_recoveries WHERE expires<=?").run(epoch);
       this.store.db.prepare("DELETE FROM auth_limits WHERE since<?").run(epoch - 86_400_000);
@@ -57,9 +59,21 @@ export class PortalAuth {
 
   session(token: string): Session | undefined {
     const session = this.store.session(token);
-    if (!session || !this.verified(session, session.viewer.email)) return;
-    if (session.viewer.mustChangePassword) this.store.transaction(() => this.store.grantIdentityProfiles(session));
+    if (!session || !this.verified(session, session.viewer.email) || !this.profileVerified(session, session.viewer)) return;
+    if (session.viewer.mustChangePassword) this.store.transaction(() => this.store.confirmProfile(session));
     return session;
+  }
+
+  private profileVerified(session: Session, user: Viewer) {
+    return Boolean(this.store.db.prepare("SELECT 1 FROM auth_profile_verifications WHERE group_id=? AND user_id=? AND role=? AND expires>?").get(session.groupId, user.id, user.role, Date.now()));
+  }
+
+  profiles(session: Session) { return this.store.profiles(session).filter(user => this.verified(session, user.email) && this.profileVerified(session, user)); }
+
+  switchProfile(session: Session, userId: string) {
+    const user = this.profiles(session).find(user => user.id === userId);
+    if (!user) throw new PortalError(404, "Профиль не подтверждён в этой сессии.");
+    return this.store.switchProfile(session, user.id);
   }
 
   private describe(row: ChallengeRow): EmailChallenge {
@@ -67,13 +81,15 @@ export class PortalAuth {
   }
 
   private validIdentity(row: ChallengeRow) {
-    return !row.user_id || (row.credential_hash === this.store.credentialHash(row.user_id) && this.store.user(row.user_id)?.email === row.email);
+    const user = row.user_id ? this.store.user(row.user_id) : undefined;
+    return !row.user_id || (row.credential_hash === this.store.credentialHash(row.user_id) && user?.email === row.email && user.role === row.requested_role);
   }
 
   private challenge(token: string, current?: Session): ChallengeRow {
     const row = opaque(token) ? this.store.db.prepare("SELECT * FROM auth_challenges WHERE id=?").get(tokenHash(token)) as unknown as ChallengeRow | undefined : undefined;
     if (!row || row.expires <= Date.now() || row.attempts >= 5 || !this.validIdentity(row)
       || (row.group_id && (!current || current.groupId !== row.group_id || row.parent_token !== current.tokenHash
+        || !allowedProfileRoles(current.viewer.role).includes(row.requested_role)
         || !this.store.db.prepare("SELECT 1 FROM sessions WHERE token_hash=? AND expires>?").get(row.parent_token, Date.now())))) {
       throw new PortalError(401, "Подтверждение истекло. Запросите новый код на странице входа.");
     }
@@ -85,11 +101,12 @@ export class PortalAuth {
   async begin(inputEmail: string, role: Role | undefined, metadata: LoginMetadata, current?: Session): Promise<Started> {
     this.cleanup(); this.mailReady();
     const email = inputEmail.trim().toLowerCase(); const requestedRole = role ?? "client";
+    if (current && !allowedProfileRoles(current.viewer.role).includes(requestedRole)) throw new PortalError(403, "Добавлять профили сотрудников может только администратор.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту.");
     this.limit(`login-ip:${metadata.address}`, 30, 900_000);
     const user = this.store.findUser(email, requestedRole);
     if (user) updateErrorContext({ actor: user });
-    if (user && current && this.verified(current, email)) return this.store.loginVerified(user.id, current, result => this.store.grantIdentityProfiles(result.session));
+    if (user && current && current.viewer.role === user.role && this.verified(current, email)) return this.store.loginVerified(user.id, current, result => this.store.confirmProfile(result.session));
     const token = randomBytes(32).toString("hex"); const epoch = Date.now(); const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
     const row: ChallengeRow = { id: tokenHash(token), user_id: user?.id ?? null, email, credential_hash: user ? this.store.credentialHash(user.id) : "", code_hash: this.codeHash(tokenHash(token), code), created_at: epoch, expires: epoch + CODE_TTL, attempts: 0, resend_at: epoch + RESEND_DELAY, group_id: current?.groupId ?? "", parent_token: current?.tokenHash ?? "", requested_role: requestedRole };
     this.store.transaction(() => {
@@ -103,7 +120,7 @@ export class PortalAuth {
   }
 
   private queueCode(row: ChallengeRow, code: string) {
-    const content = `Код для входа в Node Studio: ${code}\n\nДействует 10 минут и используется один раз. Никому не сообщайте код.\nЕсли вы не входили в кабинет, проигнорируйте письмо и проверьте безопасность вашей почты.`;
+    const content = `Код для входа в Node Studio: ${code}\nПрофиль: ${ROLE_LABELS[row.requested_role]}\n\nДействует 10 минут и используется один раз. Никому не сообщайте код.\nЕсли вы не входили в кабинет, проигнорируйте письмо и проверьте безопасность вашей почты.`;
     this.store.enqueue("auth.mail", { email: row.email, content: seal(content, this.config.encryptionKey), subject: "Код для входа — Node Studio", challengeId: row.id, codeHash: row.code_hash }, `code:${row.id}:${row.code_hash}`);
   }
 
@@ -132,7 +149,7 @@ export class PortalAuth {
     return this.store.loginVerified(user.id, row.group_id ? current : undefined, result => {
       if (!this.store.db.prepare("DELETE FROM auth_challenges WHERE id=?").run(row.id).changes) throw new PortalError(401, "Код уже использован.");
       this.store.db.prepare("INSERT INTO auth_verifications(group_id,email,expires) VALUES(?,?,?) ON CONFLICT(group_id,email) DO UPDATE SET expires=excluded.expires").run(result.session.groupId, user.email, this.store.sessionDeadline(result.session));
-      this.store.grantIdentityProfiles(result.session);
+      this.store.confirmProfile(result.session);
       this.loginNotice(result.session.viewer, metadata);
     });
   }
@@ -173,6 +190,7 @@ export class PortalAuth {
   }
 
   async deliverMail(payload: Record<string, string>, deliveryId: string) {
+    if (payload.staffUserId && this.store.user(payload.staffUserId)?.role !== "developer") return;
     if (payload.challengeId) {
       const row = this.store.db.prepare("SELECT * FROM auth_challenges WHERE id=?").get(payload.challengeId) as unknown as ChallengeRow | undefined;
       if (!row || !row.user_id || row.expires <= Date.now() || row.attempts >= 5 || row.code_hash !== payload.codeHash || !this.validIdentity(row)

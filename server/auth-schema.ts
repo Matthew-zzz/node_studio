@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { migrateDeveloperWorkflow } from "./developer-workflow-migration.ts";
+import { initializeProfileProofs } from "./profile-policy.ts";
 
 /** Keep account IDs and foreign keys while allowing one mailbox to own several roles. */
 export function initializeAuthSchema(db: DatabaseSync) {
@@ -20,8 +21,7 @@ export function initializeAuthSchema(db: DatabaseSync) {
         password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1, UNIQUE(email,role)
       );`);
       db.prepare("INSERT INTO users_next SELECT id,email,name,CASE WHEN role='curator' THEN 'developer' ELSE role END,password,must_change FROM users WHERE role<>'curator' OR id=?").run(promotedId);
-      db.exec(`DROP TABLE users; ALTER TABLE users_next RENAME TO users;
-      CREATE UNIQUE INDEX one_developer ON users(role) WHERE role='developer';`);
+      db.exec("DROP TABLE users; ALTER TABLE users_next RENAME TO users;");
       if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Account migration failed its foreign key check");
       db.exec("COMMIT");
     } catch (error) { db.exec("ROLLBACK"); throw error; }
@@ -65,4 +65,6 @@ export function initializeAuthSchema(db: DatabaseSync) {
       COMMIT;`);
     } catch (error) { db.exec("ROLLBACK"); throw error; }
   }
+  db.exec("DROP INDEX IF EXISTS one_developer");
+  initializeProfileProofs(db);
 }

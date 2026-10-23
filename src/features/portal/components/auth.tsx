@@ -13,6 +13,7 @@ import type { Role } from "@/features/portal/model/types";
 
 export function Login({ controller, theme, setTheme }: { controller: PortalController; theme: PortalTheme; setTheme: (theme: PortalTheme) => void }) {
   const [email, setEmail] = useState(""); const [role, setRole] = useState<Role>("client");
+  const staff = role !== "client";
   async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); await controller.login(email, role); }
   return (
     <main id="main" className={styles.authPage}>
@@ -26,16 +27,20 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
           <>
             <p>Укажите почту — пришлём код для входа.</p>
             <form className={styles.form} onSubmit={event => void submit(event)}>
+              {staff && (
               <label>
                 Профиль
-                <select value={role} onChange={event => setRole(event.target.value as Role)}>{Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                <select value={role} onChange={event => setRole(event.target.value as Role)}>{(["developer", "admin"] as const).map(value => <option key={value} value={value}>{ROLE_LABELS[value]}</option>)}</select>
               </label>
+)}
               <label>
                 Почта
                 <input type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.ru" />
               </label>
               <button className={styles.primary} type="submit" disabled={controller.busy || controller.loading}>{controller.busy ? "Подождите…" : "Получить код"}</button>
             </form>
+            {staff && <p className={styles.small}>Доступ сотрудника выдаёт администратор.</p>}
+            <button type="button" className={styles.textButton} disabled={controller.busy} onClick={() => setRole(staff ? "client" : "developer")}>{staff ? "Вход для клиентов" : "Вход для сотрудников"}</button>
           </>
         )}
       </section>

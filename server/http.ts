@@ -142,6 +142,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (request.method === "GET" && path === "/api/portal/session") { send(200, { viewer: session?.viewer ?? null, csrf: session?.csrf ?? "" }); return; }
         if (!session && request.method === "GET" && path === "/api/portal/snapshot") { send(200, EMPTY_SNAPSHOT); return; }
         if (!session) throw new PortalError(401, "Войдите в кабинет.");
+        if (request.method === "GET" && path === "/api/portal/admin/staff") { send(200, service.staffState(session)); return; }
         if (request.method === "GET" && path === "/api/portal/admin/errors") { send(200, service.errorState(session, { state: (url.searchParams.get("state") ?? "open") as "open" | "resolved" | "all", provider: (url.searchParams.get("provider") ?? "all") as ErrorProvider | "all", search: url.searchParams.get("search") ?? "", page: Number(url.searchParams.get("page") ?? 1) })); return; }
         if (request.method === "GET" && path === "/api/portal/admin/agent") { send(200, service.agentState(session)); return; }
         if (request.method === "GET" && path === "/api/portal/admin/agent/document") { send(200, service.agentDocument(session, url.searchParams.get("id"))); return; }
@@ -153,12 +154,13 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         }
         if (request.method !== "POST") throw new PortalError(404, "Страница не найдена.");
         if (!equalSecret(String(request.headers["x-csrf-token"] ?? ""), session.csrf)) throw new PortalError(403, "Обновите страницу и повторите запрос.");
+        if (path === "/api/portal/admin/staff") { send(200, service.staffAction(session, body)); return; }
         if (path === "/api/portal/admin/errors") { service.errorAction(session, body); send(200, { ok: true }); return; }
         if (path === "/api/portal/admin/agent") { send(200, await service.agentAction(session, body)); return; }
         if (path === "/api/portal/profiles/add" || path === "/api/portal/profiles/switch") {
           const result = path.endsWith("/add")
             ? await service.auth.begin(text(body.email, 254), optionalRole(body.role), metadata, session)
-            : service.store.switchProfile(session, text(body.userId, 100));
+            : service.auth.switchProfile(session, text(body.userId, 100));
           if ("challenge" in result) { response.setHeader("Set-Cookie", cookie(challengeName, result.token, 600)); send(200, result.challenge); }
           else await authenticated(result);
           return;

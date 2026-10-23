@@ -13,6 +13,7 @@ import type { ClientBrief, BriefDocument } from "../src/features/portal/model/cl
 import type { PaymentNotification } from "./payment-notifications.ts";
 
 export interface Records {
+  staffAccounts: { id: string; userId: string; email: string; name: string; createdBy: string; createdAt: string };
   projects: PortalProject;
   repositoryRequests: { id: string; projectId: string; owner: string; name: string; createdAt: string; status?: RepositoryCreation["status"] | "ready"; attempts?: number; updatedAt?: string; nextAttemptAt?: string };
   tasks: WorkItem;
@@ -78,7 +79,6 @@ export class PortalStore {
         name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('client','developer','admin')),
         password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1, UNIQUE(email,role)
       );
-      CREATE UNIQUE INDEX IF NOT EXISTS one_developer ON users(role) WHERE role='developer';
       CREATE TABLE IF NOT EXISTS sessions (
         token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         csrf TEXT NOT NULL, expires INTEGER NOT NULL, group_id TEXT NOT NULL
@@ -252,6 +252,7 @@ export class PortalStore {
     this.transaction(() => {
       this.db.prepare("DELETE FROM sessions WHERE group_id=?").run(session.groupId);
       this.db.prepare("DELETE FROM auth_verifications WHERE group_id=?").run(session.groupId);
+      this.db.prepare("DELETE FROM auth_profile_verifications WHERE group_id=?").run(session.groupId);
       this.db.prepare("DELETE FROM auth_challenges WHERE group_id=?").run(session.groupId);
     });
   }
@@ -275,20 +276,15 @@ export class PortalStore {
     return Number(this.db.prepare("SELECT expires FROM sessions WHERE token_hash=?").get(session.tokenHash)?.expires ?? 0);
   }
 
-  grantIdentityProfiles(session: Session) {
-    const account = this.db.prepare("SELECT email FROM users WHERE id=?").get(session.viewer.id)!;
-    this.db.prepare("UPDATE users SET must_change=0 WHERE email=?").run(account.email!);
+  confirmProfile(session: Session) {
+    this.db.prepare("UPDATE users SET must_change=0 WHERE id=?").run(session.viewer.id);
     session.viewer = this.user(session.viewer.id)!;
-    const users = this.db.prepare("SELECT * FROM users WHERE email=?").all(account.email!) as UserRow[];
-    let count = this.profiles(session).length;
-    for (const user of users) if (!this.db.prepare("SELECT 1 FROM sessions WHERE group_id=? AND user_id=?").get(session.groupId, user.id)) {
-      if (count >= 8) break;
-      this.createSession(viewer(user), session.groupId, this.sessionDeadline(session));
-      count++;
-    }
+    this.db.prepare("INSERT INTO auth_profile_verifications(group_id,user_id,role,expires) VALUES(?,?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET role=excluded.role,expires=excluded.expires")
+      .run(session.groupId, session.viewer.id, session.viewer.role, this.sessionDeadline(session));
   }
 
   private updateIdentityPassword(email: string, password: string, keepGroup = "") {
+    this.db.prepare("DELETE FROM auth_profile_verifications WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("DELETE FROM auth_verifications WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("DELETE FROM sessions WHERE group_id IN (SELECT group_id FROM sessions JOIN users ON users.id=sessions.user_id WHERE users.email=? AND group_id!=?)").run(email, keepGroup);
     this.db.prepare("UPDATE users SET password=?,must_change=0 WHERE email=?").run(password, email);

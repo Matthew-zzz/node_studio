@@ -72,31 +72,41 @@ test("resending invalidates prior codes and queued mail, while attempt, email an
   } finally { f.close(); }
 });
 
-test("one mailbox code grants existing roles even with different legacy passwords; first access never requires a password change", async () => {
+test("one mailbox code grants only the requested existing role; clients cannot claim staff profiles", async () => {
   const f = portalFixture();
   try {
     const email = sharedMailbox(f); f.store.db.prepare("UPDATE users SET password='different',must_change=1 WHERE role='admin'").run();
     const { request } = portalApi(f); const logged = await verify(f, await begin(f), email);
-    assert.equal(logged.body.profiles.length, 3); assert.ok(logged.body.profiles.every(user => !user.mustChangePassword));
-    const before = f.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length;
-    const switched = await request("profiles/switch", { userId: f.users.admin.id }, logged); assert.equal(switched.body.viewer.role, "admin");
-    assert.equal(f.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length, before);
-    const expires = f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n;
-    assert.equal(expires <= Date.now() + 12 * 3_600_000, true);
+    assert.deepEqual(logged.body.profiles.map(user => user.role), ["client"]);
+    assert.equal((await request("profiles/switch", { userId: f.users.admin.id }, logged)).statusCode, 404);
+    for (const role of ["developer", "admin"]) assert.equal((await begin(f, role, logged)).statusCode, 403);
+    assert.equal(f.store.user(f.users.admin.id).mustChangePassword, true);
+    freshChallenge(f); const admin = await verify(f, await begin(f, "admin"), email);
+    assert.deepEqual(admin.body.profiles.map(user => user.role), ["admin"]);
+    assert.equal(admin.body.viewer.mustChangePassword, false);
+    freshChallenge(f); const added = await begin(f, "developer", admin);
+    assert.equal(added.body.kind, "verification", "even the same mailbox requires a role-bound code");
+    const developer = await verify(f, added, email);
+    assert.equal(developer.body.viewer.role, "developer"); assert.equal(developer.body.profiles.length, 2);
+    const switched = await request("profiles/switch", { userId: f.users.admin.id }, developer);
+    assert.equal(switched.body.viewer.role, "admin", "explicitly confirmed profiles can still switch");
     f.store.db.exec("UPDATE sessions SET expires=0"); assert.equal((await request("snapshot", undefined, switched)).body.viewer, null);
     freshChallenge(f); assert.equal((await begin(f)).body.kind, "verification");
   } finally { f.close(); }
 });
 
-test("adding another mailbox needs its own code, is bound to its parent session, and never extends cookie expiry", async () => {
+test("an administrator can add another mailbox with its own code, bound to the parent session and cookie expiry", async () => {
   const f = portalFixture();
   try {
-    const { request } = portalApi(f); const client = await verify(f, await begin(f)); const expiry = f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n;
-    const pending = await begin(f, "developer", client); const code = await emailCode(f, f.users.developer.email);
+    const { request } = portalApi(f); const admin = await verify(f, await begin(f, "admin"), f.users.admin.email);
+    const expiry = f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n;
+    const pending = await begin(f, "developer", admin); const code = await emailCode(f, f.users.developer.email);
     assert.equal((await request("auth/verify", { code }, { ...pending, cookie: pending.cookie.split(";").filter(part => !part.includes("nodo_session")).join(";") })).statusCode, 401);
-    const developer = await request("auth/verify", { code }, pending); assert.equal(developer.body.profiles.length, 2); assert.equal(f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n, expiry);
-    const added = await begin(f, "admin", developer); const adminCode = await emailCode(f, f.users.admin.email);
-    await request("logout", {}, developer); assert.equal((await request("auth/verify", { code: adminCode }, added)).statusCode, 401);
+    const developer = await request("auth/verify", { code }, pending); assert.equal(developer.body.profiles.length, 2);
+    assert.equal(f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n, expiry);
+    const restored = await request("profiles/switch", { userId: f.users.admin.id }, developer);
+    const added = await begin(f, "client", restored); const clientCode = await emailCode(f, f.users.client.email);
+    await request("logout", {}, restored); assert.equal((await request("auth/verify", { code: clientCode }, added)).statusCode, 401);
   } finally { f.close(); }
 });
 
@@ -162,7 +172,7 @@ test("legacy account migration preserves foreign keys and IDs; owner setup keeps
     store.put("projects", { id: "project:existing", clientId: oldClient.id, clientEmail: oldClient.email, clientName: "Client", name: "Existing", description: "", repo: "Matthew-zzz/existing", brief: "Brief", status: "active", createdAt: "2026-10-01T00:00:00Z" });
     store.close(); store = undefined;
     // Reproduce the deployed schema with email UNIQUE, then open the new application.
-    const legacy = new DatabaseSync(path); legacy.exec("PRAGMA foreign_keys=OFF; DROP TABLE auth_challenges; DROP TABLE auth_recoveries; DROP TABLE auth_verifications; DROP INDEX one_developer; ALTER TABLE users RENAME TO users_modern; CREATE TABLE users(id TEXT PRIMARY KEY,email TEXT NOT NULL UNIQUE COLLATE NOCASE,name TEXT NOT NULL,role TEXT NOT NULL,password TEXT NOT NULL,must_change INTEGER NOT NULL); INSERT INTO users SELECT * FROM users_modern; DROP TABLE users_modern; ALTER TABLE sessions RENAME TO sessions_previous; CREATE TABLE sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),csrf TEXT NOT NULL,expires INTEGER NOT NULL,group_id TEXT NOT NULL); INSERT INTO sessions SELECT * FROM sessions_previous; DROP TABLE sessions_previous;"); legacy.close();
+    const legacy = new DatabaseSync(path); legacy.exec("PRAGMA foreign_keys=OFF; DROP TABLE auth_challenges; DROP TABLE auth_recoveries; DROP TABLE auth_verifications; DROP INDEX IF EXISTS one_developer; DROP TABLE auth_profile_verifications; ALTER TABLE users RENAME TO users_modern; CREATE TABLE users(id TEXT PRIMARY KEY,email TEXT NOT NULL UNIQUE COLLATE NOCASE,name TEXT NOT NULL,role TEXT NOT NULL,password TEXT NOT NULL,must_change INTEGER NOT NULL); INSERT INTO users SELECT * FROM users_modern; DROP TABLE users_modern; ALTER TABLE sessions RENAME TO sessions_previous; CREATE TABLE sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),csrf TEXT NOT NULL,expires INTEGER NOT NULL,group_id TEXT NOT NULL); INSERT INTO sessions SELECT * FROM sessions_previous; DROP TABLE sessions_previous;"); legacy.close();
     store = new PortalStore(path);
     assert.equal(store.session(oldSession.token).viewer.id, oldClient.id); assert.deepEqual(store.db.prepare("PRAGMA foreign_key_check").all(), []);
     const result = configureOwnerAccounts(store, "owner@example.test"); assert.equal(result.length, 3);

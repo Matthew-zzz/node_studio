@@ -22,6 +22,7 @@ import { PortalAuth } from "./auth.ts";
 import { seal, unseal } from "./secret-box.ts";
 import { PaymentNotifications } from "./payment-notifications.ts";
 import { PaymentDeletion } from "./payment-deletion.ts";
+import { StaffAccounts } from "./staff-accounts.ts";
 
 export const projectGreeting = PROJECT_GREETING;
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
@@ -41,6 +42,7 @@ export class PortalService {
   readonly briefs: ClientBriefs;
   readonly paymentNotifications: PaymentNotifications;
   private paymentDeletion: PaymentDeletion;
+  private staff: StaffAccounts;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -55,6 +57,7 @@ export class PortalService {
     this.auth = new PortalAuth(store, integrations, config);
     this.paymentNotifications = new PaymentNotifications(store, integrations, config);
     this.paymentDeletion = new PaymentDeletion(store, this.paymentNotifications);
+    this.staff = new StaffAccounts(store, config);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -72,7 +75,7 @@ export class PortalService {
   private project(viewer: Viewer, projectId: string): PortalProject {
     this.role(viewer, ["client", "developer"]);
     const project = this.store.get("projects", projectId);
-    if (!project || project.status === "archived" || (viewer.role === "client" && project.clientId !== viewer.id)) throw new PortalError(404, "Проект не найден.");
+    if (!project || project.status === "archived" || (viewer.role === "client" && project.clientId !== viewer.id) || (viewer.role === "developer" && project.developerId && project.developerId !== viewer.id)) throw new PortalError(404, "Проект не найден.");
     updateErrorContext({ projectId: project.id, projectName: project.name });
     return project;
   }
@@ -150,7 +153,7 @@ export class PortalService {
     const viewer = this.store.user(session.viewer.id);
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     const projects = this.store.all("projects").filter(project => project.status !== "archived").sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-    const allowed = projects.filter(project => viewer.role === "developer" || (viewer.role === "client" && project.clientId === viewer.id));
+    const allowed = projects.filter(project => viewer.role === "developer" ? !project.developerId || project.developerId === viewer.id : viewer.role === "client" && project.clientId === viewer.id);
     const selected = allowed.find(project => project.id === selectedId) ?? allowed[0];
     if (!viewer.mustChangePassword && selected && ["developer", "client"].includes(viewer.role)) {
       const report = (project: PortalProject, error: unknown) => this.errors.capture(error, { actor: viewer, source: "integration", projectId: project.id, projectName: project.name, operation: "github.sync", requestStatus: 200 });
@@ -162,7 +165,7 @@ export class PortalService {
     const info = selected && this.synced.get(selected.id);
     const quotes = this.store.all("quotes");
     const data: PortalSnapshot = {
-      ...EMPTY_SNAPSHOT, viewer, profiles: this.store.profiles(session), csrf: session.csrf, projects: projects.map(project => {
+      ...EMPTY_SNAPSHOT, viewer, profiles: this.auth.profiles(session), csrf: session.csrf, projects: projects.map(project => {
         const current = this.store.get("projects", project.id)!;
         const creation = this.repositories.state(current);
         return creation ? { ...current, repositoryCreation: creation } : current;
@@ -193,6 +196,8 @@ export class PortalService {
   }
 
   agentState(session: Session) { this.administrator(session); return this.agent.state(); }
+  staffState(session: Session) { this.administrator(session); return this.staff.state(); }
+  staffAction(session: Session, body: Record<string, unknown>) { return this.staff.create(this.administrator(session), body); }
   errorState(session: Session, query: Partial<ErrorQuery>) { this.administrator(session); return this.errors.query(query); }
   errorAction(session: Session, body: Record<string, unknown>) { const viewer = this.administrator(session); this.errors.resolve(body.id, body.resolved, viewer.name); }
   agentDocument(session: Session, documentId: unknown) { this.administrator(session); return this.agent.document(documentId); }

@@ -48,7 +48,7 @@ test("only a developer can take an active project; claiming is idempotent and su
     f.store.put("projects", { ...f.store.get("projects", "two"), status: "provisioning" });
     await assert.rejects(f.service.action(developer, { ...action, projectId: "two" }), { status: 409 });
     f.store.put("projects", { ...f.store.get("projects", "three"), developerId: "another-developer" });
-    await assert.rejects(f.service.action(developer, { ...action, projectId: "three" }), { status: 409 });
+    await assert.rejects(f.service.action(developer, { ...action, projectId: "three" }), { status: 404 });
 
     const before = structuredClone(f.issues.get("Matthew-zzz/fixture-one"));
     const staleProject = f.store.get("projects", "one");

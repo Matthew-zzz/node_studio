@@ -50,6 +50,7 @@ export function portalFixture(origin = "http://localhost:3000") {
   const login = role => {
     const result = store.login(users[role].email, fixturePassword, "fixture");
     store.db.prepare("INSERT INTO auth_verifications(group_id,email,expires) VALUES(?,?,?)").run(result.session.groupId, result.session.viewer.email, store.sessionDeadline(result.session));
+    store.db.prepare("INSERT INTO auth_profile_verifications(group_id,user_id,role,expires) VALUES(?,?,?,?)").run(result.session.groupId, result.session.viewer.id, result.session.viewer.role, store.sessionDeadline(result.session));
     return result;
   };
   const fixture = { store, config, integrations, service, users, login, issues, commits, sent, repositories, handler: createPortalHandler(service, config), close: () => { if (fixtures.get(origin) === fixture) fixtures.delete(origin); store.close(); } };

@@ -15,7 +15,7 @@ export async function checkEmailAuthentication(browser, origin, fixture, screens
         const page = await context.newPage(); page.on("pageerror", error => errors.push(error.message));
         const notices = () => fixture.sent.filter(mail => mail.email === email && mail.subject === "Код для входа — Node Studio");
         async function begin() {
-          await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption("client"); await page.getByLabel("Почта", { exact: true }).fill(email);
+          await page.getByLabel("Почта", { exact: true }).fill(email);
           assert.equal(await page.locator('input[type="password"]').count(), 0);
           await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
         }
@@ -31,8 +31,9 @@ export async function checkEmailAuthentication(browser, origin, fixture, screens
         const count = notices().length; const cookie = (await context.cookies()).find(cookie => cookie.name === "nodo_session");
         assert.ok(cookie.httpOnly && cookie.expires * 1000 > Date.now()); assert.ok(cookie.expires * 1000 <= Date.now() + 12 * 3_600_000);
         if (width <= 650) await page.getByRole("button", { name: "Открыть профили", exact: true }).click();
-        const profiles = page.getByRole("group", { name: "Переключение профилей", exact: true }); assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 3);
-        await profiles.getByRole("button", { name: "Переключиться: Администратор, admin", exact: true }).click(); await page.getByRole("heading", { name: "ИИ-агент Telegram", exact: true }).waitFor();
+        const profiles = page.getByRole("group", { name: "Переключение профилей", exact: true }); assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 1);
+        assert.equal(await profiles.getByRole("button", { name: /Администратор|Разработчик/ }).count(), 0);
+        if (width <= 650) await page.keyboard.press("Escape");
         await page.reload(); await page.getByTestId("portal").waitFor(); assert.equal(notices().length, count);
         fixture.store.db.exec("UPDATE sessions SET expires=0"); await page.evaluate(() => window.dispatchEvent(new Event("focus"))); await page.getByRole("heading", { name: "С возвращением", exact: true }).waitFor();
         await begin(); await completeEmailCode(page, origin, email); assert.equal(notices().length, count + 1); await page.getByTestId("portal").waitFor(); await fixture.service.workJobs();

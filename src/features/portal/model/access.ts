@@ -5,7 +5,7 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
   source = { ...source, projects: source.projects.filter(project => project.status !== "archived") };
   const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], paymentDeliveries: [], clientBriefs: [], projectBriefs: [], briefProjects: [], selectedProjectId: "", repositoryStatus: {} };
   if (viewer.mustChangePassword || viewer.role === "admin") return blank;
-  const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id).map(project => {
+  const projects = source.projects.filter(project => viewer.role === "developer" ? !project.developerId || project.developerId === viewer.id : project.clientId === viewer.id).map(project => {
     if (viewer.role !== "client") return project;
     const publicProject = { ...project, repo: "", repositoryReady: Boolean(project.repo) };
     delete publicProject.subprojects;

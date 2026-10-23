@@ -72,16 +72,17 @@ try {
   const unconfiguredMail = await fetchApplication("/api/portal/login", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ email: developer.email, role: "developer" }) });
   assert.equal(unconfiguredMail.status, 503, "an isolated server without mail never falls back to password-only login");
   await unconfiguredMail.arrayBuffer();
-  let first = await login(developer.email);
+  const intake = access.find(user => user.role === "admin");
+  const owner = await login(intake.email);
+  let first = await login(developer.email, owner.cookie);
   assert.equal(first.snapshot.viewer.mustChangePassword, false);
   const changed = await fetchApplication("/api/portal/password", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": first.snapshot.csrf }, body: "{}" });
   assert.equal(changed.status, 410); await changed.arrayBuffer();
   const account = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
   assert.equal(account.projects.length, 0, "a fresh installation does not seed customer projects");
   assert.equal(account.messages.length, 0, "a fresh installation does not seed customer messages");
-  const intake = access.find(user => user.role === "admin");
-  const added = await login(intake.email, first.cookie);
-  const profiles = added.snapshot;
+  const added = owner;
+  const profiles = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: added.cookie } }).then(response => response.json());
   assert.equal(profiles.viewer.role, "admin"); assert.equal(profiles.profiles.length, 2);
   const back = await fetchApplication("/api/portal/profiles/switch", {
     method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: added.cookie, "X-CSRF-Token": profiles.csrf },

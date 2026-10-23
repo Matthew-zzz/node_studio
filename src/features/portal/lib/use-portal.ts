@@ -131,7 +131,7 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
     setSnapshot(next); channel.current?.postMessage("changed");
   }
   return {
-    snapshot, loading, busy, challenge, refresh, agent: gateway.agent, errors: gateway.errors,
+    snapshot, loading, busy, challenge, refresh, agent: gateway.agent, errors: gateway.errors, staff: gateway.staff,
     run,
     select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
     acceptProject: (projectId: string) => perform(async () => {

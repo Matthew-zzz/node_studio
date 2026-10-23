@@ -11,6 +11,7 @@ import type { Role } from "@/features/portal/model/types";
 import portal from "./portal.module.css";
 import styles from "./profile-switcher.module.css";
 import { EmailVerification } from "@/features/portal/components/email-verification";
+import { allowedProfileRoles } from "@/features/portal/model/profile-policy";
 
 const profileRoles: Role[] = ["client", "developer", "admin"];
 const roleIcons: Record<Role, IconName> = { client: "people", developer: "code", admin: "service" };
@@ -32,10 +33,11 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
   }, [visible]);
 
   if (!viewer) return null;
+  const allowed = allowedProfileRoles(viewer.role);
 
   function addProfile(nextRole: Role | null = null) {
     popover.current?.hidePopover();
-    setRole(nextRole); setEmail(viewer?.email ?? ""); setOpen(true);
+    setRole(nextRole ?? viewer?.role ?? "client"); setEmail(viewer?.email ?? ""); setOpen(true);
   }
 
   async function switchProfile(userId: string) {
@@ -64,7 +66,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
             </span>
             {profile.id === viewer.id && <Icon name="check" className={styles.check} />}
           </button>
-        )) : (
+        )) : allowed.includes(itemRole) ? (
           <button type="button" key={itemRole} className={styles.profile} data-role={itemRole} aria-label={`Добавить профиль: ${ROLE_LABELS[itemRole]}`} disabled={controller.busy || profiles.length >= 8} onClick={() => addProfile(itemRole)}>
             <span className={styles.avatar}><Icon name={roleIcons[itemRole]} /></span>
             <span className={styles.identity}>
@@ -73,7 +75,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
             </span>
             <Icon name="plus" className={styles.plus} />
           </button>
-        );
+        ) : null;
       })}
       <button type="button" className={styles.add} disabled={controller.busy || profiles.length >= 8} onClick={() => addProfile()}>
         <Icon name="plus" />
@@ -101,11 +103,11 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
         <h2 id={titleId}>{controller.challenge ? "Подтвердите вход" : "Добавить профиль"}</h2>
         {open && controller.challenge ? <EmailVerification controller={controller} onComplete={() => { setOpen(false); dialog.current?.close(); onChange(); }} /> : (
           <>
-            <p className={portal.subtitle}>Войдите в аккаунт один раз, чтобы переключаться в течение сессии.</p>
+            <p className={portal.subtitle}>Вход в существующий аккаунт. Новый доступ выдаёт администратор.</p>
             <form className={portal.form} onSubmit={event => void submit(event)}>
               <label>
                 Роль профиля
-                <select value={role ?? "client"} onChange={event => setRole(event.target.value as Role)}>{Object.entries(ROLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                <select value={role ?? viewer.role} onChange={event => setRole(event.target.value as Role)}>{allowed.map(value => <option key={value} value={value}>{ROLE_LABELS[value]}</option>)}</select>
               </label>
               <label>
                 Почта профиля
