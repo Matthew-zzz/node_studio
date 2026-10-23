@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
   ...createMetadata(),
   icons: {
-    icon: [{ url: "/assets/brand/favicon-32.png", type: "image/png", sizes: "32x32" }],
-    apple: [{ url: "/assets/brand/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/assets/brand/favicon-32.png?v=transparent", type: "image/png", sizes: "32x32" }],
+    apple: [{ url: "/assets/brand/apple-touch-icon.png?v=transparent", sizes: "180x180", type: "image/png" }],
   },
 };
 

@@ -19,8 +19,8 @@ export function createMetadata({ title = site.title, description = site.descript
       title,
       description,
       url: path,
-      images: [{ url: "/assets/og-cover.png", width: 1200, height: 630, alt: "Node Studio — разработка, автоматизация и ИИ" }],
+      images: [{ url: "/assets/og-cover.png?v=transparent", width: 1200, height: 630, alt: "Node Studio — разработка, автоматизация и ИИ" }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/assets/og-cover.png"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/assets/og-cover.png?v=transparent"] },
   };
 }

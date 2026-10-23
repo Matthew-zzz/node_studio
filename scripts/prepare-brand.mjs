@@ -3,13 +3,13 @@ import { basename, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 
-const source = process.argv[2];
-if (!source) throw new Error("Usage: node scripts/prepare-brand.mjs <provided-logo.png>");
+const source = process.argv[2] ?? "public/assets/brand/node-monogram-transparent.png";
 const input = await readFile(resolve(source));
 const metadata = await sharp(input).metadata();
-if (metadata.width !== 1254 || metadata.height !== 1254) throw new Error("Expected the approved 1254 × 1254 NS monogram source.");
-const crop = { left: 247, top: 215, width: 800, height: 800 };
-const image = () => sharp(input).extract(crop);
+const stats = await sharp(input).stats();
+if (!metadata.hasAlpha || stats.isOpaque || metadata.width !== metadata.height) throw new Error("Expected a square NS master with genuine transparency.");
+const previous = JSON.parse(await readFile("docs/asset-generation/node-studio-avatar.json", "utf8"));
+const image = () => sharp(input);
 const directory = resolve("public/assets/brand");
 await mkdir(directory, { recursive: true });
 await image().resize(192, 192).webp({ quality: 94, effort: 6 }).toFile(resolve(directory, "node-monogram.webp"));
@@ -25,9 +25,15 @@ await sharp(Buffer.from(preview)).png({ compressionLevel: 9 }).toFile(resolve("p
 await writeFile("docs/asset-generation/node-studio-avatar.json", JSON.stringify({
   asset: "public/assets/node-studio-avatar.png", brand: "Node Studio", source: basename(source),
   sourceSha256: createHash("sha256").update(input).digest("hex"),
-  sourceDimensions: { width: metadata.width, height: metadata.height }, crop,
-  preparation: "Owner-provided artwork; padding reduced and export sizes prepared with sharp. No generative redrawing.",
-  command: "node scripts/prepare-brand.mjs <provided-logo.png>",
-  exports: ["public/assets/brand/node-monogram.webp", "public/assets/brand/favicon-32.png", "public/assets/brand/apple-touch-icon.png", "public/assets/node-studio-avatar.png", "public/assets/favicon.svg", "public/assets/og-cover.svg", "public/assets/og-cover.png"],
+  sourcePath: source,
+  sourceDimensions: { width: metadata.width, height: metadata.height }, transparent: true,
+  originalSource: previous.originalSource ?? { source: previous.source, sourceSha256: previous.sourceSha256, sourceDimensions: previous.sourceDimensions, crop: previous.crop },
+  preparation: "Background removed with built-in image_gen; sharp exports preserve the generated alpha channel.",
+  backgroundRemoval: {
+    tool: "built-in image_gen",
+    prompt: "Удали только чёрный/тёмно-синий фон вокруг и внутри просветов монограммы NS. Сохрани в точности форму, пропорции, положение, гладкие края, блики и существующий градиент циан—синий—фиолетовый—розовый. Не перерисовывай и не меняй знак. Результат — PNG с настоящей прозрачностью (alpha=0 вне букв), без подложки, шахматного узора, теней и тёмного ореола.",
+  },
+  command: "node scripts/prepare-brand.mjs [transparent-logo.png]",
+  exports: ["public/assets/brand/node-monogram-transparent.png", "public/assets/brand/node-monogram.webp", "public/assets/brand/favicon-32.png", "public/assets/brand/apple-touch-icon.png", "public/assets/node-studio-avatar.png", "public/assets/favicon.svg", "public/assets/og-cover.svg", "public/assets/og-cover.png"],
 }, null, 2) + "\n");
 console.log("NS monogram exports prepared.");

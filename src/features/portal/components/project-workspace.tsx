@@ -19,6 +19,7 @@ interface ProjectWorkspaceProps {
   controller: PortalController;
   primary: ProjectView;
   secondary: ProjectView | null;
+  allowSplit?: boolean;
   onSelectPrimary: (view: ProjectView) => void;
   onSelectSecondary: (view: ProjectView) => void;
   onOpenSecondary: () => void;
@@ -50,8 +51,9 @@ function ProjectSection({ project, controller, view, companion, subprojectId }: 
   );
 }
 
-export function ProjectWorkspace({ project, controller, primary, secondary, onSelectPrimary, onSelectSecondary, onOpenSecondary, onCloseSecondary, subprojectId, onSelectSubproject }: ProjectWorkspaceProps) {
+export function ProjectWorkspace({ project, controller, primary, secondary: requestedSecondary, allowSplit = true, onSelectPrimary, onSelectSecondary, onOpenSecondary, onCloseSecondary, subprojectId, onSelectSubproject }: ProjectWorkspaceProps) {
   const { busy } = controller;
+  const secondary = allowSplit ? requestedSecondary : null;
   const panes = secondary ? [primary, secondary] : [primary];
   const developer = controller.snapshot.viewer?.role === "developer";
   const scoped = developer && subprojectId ? { ...controller, snapshot: { ...controller.snapshot, tasks: controller.snapshot.tasks.filter(item => repositoryKey(item.subprojectId) === subprojectId), stages: controller.snapshot.stages.filter(item => repositoryKey(item.subprojectId) === subprojectId), commits: controller.snapshot.commits.filter(item => repositoryKey(item.subprojectId) === subprojectId), hasMoreCommits: controller.snapshot.repositoryStatus?.[subprojectId]?.hasMore ?? false } } : controller;
@@ -73,19 +75,21 @@ export function ProjectWorkspace({ project, controller, primary, secondary, onSe
             </label>
           )}
         </div>
-        <div className={styles.actions}>
-          {secondary ? (
-            <>
-              <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Поменять разделы местами" title="Поменять разделы местами" onClick={() => onSelectPrimary(secondary)}><Icon name="swap" /></button>
-              <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onCloseSecondary}>Один раздел</button>
-            </>
-          ) : (
-            <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onOpenSecondary}>
-              <Icon name="columns" />
-              Открыть рядом
-            </button>
-          )}
-        </div>
+        {allowSplit && (
+          <div className={styles.actions}>
+            {secondary ? (
+              <>
+                <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Поменять разделы местами" title="Поменять разделы местами" onClick={() => onSelectPrimary(secondary)}><Icon name="swap" /></button>
+                <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onCloseSecondary}>Один раздел</button>
+              </>
+            ) : (
+              <button type="button" className={portalStyles.secondary} disabled={busy} onClick={onOpenSecondary}>
+                <Icon name="columns" />
+                Открыть рядом
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>

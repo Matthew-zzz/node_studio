@@ -1,21 +1,36 @@
 {
   "asset": "public/assets/node-studio-avatar.png",
   "brand": "Node Studio",
-  "source": "Градиентная монограмма NS на тёмном фоне.png",
-  "sourceSha256": "6e26210b7c9e29d5bb56876a576012eee2f41d4416540834fbaba9ce69f6807e",
+  "source": "node-monogram-transparent.png",
+  "sourceSha256": "abc7da832b95b261bc4dc93d3f1a4c310df6229ccd8554d0cf37c66cbd0380b8",
+  "sourcePath": "public/assets/brand/node-monogram-transparent.png",
   "sourceDimensions": {
     "width": 1254,
     "height": 1254
   },
-  "crop": {
-    "left": 247,
-    "top": 215,
-    "width": 800,
-    "height": 800
+  "transparent": true,
+  "originalSource": {
+    "source": "Градиентная монограмма NS на тёмном фоне.png",
+    "sourceSha256": "6e26210b7c9e29d5bb56876a576012eee2f41d4416540834fbaba9ce69f6807e",
+    "sourceDimensions": {
+      "width": 1254,
+      "height": 1254
+    },
+    "crop": {
+      "left": 247,
+      "top": 215,
+      "width": 800,
+      "height": 800
+    }
   },
-  "preparation": "Owner-provided artwork; padding reduced and export sizes prepared with sharp. No generative redrawing.",
-  "command": "node scripts/prepare-brand.mjs <provided-logo.png>",
+  "preparation": "Background removed with built-in image_gen; sharp exports preserve the generated alpha channel.",
+  "backgroundRemoval": {
+    "tool": "built-in image_gen",
+    "prompt": "Удали только чёрный/тёмно-синий фон вокруг и внутри просветов монограммы NS. Сохрани в точности форму, пропорции, положение, гладкие края, блики и существующий градиент циан—синий—фиолетовый—розовый. Не перерисовывай и не меняй знак. Результат — PNG с настоящей прозрачностью (alpha=0 вне букв), без подложки, шахматного узора, теней и тёмного ореола."
+  },
+  "command": "node scripts/prepare-brand.mjs [transparent-logo.png]",
   "exports": [
+    "public/assets/brand/node-monogram-transparent.png",
     "public/assets/brand/node-monogram.webp",
     "public/assets/brand/favicon-32.png",
     "public/assets/brand/apple-touch-icon.png",

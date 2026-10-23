@@ -53,6 +53,7 @@ async function signIn(page, origin, role) {
   fixture.store.db.exec("DELETE FROM auth_limits");
 }
 async function fits(page, width) {
+  assert.equal(await page.getByRole("button", { name: "Открыть рядом", exact: true, includeHidden: true }).count(), 0, "Mini App offers one project section at a time");
   await page.waitForFunction(() => {
     const portal = document.querySelector('[data-testid="portal"]');
     if (!portal) return false;

@@ -99,6 +99,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
           onSelectSubproject={selectSubproject}
           primary={isProjectView(activeView) ? activeView : "overview"}
           secondary={secondaryView}
+          allowSplit={presentation !== "miniapp"}
           onSelectPrimary={selectPrimary}
           onSelectSecondary={selectSecondary}
           onOpenSecondary={openSecondary}
