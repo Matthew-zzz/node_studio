@@ -15,10 +15,10 @@
     "portal:start": "node --env-file-if-exists=.env.portal server/main.ts",
     "portal:user": "node --env-file-if-exists=.env.portal server/cli.ts create-user",
     "test:payments": "node tests/payments.test.mjs && node tests/payment-notifications.test.mjs && node tests/payment-resend.test.mjs",
-    "test:e2e": "node tests/browser.mjs && node tests/miniapp-browser.mjs && node tests/deletion-browser.mjs && node tests/staff-browser.mjs && node tests/telegram-auth-browser.mjs",
+    "test:e2e": "node tests/browser.mjs && node tests/miniapp-browser.mjs && node tests/deletion-browser.mjs && node tests/staff-browser.mjs && node tests/telegram-auth-browser.mjs && node tests/telegram-persistence-browser.mjs",
     "test:resend": "node tests/payment-resend.test.mjs && node tests/deletion-browser.mjs",
     "test:deletion": "node tests/deletion.test.mjs && node tests/deletion-browser.mjs",
-    "test:miniapp": "node tests/telegram-auth.test.mjs && node tests/miniapp-browser.mjs && node tests/telegram-auth-browser.mjs",
+    "test:miniapp": "node tests/telegram-auth.test.mjs && node tests/miniapp-browser.mjs && node tests/telegram-auth-browser.mjs && node tests/telegram-persistence-browser.mjs",
     "test:runtime": "node tests/runtime.test.mjs",
     "test:container": "node tests/container.mjs",
     "check": "npm run lint && npm run typecheck && npm run test"

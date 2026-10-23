@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
-import { PortalError, tokenHash } from "./store.ts";
+import { PortalError, tokenHash, SESSION_LIFETIME } from "./store.ts";
 import type { PortalStore, Session } from "./store.ts";
 import type { PortalConfig } from "./config.ts";
 import type { Integrations } from "./integrations.ts";
@@ -170,7 +170,7 @@ export class PortalAuth {
       this.store.db.prepare("INSERT INTO auth_verifications(group_id,email,expires) VALUES(?,?,?) ON CONFLICT(group_id,email) DO UPDATE SET expires=excluded.expires").run(result.session.groupId, user.email, this.store.sessionDeadline(result.session));
       this.store.confirmProfile(result.session);
       this.loginNotice(result.session.viewer, metadata);
-    });
+    }, context.startsWith("telegram:") ? 30 * 24 * 60 * 60_000 : SESSION_LIFETIME);
   }
 
   private recovery(user: Viewer): string {

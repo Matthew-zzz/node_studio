@@ -197,7 +197,7 @@ export class PortalStore {
     return this.loginVerified(this.authenticatePassword(email, password, address, role).id, current);
   }
 
-  loginVerified(userId: string, current?: Session, complete?: (result: { token: string; session: Session }) => void): { token: string; session: Session } {
+  loginVerified(userId: string, current?: Session, complete?: (result: { token: string; session: Session }) => void, lifetime = SESSION_LIFETIME): { token: string; session: Session } {
     const user = this.user(userId); if (!user) throw new PortalError(401, "Войдите в кабинет.");
     const epoch = Date.now();
     this.db.prepare("DELETE FROM sessions WHERE expires<?").run(epoch);
@@ -207,7 +207,7 @@ export class PortalStore {
     const groupId = current?.groupId ?? id();
     const profiles = current ? this.profiles(current) : [];
     if (profiles.length >= 8 && !profiles.some(profile => profile.id === user.id)) throw new PortalError(409, "Можно добавить до 8 профилей на одном устройстве.");
-    const deadline = current ? Number(this.db.prepare("SELECT min(expires) AS expires FROM sessions WHERE group_id=?").get(groupId)!.expires) : epoch + SESSION_LIFETIME;
+    const deadline = current ? Number(this.db.prepare("SELECT min(expires) AS expires FROM sessions WHERE group_id=?").get(groupId)!.expires) : epoch + lifetime;
     return this.transaction(() => {
       this.db.prepare("DELETE FROM sessions WHERE group_id=? AND user_id=?").run(groupId, user.id);
       const result = this.createSession(user, groupId, deadline);

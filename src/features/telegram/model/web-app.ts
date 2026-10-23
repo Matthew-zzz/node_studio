@@ -1,4 +1,9 @@
 export interface TelegramWebApp {
+  SecureStorage?: {
+    getItem(key: string, callback: (error: string | null, value?: string | null, canRestore?: boolean) => void): void;
+    setItem(key: string, value: string, callback: (error: string | null, stored?: boolean) => void): void;
+    removeItem(key: string, callback: (error: string | null, removed?: boolean) => void): void;
+  };
   initData?: string;
   platform: string;
   colorScheme: "light" | "dark";

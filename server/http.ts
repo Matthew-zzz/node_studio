@@ -10,13 +10,19 @@ import type { ErrorProvider } from "../src/features/portal/model/errors.ts";
 import { requestAuthContext } from "./telegram-auth-context.ts";
 import type { RequestAuthContext } from "./telegram-auth-context.ts";
 
-export function requestSession(request: IncomingMessage, service: PortalService, config: PortalConfig, verifiedContext?: RequestAuthContext) {
+function requestAuthentication(request: IncomingMessage, service: PortalService, config: PortalConfig, verifiedContext?: RequestAuthContext) {
   let context: RequestAuthContext;
   try { context = verifiedContext ?? requestAuthContext(request.headers, config); } catch { return; }
   const name = context.sessionCookie;
-  const token = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${name}=`))?.slice(name.length + 1) ?? "";
-  return service.auth.session(token, context.scope);
+  const cookieToken = request.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${name}=`))?.slice(name.length + 1) ?? "";
+  const native = context.scope.startsWith("telegram:") && request.headers["x-portal-secure-storage"] === "1" ? request.headers["x-portal-session"] : undefined;
+  for (const token of [cookieToken, typeof native === "string" ? native : ""]) {
+    const session = service.auth.session(token, context.scope);
+    if (session) return { session, token, restored: token !== cookieToken };
+  }
 }
+
+export function requestSession(request: IncomingMessage, service: PortalService, config: PortalConfig) { return requestAuthentication(request, service, config)?.session; }
 
 export function equalSecret(actual: string, expected: string): boolean {
   const left = Buffer.from(actual); const right = Buffer.from(expected);
@@ -58,7 +64,13 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (request.method === "GET" && path === "/api/portal/health") { send(200, { status: "ok", service: "node-studio-portal", version: 1, revision: config.revision }); return; }
         const context = requestAuthContext(request.headers, config);
         const cookieName = context.sessionCookie; const challengeName = context.challengeCookie;
-        const session = requestSession(request, service, config, context);
+        const authentication = requestAuthentication(request, service, config, context);
+        const session = authentication?.session;
+        const nativeStorage = context.scope.startsWith("telegram:") && request.headers["x-portal-secure-storage"] === "1";
+        function sessionPayload<T>(value: T, current = session, token = authentication?.token ?? "") {
+          return nativeStorage && current && token ? { ...value, nativeSession: { token, expiresAt: service.store.sessionDeadline(current) } } : value;
+        }
+        if (authentication?.restored) response.setHeader("Set-Cookie", cookie(cookieName, authentication.token, Math.max(0, Math.floor((service.store.sessionDeadline(authentication.session) - Date.now()) / 1000))));
         const challengeToken = challengeCookie(request, challengeName);
         updateErrorContext({ actor: session?.viewer ?? null });
         if (!["GET", "POST"].includes(request.method ?? "")) throw new PortalError(405, "Метод не поддерживается.");
@@ -95,7 +107,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
           const age = Math.max(0, Math.floor((service.store.sessionDeadline(result.session) - Date.now()) / 1000));
           response.setHeader("Set-Cookie", [cookie(cookieName, result.token, age), cookie(challengeName, "", 0)]);
           updateErrorContext({ actor: result.session.viewer });
-          send(200, await service.snapshot(result.session));
+          send(200, sessionPayload(await service.snapshot(result.session), result.session, result.token));
         }
         if (request.method === "GET" && path === "/api/portal/auth/challenge") {
           if (!challengeToken) { send(200, { challenge: null }); return; }
@@ -136,7 +148,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
           if (session && !equalSecret(String(request.headers["x-csrf-token"] ?? ""), session.csrf)) throw new PortalError(403, "Обновите страницу и повторите запрос.");
           service.errors.browserReports(body.reports, session ?? null); send(202, { accepted: true }); return;
         }
-        if (request.method === "GET" && path === "/api/portal/session") { send(200, { viewer: session?.viewer ?? null, csrf: session?.csrf ?? "" }); return; }
+        if (request.method === "GET" && path === "/api/portal/session") { send(200, sessionPayload({ viewer: session?.viewer ?? null, csrf: session?.csrf ?? "" })); return; }
         if (!session && request.method === "GET" && path === "/api/portal/snapshot") { send(200, EMPTY_SNAPSHOT); return; }
         if (!session) throw new PortalError(401, "Войдите в кабинет.");
         if (request.method === "GET" && path === "/api/portal/admin/staff") { send(200, service.staffState(session)); return; }
@@ -147,7 +159,7 @@ export function createPortalHandler(service: PortalService, config: PortalConfig
         if (request.method === "GET" && path === "/api/portal/snapshot") {
           const pages = Number(url.searchParams.get("pages") || 1);
           if (!Number.isInteger(pages) || pages < 1 || pages > 1000) throw new PortalError(400, "Некорректная страница истории.");
-          send(200, await service.snapshot(session, url.searchParams.get("project") || "", pages)); return;
+          send(200, sessionPayload(await service.snapshot(session, url.searchParams.get("project") || "", pages))); return;
         }
         if (request.method !== "POST") throw new PortalError(404, "Страница не найдена.");
         if (!equalSecret(String(request.headers["x-csrf-token"] ?? ""), session.csrf)) throw new PortalError(403, "Обновите страницу и повторите запрос.");

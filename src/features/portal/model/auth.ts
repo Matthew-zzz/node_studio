@@ -9,3 +9,4 @@ export interface EmailChallenge {
 }
 export type LoginResult = PortalSnapshot | EmailChallenge;
 export interface RecoveryDetails { readonly email: string; readonly expiresAt: number }
+export interface NativeSession { readonly token: string; readonly expiresAt: number }

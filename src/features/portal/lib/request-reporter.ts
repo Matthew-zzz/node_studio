@@ -1,7 +1,7 @@
 import type { BrowserFailure } from "@/features/portal/model/errors";
 
 const routes = /^(snapshot|action|login|logout|password|profiles\/(add|switch)|checkout(?:\/pay)?|admin\/agent(?:\/(document|export))?|admin\/errors)$/;
-export function createRequestReporter(identity: () => { viewerId: string; csrf: string; ready: boolean }, initialize: () => Promise<void>, presentation: "web" | "miniapp" = "web", context?: { key: string; headers: Readonly<Record<string, string>>; isCurrent: () => boolean }) {
+export function createRequestReporter(identity: () => { viewerId: string; csrf: string; ready: boolean }, initialize: () => Promise<void>, presentation: "web" | "miniapp" = "web", context?: { key: string; headers: Readonly<Record<string, string>> | (() => Promise<Record<string, string>>); isCurrent: () => boolean }) {
   const key = presentation === "miniapp" ? `node-request-errors-miniapp-v2-${context?.key ?? "browser"}` : "node-request-errors-v1";
   let pending: BrowserFailure[] = []; let loaded = false; let sending = false; let disposed = false; let preparing = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -25,7 +25,9 @@ export function createRequestReporter(identity: () => { viewerId: string; csrf: 
     }
     const batch = pending.slice(0, 10); sending = true;
     try {
-      const response = await fetch("/api/portal/errors/report", { method: "POST", credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(10_000), headers: { "Content-Type": "application/json", "X-CSRF-Token": current.csrf, ...(context?.headers ?? (presentation === "miniapp" ? { "X-Portal-Client": "miniapp", "X-Telegram-Context": "browser" } : {})) }, body: JSON.stringify({ reports: batch }) });
+      const headers = typeof context?.headers === "function" ? await context.headers() : context?.headers;
+      if (disposed || context && !context.isCurrent()) return;
+      const response = await fetch("/api/portal/errors/report", { method: "POST", credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(10_000), headers: { "Content-Type": "application/json", "X-CSRF-Token": current.csrf, ...(headers ?? (presentation === "miniapp" ? { "X-Portal-Client": "miniapp", "X-Telegram-Context": "browser" } : {})) }, body: JSON.stringify({ reports: batch }) });
       if (response.ok) { const ids = new Set(batch.map(item => item.id)); pending = pending.filter(item => !ids.has(item.id)); persist(); }
     } catch { /* Never report failure to send an error report recursively. */ }
     finally { sending = false; schedule(); }

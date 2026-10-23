@@ -17,6 +17,60 @@ const merge = (...accounts) => {
 };
 const cookie = (account, kind) => account.cookie.split(";").map(value => value.trim()).filter(value => value.includes(`miniapp_${kind}_v2_`)).at(-1);
 
+test("Telegram remembers login for 30 days and SecureStorage restores the same session when WebView cookies disappear", async () => {
+  const f = portalFixture(); const { request } = portalApi(f);
+  const headers = { ...telegramHeaders(f.config.telegramToken, 101), "x-portal-secure-storage": "1" };
+  try {
+    const pending = await request("login", { email: f.users.developer.email, role: "developer" }, undefined, headers);
+    assert.equal(pending.body.nativeSession, undefined);
+    const signed = await request("auth/verify", { code: await emailCode(f, f.users.developer.email) }, pending, headers);
+    const native = signed.body.nativeSession; assert.match(native.token, /^[a-f0-9]{64}$/);
+    const lifetime = native.expiresAt - Date.now(); assert.ok(lifetime > 29 * 86_400_000 && lifetime <= 30 * 86_400_000);
+    assert.ok(signed.headers["Set-Cookie"].some(value => /Max-Age=259\d{4}/.test(value)));
+    const withoutCookies = { cookie: "", body: { csrf: signed.body.csrf } }; const restore = { ...headers, "x-portal-session": native.token };
+    const session = await request("session", undefined, withoutCookies, restore);
+    assert.equal(session.body.viewer.id, f.users.developer.id); assert.ok(session.cookie.includes(native.token));
+    assert.equal(session.body.nativeSession.expiresAt, native.expiresAt, "restoring does not extend the session lifetime");
+    const snapshot = await request("snapshot", undefined, withoutCookies, restore); assert.equal(snapshot.body.viewer.role, "developer");
+    assert.equal((await request("profiles/switch", { userId: f.users.developer.id }, withoutCookies, { ...restore, "x-csrf-token": "bad" })).statusCode, 403);
+    const switched = await request("profiles/switch", { userId: f.users.developer.id }, withoutCookies, restore);
+    assert.equal(switched.body.viewer.role, "developer"); assert.notEqual(switched.body.nativeSession.token, native.token);
+    assert.equal((await request("session", undefined, withoutCookies, restore)).body.viewer, null, "rotation invalidates the saved prior token");
+    const current = { ...headers, "x-portal-session": switched.body.nativeSession.token };
+    const logout = await request("logout", {}, { cookie: "", body: { csrf: switched.body.csrf } }, current); assert.equal(logout.statusCode, 200);
+    assert.equal((await request("session", undefined, withoutCookies, current)).body.viewer, null, "logout revokes restoration on the server");
+  } finally { f.close(); }
+});
+
+test("saved Telegram credentials never cross Telegram accounts, the web context, email proofs or global revocation", async () => {
+  const f = portalFixture(); const { request } = portalApi(f);
+  const a = { ...telegramHeaders(f.config.telegramToken, 101), "x-portal-secure-storage": "1" };
+  try {
+    const pending = await request("login", { email: f.users.client.email, role: "client" }, undefined, a);
+    const signed = await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending, a); const native = signed.body.nativeSession;
+    const tokenHeaders = { "x-portal-session": native.token, "x-portal-secure-storage": "1" };
+    for (const headers of [tokenHeaders, { ...tokenHeaders, "x-portal-client": "miniapp", "x-telegram-context": "browser" }, { ...telegramHeaders(f.config.telegramToken, 202), ...tokenHeaders }]) {
+      const snapshot = await request("snapshot", undefined, undefined, headers); assert.equal(snapshot.body.viewer, null); assert.equal(snapshot.body.nativeSession, undefined);
+    }
+    const plain = await request("snapshot", undefined, signed, telegramHeaders(f.config.telegramToken, 101)); assert.equal(plain.body.nativeSession, undefined, "the transport credential is exported only for an explicit signed SecureStorage request");
+    const current = { ...a, ...tokenHeaders }; const account = { cookie: "", body: { csrf: signed.body.csrf } };
+    assert.equal((await request("auth/logout-all", {}, account, current)).statusCode, 200);
+    assert.equal((await request("snapshot", undefined, account, current)).body.viewer, null);
+  } finally { f.close(); }
+});
+
+test("remembered Telegram login still requires fresh email verification after expiry", async () => {
+  const f = portalFixture(); const { request } = portalApi(f); const headers = { ...telegramHeaders(f.config.telegramToken, 101), "x-portal-secure-storage": "1" };
+  try {
+    const pending = await request("login", { email: f.users.client.email, role: "client" }, undefined, headers);
+    const signed = await request("auth/verify", { code: await emailCode(f, f.users.client.email) }, pending, headers);
+    f.store.db.exec("UPDATE sessions SET expires=0");
+    const restore = { ...headers, "x-portal-session": signed.body.nativeSession.token };
+    assert.equal((await request("snapshot", undefined, undefined, restore)).body.viewer, null);
+    assert.equal((await request("login", { email: f.users.client.email, role: "client" }, undefined, restore)).body.kind, "verification");
+  } finally { f.close(); }
+});
+
 test("Telegram launch signatures, dates, duplicate fields and numeric identities are checked before reading any session", async () => {
   const f = portalFixture(); const { request } = portalApi(f); const valid = telegramHeaders(f.config.telegramToken, 101);
   try {

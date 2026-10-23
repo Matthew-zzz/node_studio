@@ -1,11 +1,12 @@
 import type { Checkout, PortalAction, PortalSnapshot, Role } from "@/features/portal/model/types";
-import type { EmailChallenge, LoginResult, RecoveryDetails } from "@/features/portal/model/auth";
+import type { EmailChallenge, LoginResult, RecoveryDetails, NativeSession } from "@/features/portal/model/auth";
 import { EMPTY_SNAPSHOT } from "@/features/portal/model/types";
 import type { AgentAdminState, AgentCommand, AgentPreferences, AgentSettings, AgentTestMessage, AgentTestResult, KnowledgeDocument } from "@/features/portal/model/agent";
 import type { ErrorPage, ErrorQuery } from "@/features/portal/model/errors";
 import { createRequestReporter } from "@/features/portal/lib/request-reporter";
 import type { CreateDeveloper, StaffState } from "@/features/portal/model/staff";
 import { miniappContext, miniappContextVersion } from "@/features/telegram/lib/auth-context";
+import { telegramSessionStorage } from "@/features/telegram/lib/session-storage";
 
 export interface AgentGateway {
   state(): Promise<AgentAdminState>;
@@ -48,8 +49,13 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
   const clientHeaders = context?.headers ?? {};
   let disposed = false;
   const isCurrent = () => !disposed && (!context || context.version === miniappContextVersion());
+  const native = context ? telegramSessionStorage(context.identity, isCurrent) : null;
+  async function headers(): Promise<Record<string, string>> {
+    const saved = await native?.read();
+    return { ...clientHeaders, ...(native?.supported ? { "X-Portal-Secure-Storage": "1" } : {}), ...(saved ? { "X-Portal-Session": saved.token } : {}) };
+  }
   const profileChannel = context ? `node-miniapp-profiles-${context.identity}` : "nodo-portal-profiles";
-  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation, context ? { key: context.identity, headers: clientHeaders, isCurrent } : undefined);
+  const reporter = createRequestReporter(() => ({ viewerId, csrf, ready: identityReady }), async () => { await request("session"); }, presentation, context ? { key: context.identity, headers, isCurrent } : undefined);
   let generation = 0; let sequence = 0; let csrfSequence = 0;
   async function request<T>(path: string, body?: unknown): Promise<T> {
     if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
@@ -57,18 +63,24 @@ export function createApiGateway(presentation: "web" | "miniapp" = "web"): Porta
     const requestId = ++sequence;
     const requestViewerId = viewerId;
     const requestGeneration = authenticating ? ++generation : generation;
+    const authHeaders = await headers();
+    if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
     let response: Response;
     try {
       response = await fetch(`/api/portal/${path}`, {
         credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(120_000),
-        headers: { ...clientHeaders, ...(body === undefined ? {} : { "Content-Type": "application/json", "X-CSRF-Token": csrf }) },
+        headers: { ...authHeaders, ...(body === undefined ? {} : { "Content-Type": "application/json", "X-CSRF-Token": csrf }) },
         ...(body === undefined ? {} : { method: "POST", body: JSON.stringify(body) }),
       });
     } catch (error) {
       reporter.record(path, body === undefined ? "GET" : "POST", error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name) ? "timeout" : "network", 0, requestViewerId);
       throw new Error("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова.");
     }
-    const value = await response.json().catch(() => null) as { error?: string; errorId?: string; viewer?: PortalSnapshot["viewer"] } | null;
+    const value = await response.json().catch(() => null) as { error?: string; errorId?: string; viewer?: PortalSnapshot["viewer"]; nativeSession?: NativeSession } | null;
+    if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
+    const relevant = () => isCurrent() && requestGeneration === generation && requestId > csrfSequence;
+    if (value?.nativeSession) { const saved = value.nativeSession; delete value.nativeSession; if (response.ok && relevant()) await native?.save(saved, relevant); }
+    if (response.ok && relevant() && ((value && "viewer" in value && !value.viewer) || ["logout", "auth/logout-all", "auth/revoke"].includes(path))) await native?.clear();
     if (!isCurrent()) throw new Error("Профиль Telegram изменился. Откройте миниапп заново.");
     if (!response.ok && !value?.errorId) reporter.record(path, body === undefined ? "GET" : "POST", "http", response.status, requestViewerId);
     else if (response.ok && (!value || typeof value !== "object")) { reporter.record(path, body === undefined ? "GET" : "POST", "invalid_response", response.status, requestViewerId); throw new Error("Сервер вернул неожиданный ответ. Повторите попытку позже."); }
