@@ -28,8 +28,7 @@
 .root details p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; color: var(--p-muted); }
 .logo { display: inline-flex; gap: 10px; align-items: center; color: var(--p-text); font-size: 21px; font-weight: 700; letter-spacing: -1px; }
 .logo small { font-size: 11px; font-weight: 400; letter-spacing: 0; color: var(--p-muted); }
-.logoMark { width: 29px; height: 29px; background: var(--p-soft); color: var(--p-accent); border-radius: 9px; display: grid; place-items: center; }
-.logoMark svg { width: 17px; height: 17px; }
+.logoMark { border-radius: 9px; }
 .shell { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-height: 100svh; }
 .sidebar { display: flex; flex-direction: column; gap: 35px; background: var(--p-panel); border-right: 1px solid var(--p-line); padding: 31px 19px 22px; min-width: 0; position: sticky; top: 0; height: 100svh; overflow-y: auto; }
 .sidebar > .logo { padding-left: 13px; }

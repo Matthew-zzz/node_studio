@@ -83,7 +83,8 @@
 }
 
 .ability-brand-mark>.brand-symbol {
-  transform: scale(1.55) rotate(-10deg);
+  width: 34px;
+  height: 34px;
 }
 
 .integration-art {
@@ -438,7 +439,8 @@
 }
 
 .product-example-sidebar>.ability-brand-mark>.brand-symbol {
-  transform: scale(1.05) rotate(-10deg);
+  width: 24px;
+  height: 24px;
 }
 
 .product-example-sidebar>span.product-sidebar-active {
@@ -896,7 +898,8 @@
 }
 
 .evolution-ready-mark>.ability-brand-mark>.brand-symbol {
-  transform: scale(1.4) rotate(-10deg);
+  width: 32px;
+  height: 32px;
 }
 
 .evolution-ready-row {

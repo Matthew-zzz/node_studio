@@ -16,7 +16,10 @@ import "@/styles/globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
   ...createMetadata(),
-  icons: { icon: [{ url: "/assets/favicon.svg", type: "image/svg+xml" }] },
+  icons: {
+    icon: [{ url: "/assets/brand/favicon-32.png", type: "image/png", sizes: "32x32" }],
+    apple: [{ url: "/assets/brand/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#10121b", colorScheme: "dark", width: "device-width", initialScale: 1, viewportFit: "cover" };

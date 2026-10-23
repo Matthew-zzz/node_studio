@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
+import { BrandMark } from "@/components/ui/brand";
 import { Notifications } from "@/components/ui/notifications";
 import { Empty, ThemeSwitch } from "@/features/portal/components/ui";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
@@ -75,7 +76,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             </div>
           ) : (
             <div className={styles.brand}>
-              <span className={styles.mark}><Icon name="service" /></span>
+              <BrandMark size={34} />
               <strong>Node</strong>
               <span>{ROLE_LABELS[viewer.role]}</span>
             </div>

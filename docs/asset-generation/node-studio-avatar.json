@@ -1,8 +1,27 @@
 {
   "asset": "public/assets/node-studio-avatar.png",
   "brand": "Node Studio",
-  "purpose": "Square studio avatar for social profiles and circular crops.",
-  "generator": "Built-in image_gen tool",
-  "generatedOn": "2026-10-21",
-  "prompt": "Use case: logo-brand.\nAsset type: final square profile avatar for Node Studio, a web development and AI studio. Create one finished image, not a mockup or presentation sheet.\nSubject: a distinctive minimal four-module studio symbol: exactly four thick softly rounded square tiles in a compact 2 by 2 arrangement, with the top-right tile offset slightly upward. Tilt the entire arrangement about 10 degrees counterclockwise. Keep the symbol highly recognizable at small avatar sizes.\nStyle: beautifully art-directed, restrained dimensional brand render; satin ceramic / frosted glass tiles, softly beveled edges, subtle material depth and controlled studio reflections. Front-facing, almost orthographic, with a gentle blue-violet glow immediately around the modules. Calm, premium and clean.\nColor palette: tiles transition from blue #5286f4 through violet #7963ee to lavender #b08afa. Opaque seamless dark navy-charcoal background close to #10121b, with only a subtle broad soft ambient gradient.\nComposition: centered symbol occupies about 55 percent of a square canvas, generous clean dark negative space on every side. Entire symbol must fit comfortably within a circular avatar crop. Background fills every edge; no external app-icon container or outer frame.\nConstraints: exactly four square modules; no text, letters, slogans, watermark, extra objects, particle effects, grid, cables or network lines. Keep edges precise and the visual simple. Output a high-resolution square avatar."
+  "source": "Градиентная монограмма NS на тёмном фоне.png",
+  "sourceSha256": "6e26210b7c9e29d5bb56876a576012eee2f41d4416540834fbaba9ce69f6807e",
+  "sourceDimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "crop": {
+    "left": 247,
+    "top": 215,
+    "width": 800,
+    "height": 800
+  },
+  "preparation": "Owner-provided artwork; padding reduced and export sizes prepared with sharp. No generative redrawing.",
+  "command": "node scripts/prepare-brand.mjs <provided-logo.png>",
+  "exports": [
+    "public/assets/brand/node-monogram.webp",
+    "public/assets/brand/favicon-32.png",
+    "public/assets/brand/apple-touch-icon.png",
+    "public/assets/node-studio-avatar.png",
+    "public/assets/favicon.svg",
+    "public/assets/og-cover.svg",
+    "public/assets/og-cover.png"
+  ]
 }

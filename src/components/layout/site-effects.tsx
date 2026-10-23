@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { observeMotion } from "@/lib/observe-motion";
 import { navigation } from "@/config/navigation";
 
 /** Progressive decoration only: page content stays visible when JavaScript is unavailable. */
@@ -23,7 +22,6 @@ export function SiteEffects() {
       });
     }, { threshold: 0.06 });
     document.querySelectorAll(".reveal").forEach((element) => reveal.observe(element));
-    const stopBrands = [...document.querySelectorAll<HTMLElement>("[data-brand-mark]")].map((brand) => observeMotion(brand, ({ active }) => { brand.dataset.logoVisible = String(active); }));
 
     let frame = 0;
     const updateProgress = () => {
@@ -58,7 +56,6 @@ export function SiteEffects() {
       reveal.disconnect();
       sections.disconnect();
       resize.disconnect();
-      stopBrands.forEach((stop) => stop());
       animations.forEach((animation) => animation.cancel());
       motion.removeEventListener("change", cancelAnimations);
       window.removeEventListener("scroll", schedule);

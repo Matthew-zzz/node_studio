@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { BrandMark } from "@/components/ui/brand";
 import type { IconName } from "@/components/ui/icon";
 import { STATUS_LABELS } from "@/features/portal/model/types";
 import type { WorkStatus } from "@/features/portal/model/types";
@@ -11,7 +12,7 @@ import styles from "./portal.module.css";
 export function WorkspaceBrand() {
   return (
     <Link className={styles.logo} href="/" aria-label="Node Studio — на главную">
-      <span className={styles.logoMark}><Icon name="service" /></span>
+      <BrandMark className={styles.logoMark} size={29} />
       Node
       <small>workspace</small>
     </Link>

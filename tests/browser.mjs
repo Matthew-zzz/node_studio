@@ -61,7 +61,7 @@ try {
     for (const path of ["/", "/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/"]) {
       const response = await page.goto(origin + path);
       assert.equal(response.status(), 200, path);
-      await page.waitForFunction(() => document.querySelector(".brand-symbol[data-logo-visible]"));
+      await page.waitForFunction(() => [...document.querySelectorAll(".brand-symbol img")].some(image => image.complete && image.naturalWidth > 0));
       assert.equal(await page.locator("h1").count(), 1);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${width}px ${path}: horizontal overflow`);
       await page.evaluate(async () => {
