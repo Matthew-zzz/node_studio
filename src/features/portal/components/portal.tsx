@@ -28,6 +28,7 @@ import { MiniAppShell } from "@/features/telegram/components/miniapp-shell";
 export function Portal({ presentation = "web" }: { presentation?: "web" | "miniapp" }) {
   const controller = usePortal(presentation); const { theme, setTheme } = usePortalTheme();
   const [view, setView] = useState<View | null>(null);
+  const [telegramSelection, setTelegramSelection] = useState<{ viewerId: string; csrf: string; threadId: string } | null>(null);
   const [layout, setLayout] = useState<{ viewerId: string; projectId: string; secondary: ProjectView } | null>(null);
   const [source, setSource] = useState<{ viewerId: string; projectId: string; id: string } | null>(null);
   const mobileMenu = useRef<HTMLDialogElement>(null);
@@ -56,10 +57,13 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
   const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
   const activeView = developer && isProjectView(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
   const projectView = isProjectView(activeView) && viewer.role !== "admin";
+  const telegramThread = presentation === "miniapp" && viewer.role === "curator" && activeView === "inbox" && telegramSelection?.viewerId === viewer.id && telegramSelection.csrf === snapshot.csrf ? snapshot.conversations.find(thread => thread.kind === "telegram" && thread.id === telegramSelection.threadId) : undefined;
+  const selectTelegramThread = (id: string | null) => setTelegramSelection(id ? { viewerId: viewer.id, csrf: snapshot.csrf, threadId: id } : null);
   const globalViews = available.filter(key => !isProjectView(key));
   const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : viewer.role === "client" ? snapshot.projects : [];
   const secondaryView = layout?.viewerId === viewer.id && layout.projectId === project?.id && layout.secondary !== activeView ? layout.secondary : null;
   const navigate = (next: View) => {
+    setTelegramSelection(null);
     if (!isProjectView(next)) setLayout(null);
     setView(next); mobileMenu.current?.close();
   };
@@ -86,7 +90,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
   const pageTitle = viewer.mustChangePassword ? "Добро пожаловать" : projectView ? subprojectId ? `${project?.name} / ${project?.subprojects?.find(part => part.id === subprojectId)?.name}` : project?.name ?? "Мои проекты" : views[activeView].label;
   const content = (viewer.mustChangePassword ? <PasswordForm controller={controller} required /> : (
     <>
-      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox controller={controller} /> : activeView === "orders" ? <ProjectOrders controller={controller} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
+      {isAgentView(activeView) ? <AgentAdmin controller={controller} view={activeView} /> : activeView === "errors" ? <AdminErrors controller={controller} /> : activeView === "settings" ? <PasswordForm controller={controller} /> : activeView === "inbox" ? <TelegramInbox key={viewer.id} controller={controller} presentation={presentation} selectedThreadId={telegramThread?.id ?? ""} onSelectThread={selectTelegramThread} /> : activeView === "orders" ? <ProjectOrders controller={controller} checkoutPath={presentation === "miniapp" ? "/miniapp/checkout/" : "/checkout/"} /> : activeView === "queue" ? <DeveloperQueue controller={controller} onAcceptProject={(id, tab) => void acceptProject(id, tab)} onOpenChat={id => void openProject(id, "chat")} onCreateProject={id => void openProject(id)} /> : !project ? <section className={styles.panel}><Empty title="Проект появится здесь" text="После создания проекта вы увидите этапы, задачи и отдельный чат." /></section> : (
         <ProjectWorkspace
           key={`${viewer.id}:${project.id}`}
           project={project}
@@ -104,7 +108,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
     </>
   )
   );
-  if (presentation === "miniapp") return <MiniAppShell key={viewer.id} controller={controller} theme={theme} setTheme={setTheme} activeView={activeView} project={project} onNavigate={navigate} onOpenProject={openProject} onProfileChange={() => setView(null)}>{content}</MiniAppShell>;
+  if (presentation === "miniapp") return <MiniAppShell key={viewer.id} controller={controller} theme={theme} setTheme={setTheme} activeView={activeView} project={project} onNavigate={navigate} onOpenProject={openProject} onProfileChange={() => setView(null)} telegramThread={telegramThread} onCloseTelegramThread={() => selectTelegramThread(null)}>{content}</MiniAppShell>;
   const navigation = (
     <>
       <WorkspaceBrand />

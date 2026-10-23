@@ -11,8 +11,10 @@ import type { Conversation } from "@/features/portal/model/types";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 
-export function Chat({ thread, controller }: { thread: Conversation | undefined; controller: PortalController }) {
-  const [text, setText] = useState("");
+export function Chat({ thread, controller, draft, onDraftChange }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void }) {
+  const [localText, setLocalText] = useState("");
+  const text = draft ?? localText;
+  const setText = onDraftChange ?? setLocalText;
   const log = useRef<HTMLDivElement>(null);
   const { snapshot, busy, run } = controller;
   const viewer = snapshot.viewer;

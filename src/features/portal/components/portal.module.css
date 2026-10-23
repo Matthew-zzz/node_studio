@@ -286,3 +286,13 @@
 .root[data-presentation="miniapp"] .empty { padding: 26px 8px; min-height: 140px; }
 .root[data-presentation="miniapp"] .themeSwitch button { min-width: 44px; min-height: 44px; }
 .root[data-presentation="miniapp"] .themeSwitch button > span:last-child { display: none; }
+.root[data-presentation="miniapp"] .telegramList .inboxList { display: block; max-height: none; overflow: visible; padding: 5px 10px; }
+.root[data-presentation="miniapp"] .telegramList .inboxCard { padding: 0; border-bottom: 1px solid var(--p-line); }
+.root[data-presentation="miniapp"] .telegramList .inboxCard:last-child { border-bottom: 0; }
+.root[data-presentation="miniapp"] .telegramList .inboxItem { padding: 16px 10px; }
+.root[data-presentation="miniapp"] .telegramScreen { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; gap: 10px; }
+.root[data-presentation="miniapp"] .telegramTools { align-self: flex-end; flex: none; }
+.root[data-presentation="miniapp"] .telegramScreen .chat { flex: 1; min-height: 0; }
+.root[data-presentation="miniapp"] .telegramScreen .chatHeader { display: none; }
+.root[data-presentation="miniapp"] .telegramScreen .chatLog { height: auto; min-height: 40px; }
+:global([data-keyboard="true"]) .root[data-presentation="miniapp"] .telegramScreen :is(.telegramTools, .takeover, .handoff) { display: none; }

@@ -5,6 +5,11 @@
 }
 .app { height: 100%; max-width: 560px; margin-inline: auto; display: flex; flex-direction: column; min-width: 0; padding-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px)); padding-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px)); }
 .header { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 12px; padding: calc(10px + var(--miniapp-top)) 16px 10px; border-bottom: 1px solid var(--p-line); background: var(--p-bg); }
+.dialogIdentity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dialogIdentity > div { min-width: 0; }
+.dialogIdentity h1 { font-size: 17px; letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dialogIdentity p { font-size: 11px; color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dialogBack svg { transform: rotate(180deg); }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand > strong { font-size: 21px; letter-spacing: -.8px; }
 .brand > span:last-child { font-size: 11px; color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

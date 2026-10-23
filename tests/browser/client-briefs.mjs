@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 
 export async function checkClientBrief(page, origin, width, screenshots, miniapp = false) {
-  const button = page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
+  if (miniapp) await page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Открыть диалог:/ }).first().click();
+  const button = miniapp ? page.getByRole("region", { name: "Открытый Telegram-диалог", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }) : page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
   const label = await button.getAttribute("aria-label"); await button.click();
   const dialog = page.getByRole("dialog", { name: label, exact: true });
   await dialog.getByText("Бриф готов", { exact: true }).waitFor();

@@ -55,7 +55,8 @@ async function signIn(page, origin, role) {
 async function fits(page, width) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${width}px: no page overflow`);
   assert.ok(await page.evaluate(() => [...document.querySelectorAll('main, dialog[open], [role="log"]')].every(element => element.scrollWidth <= element.clientWidth + 1)), `${width}px: no horizontal scrolling inside screens or dialogs`);
-  const nav = await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).boundingBox();
+  const navigation = page.getByRole("navigation", { name: "Навигация приложения", exact: true });
+  const nav = await navigation.count() ? await navigation.boundingBox() : null;
   if (nav) assert.ok(nav.x >= 0 && nav.x + nav.width <= width + 1 && nav.y + nav.height <= await page.evaluate(() => innerHeight) + 1, "navigation stays inside the viewport");
   assert.equal(await page.locator('main nav[aria-label="Вкладки кабинета"]').count(), 0);
 }
@@ -121,11 +122,38 @@ try {
       await page.screenshot({ path: resolve(screenshots, `${width}-developer-tasks.png`) });
 
       await signIn(page, origin, "curator");
+      assert.equal(await page.getByRole("region", { name: "Telegram-диалог", exact: true }).count(), 0, "the inbox starts with a list, without opening a conversation");
+      await page.getByLabel("Поиск диалогов", { exact: true }).fill("kate_studio");
+      await fits(page, width);
+      await page.screenshot({ path: resolve(screenshots, `${width}-curator-dialog-list.png`) });
       await checkClientBrief(page, origin, width, screenshots, true);
+      assert.equal(await page.getByRole("region", { name: "Очередь обращений", exact: true }).count(), 0, "an open conversation has its own screen");
+      assert.equal(await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).count(), 0);
       await page.getByRole("button", { name: "Подключиться к диалогу", exact: true }).click();
+      await page.getByRole("textbox", { name: "Сообщение", exact: true }).fill("Черновик только для Екатерины");
+      await page.setViewportSize({ width, height: 380 });
+      await page.waitForFunction(() => document.querySelector('[data-keyboard="true"]'));
+      const curatorCompose = await page.getByRole("textbox", { name: "Сообщение", exact: true }).boundingBox();
+      assert.ok(curatorCompose.y >= 0 && curatorCompose.y + curatorCompose.height <= 380, "curator composer stays above the keyboard");
+      await page.setViewportSize({ width, height: 800 });
+      await page.evaluate(() => window.__telegram.back());
+      await page.getByRole("region", { name: "Очередь обращений", exact: true }).waitFor();
+      assert.equal(await page.getByLabel("Поиск диалогов", { exact: true }).inputValue(), "kate_studio");
+      assert.equal(await page.getByRole("region", { name: "Telegram-диалог", exact: true }).count(), 0);
+      await page.getByLabel("Поиск диалогов", { exact: true }).fill("dmitry_product");
+      await page.getByRole("button", { name: "Открыть диалог: Дмитрий", exact: true }).click();
+      assert.equal(await page.getByRole("textbox", { name: "Сообщение", exact: true }).inputValue(), "", "drafts never transfer to another client");
+      await page.getByRole("button", { name: "Вернуться к диалогам", exact: true }).click();
+      await page.getByLabel("Поиск диалогов", { exact: true }).fill("kate_studio");
+      await page.getByRole("button", { name: "Открыть диалог: Екатерина", exact: true }).click();
+      assert.equal(await page.getByRole("textbox", { name: "Сообщение", exact: true }).inputValue(), "Черновик только для Екатерины");
+      await page.getByRole("button", { name: "Покинуть диалог", exact: true }).waitFor();
+      await fits(page, width);
+      await page.screenshot({ path: resolve(screenshots, `${width}-curator-open-dialog.png`) });
       await page.getByRole("textbox", { name: "Сообщение", exact: true }).fill("Здравствуйте, я помогу с проектом");
       await page.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
       await page.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
+      await page.getByRole("button", { name: "Вернуться к диалогам", exact: true }).click();
       await tab(page, "Проекты");
       await page.getByText("Создать для существующего клиента", { exact: true }).click();
       const form = page.getByRole("form", { name: "Создание проекта куратором", exact: true });

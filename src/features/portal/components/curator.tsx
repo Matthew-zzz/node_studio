@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
 import { CuratorProject } from "@/features/portal/components/curator-project";
@@ -14,10 +14,24 @@ import styles from "./portal.module.css";
 
 type InboxFilter = "all" | "waiting" | "mine";
 
-export function TelegramInbox({ controller }: { controller: PortalController }) {
+interface TelegramInboxProps {
+  controller: PortalController;
+  presentation?: "web" | "miniapp";
+  selectedThreadId?: string;
+  onSelectThread?: (id: string | null) => void;
+}
+
+export function TelegramInbox({ controller, presentation = "web", selectedThreadId = "", onSelectThread }: TelegramInboxProps) {
   const [selected, setSelected] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
+  const list = useRef<HTMLDivElement>(null);
+  const listScroll = useRef(0);
+  const miniapp = presentation === "miniapp";
+  useLayoutEffect(() => {
+    if (miniapp && !selectedThreadId) list.current?.closest("main")?.scrollTo({ top: listScroll.current });
+  }, [miniapp, selectedThreadId]);
   const conversations = controller.snapshot.conversations;
   const viewerId = controller.snapshot.viewer?.id;
   const waiting = conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
@@ -30,13 +44,25 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
   }
   function changeSelection(nextFilter: InboxFilter, nextSearch: string) {
     setFilter(nextFilter); setSearch(nextSearch);
-    setSelected(sorted.find(thread => matches(thread, nextFilter, nextSearch))?.id ?? "");
+    if (!miniapp) setSelected(sorted.find(thread => matches(thread, nextFilter, nextSearch))?.id ?? "");
   }
   const threads = sorted.filter(thread => matches(thread, filter, search));
   // Claiming a waiting conversation moves it to "mine" without interrupting the open chat.
-  const thread = conversations.find(thread => thread.id === selected) ?? threads[0];
+  const thread = miniapp ? conversations.find(thread => thread.id === selectedThreadId) : conversations.find(thread => thread.id === selected) ?? threads[0];
+  function selectThread(id: string) {
+    if (miniapp) {
+      listScroll.current = list.current?.closest("main")?.scrollTop ?? 0;
+      onSelectThread?.(id);
+    } else setSelected(id);
+  }
+  if (miniapp && thread) return (
+    <section className={styles.telegramScreen} aria-label="Открытый Telegram-диалог">
+      <div className={styles.telegramTools}><ClientBriefButton thread={thread} controller={controller} /></div>
+      <Chat key={thread.id} thread={thread} controller={controller} draft={drafts[thread.id] ?? ""} onDraftChange={value => setDrafts(previous => ({ ...previous, [thread.id]: value }))} />
+    </section>
+  );
   return (
-    <div className={styles.stack}>
+    <div ref={list} className={`${styles.stack} ${miniapp ? styles.telegramList : ""}`}>
       <section className={`${styles.panel} ${styles.inboxTools}`} aria-label="Поиск обращений">
         <div className={styles.filters} role="group" aria-label="Фильтр диалогов">
           <button type="button" aria-label="Все диалоги" aria-pressed={filter === "all"} onClick={() => changeSelection("all", search)}>
@@ -56,13 +82,13 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
           <input type="search" aria-label="Поиск диалогов" value={search} onChange={event => changeSelection(filter, event.target.value)} placeholder="Имя, @username или почта" />
         </div>
       </section>
-      {thread ? (
+      {(miniapp ? threads.length > 0 : Boolean(thread)) ? (
         <div className={styles.inbox}>
           <section className={`${styles.panel} ${styles.inboxList}`} aria-label="Очередь обращений">
             {threads.length === 0 && <p className={styles.inboxHint}>В этой очереди больше нет обращений. Открытый диалог остаётся у вас.</p>}
             {threads.map(item => (
               <div className={styles.inboxCard} key={item.id}>
-                <button type="button" className={styles.inboxItem} aria-label={`Открыть диалог: ${item.name}`} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => setSelected(item.id)}>
+                <button type="button" className={styles.inboxItem} aria-label={`Открыть диалог: ${item.name}`} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => selectThread(item.id)}>
                   <strong>{item.name}</strong>
                   <span className={styles.small}>
                     @
@@ -71,11 +97,11 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
                   <p>{controller.snapshot.messages.filter(message => message.threadId === item.id).at(-1)?.text ?? "Новый диалог"}</p>
                   {item.handoffRequested && !item.ownerId ? <span className={styles.badge} data-status="pending">Ждёт человека</span> : item.ownerId ? <span className={styles.badge}>{item.ownerName}</span> : <span className={styles.badge}>С ИИ-помощником</span>}
                 </button>
-                <ClientBriefButton thread={item} controller={controller} />
+                {!miniapp && <ClientBriefButton thread={item} controller={controller} />}
               </div>
             ))}
           </section>
-          <Chat key={thread?.id} thread={thread} controller={controller} />
+          {!miniapp && <Chat key={thread?.id} thread={thread} controller={controller} />}
         </div>
       ) : (
         <section className={styles.panel}>

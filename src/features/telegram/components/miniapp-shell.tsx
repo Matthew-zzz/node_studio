@@ -11,7 +11,7 @@ import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { PORTAL_VIEWS, ROLE_VIEWS } from "@/features/portal/model/navigation";
 import type { PortalView } from "@/features/portal/model/navigation";
 import { isProjectView, PROJECT_VIEWS } from "@/features/portal/model/project-views";
-import type { PortalProject, Role } from "@/features/portal/model/types";
+import type { Conversation, PortalProject, Role } from "@/features/portal/model/types";
 import { ROLE_LABELS } from "@/features/portal/model/types";
 import { useTelegramBack } from "@/features/telegram/lib/use-telegram";
 import portal from "@/features/portal/components/portal.module.css";
@@ -26,12 +26,14 @@ interface MiniAppShellProps {
   onNavigate: (view: PortalView) => void;
   onOpenProject: (id: string) => Promise<boolean>;
   onProfileChange: () => void;
+  telegramThread: Conversation | undefined;
+  onCloseTelegramThread: () => void;
   children: ReactNode;
 }
 const tabs: Record<Role, readonly PortalView[]> = { client: PROJECT_VIEWS, developer: PROJECT_VIEWS, curator: ["inbox", "orders"], admin: ["agent", "agent-knowledge", "errors"] };
 const shortLabels: Partial<Record<PortalView, string>> = { overview: "Обзор", orders: "Проекты", "agent-knowledge": "Знания", agent: "Агент" };
 
-export function MiniAppShell({ controller, theme, setTheme, activeView, project, onNavigate, onOpenProject, onProfileChange, children }: MiniAppShellProps) {
+export function MiniAppShell({ controller, theme, setTheme, activeView, project, onNavigate, onOpenProject, onProfileChange, telegramThread, onCloseTelegramThread, children }: MiniAppShellProps) {
   const viewer = controller.snapshot.viewer!;
   const hasProjects = viewer.role === "client" || viewer.role === "developer";
   const [showProjects, setShowProjects] = useState(hasProjects);
@@ -40,14 +42,15 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
   const scroll = useRef<HTMLElement>(null);
   const projects = controller.snapshot.projects.filter(item => viewer.role === "client" || item.developerId === viewer.id);
   const projectVisible = !showProjects && isProjectView(activeView);
-  const canBack = menuOpen || (!showProjects && (hasProjects || activeView !== ROLE_VIEWS[viewer.role][0]));
+  const canBack = Boolean(telegramThread) || menuOpen || (!showProjects && (hasProjects || activeView !== ROLE_VIEWS[viewer.role][0]));
   const back = useCallback(() => {
     const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
     const active = dialogs.item(dialogs.length - 1);
     if (active) { if (active.dispatchEvent(new Event("cancel", { cancelable: true }))) active.close(); return; }
+    if (telegramThread) { onCloseTelegramThread(); return; }
     if (hasProjects) setShowProjects(true); else onNavigate(ROLE_VIEWS[viewer.role][0]!);
     scroll.current?.scrollTo({ top: 0 });
-  }, [hasProjects, onNavigate, viewer.role]);
+  }, [hasProjects, onNavigate, viewer.role, telegramThread, onCloseTelegramThread]);
   useTelegramBack(canBack, back);
   function navigate(view: PortalView) {
     onNavigate(view); setShowProjects(false); menu.current?.close(); scroll.current?.scrollTo({ top: 0 });
@@ -61,14 +64,25 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       <div className={styles.app}>
         <header className={styles.header}>
-          <div className={styles.brand}>
-            <span className={styles.mark}><Icon name="service" /></span>
-            <strong>Node</strong>
-            <span>{ROLE_LABELS[viewer.role]}</span>
-          </div>
+          {telegramThread ? (
+            <div className={styles.dialogIdentity}>
+              <button type="button" className={`${styles.moreButton} ${styles.dialogBack}`} aria-label="Вернуться к диалогам" onClick={onCloseTelegramThread}><Icon name="arrow" /></button>
+              <div>
+                <h1>{telegramThread.name}</h1>
+                <p>{telegramThread.ownerName ? `${telegramThread.ownerName} · на связи` : "Node · ИИ-помощник"}</p>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.brand}>
+              <span className={styles.mark}><Icon name="service" /></span>
+              <strong>Node</strong>
+              <span>{ROLE_LABELS[viewer.role]}</span>
+            </div>
+          )}
           <button className={styles.moreButton} type="button" aria-label="Открыть меню приложения" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => { menu.current?.showModal(); setMenuOpen(true); }}><Icon name="menu" /></button>
         </header>
-        <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={projectVisible && activeView === "chat"}>
+        <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
+          {!telegramThread && (
           <div className={styles.heading}>
             {hasProjects && !showProjects && !viewer.mustChangePassword && (
             <button type="button" className={styles.back} disabled={controller.busy} onClick={() => { setShowProjects(true); scroll.current?.scrollTo({ top: 0 }); }}>
@@ -79,6 +93,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             <h1>{title}</h1>
             {showProjects && <p>{viewer.role === "client" ? "Всё по вашим проектам в одном месте" : "Выберите проект или откройте общую очередь"}</p>}
           </div>
+          )}
           {!viewer.mustChangePassword && showProjects ? (
             <div className={styles.projects}>
               {viewer.role === "developer" && (
@@ -108,7 +123,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             </div>
           ) : children}
         </main>
-        {!viewer.mustChangePassword && (
+        {!viewer.mustChangePassword && !telegramThread && (
           <nav className={styles.tabs} aria-label="Навигация приложения">
             {tabs[viewer.role].map(view => (
               <button type="button" key={view} disabled={controller.busy || (isProjectView(view) && (!project || (viewer.role === "developer" && project.developerId !== viewer.id)))} aria-current={!showProjects && activeView === view ? "page" : undefined} onClick={() => navigate(view)}>
