@@ -8,5 +8,8 @@
 .document details { border-bottom: 1px solid var(--p-line); padding-block: 5px; }
 .document details > p { color: var(--p-text); line-height: 1.75; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 22px; }
+.fullText { width: 100%; max-width: 100%; margin-block: 12px; }
+.linkForm { grid-template-columns: minmax(0, 1fr); margin-top: 16px; }
+.linkForm label { min-width: 0; }
 :global([data-presentation="miniapp"]) .dialog { width: min(520px, calc(100% - 24px)); }
 @media (max-width: 650px) { .actions > button { width: 100%; } }

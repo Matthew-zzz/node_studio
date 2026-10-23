@@ -28,8 +28,9 @@ export const notify = {
     const scope = activeScope();
     return toast.error(message, { duration: 8000, onDismiss: release, onAutoClose: release, ...existingToast(scope, "error", message), ...options, toasterId: scope });
   },
-  success(message: string, options: Options = {}) {
-    return toast.success(message, { duration: 4000, onDismiss: release, onAutoClose: release, ...existingToast(DEFAULT_NOTIFICATION_SCOPE, "success", message), ...options, toasterId: DEFAULT_NOTIFICATION_SCOPE });
+  success(message: string, { scope, ...options }: Options & { scope?: "active" } = {}) {
+    const target = scope === "active" ? activeScope() : DEFAULT_NOTIFICATION_SCOPE;
+    return toast.success(message, { duration: 4000, onDismiss: release, onAutoClose: release, ...existingToast(target, "success", message), ...options, toasterId: target });
   },
   info(message: string, options: Options = {}) {
     return toast.info(message, { duration: 5000, onDismiss: release, onAutoClose: release, ...existingToast(DEFAULT_NOTIFICATION_SCOPE, "info", message), ...options, toasterId: DEFAULT_NOTIFICATION_SCOPE });

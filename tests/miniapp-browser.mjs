@@ -5,7 +5,7 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 import { completeEmailCode, preparePortalFixture } from "./browser/portal.mjs";
-import { checkClientBrief } from "./browser/client-briefs.mjs";
+import { checkClientBrief, checkSharedProjectBrief } from "./browser/client-briefs.mjs";
 
 const screenshots = resolve("test-results/screenshots/miniapp"); await mkdir(screenshots, { recursive: true });
 const server = createStaticServer(resolve(process.env.SITE_OUTPUT_DIR || "dist"));
@@ -195,9 +195,13 @@ try {
       await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).click();
       await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
       assert.equal(fixture.repositories.length, 1);
+      await page.evaluate(() => window.__telegram.back());
+      await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
+      await tab(page, "Обзор"); await checkSharedProjectBrief(page);
 
       await signIn(page, origin, "client");
-      await page.getByRole("button", { name: "Открыть проект one", exact: true }).click(); await tab(page, "Чат");
+      await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
+      await tab(page, "Обзор"); await checkSharedProjectBrief(page); await tab(page, "Чат");
       await page.getByRole("button", { name: "Оплатить · тест", exact: true }).click();
       await page.getByRole("dialog", { name: "Проверка оплаты", exact: true }).getByRole("button", { name: "Подтвердить тестовую оплату", exact: true }).click();
       await page.getByText("Оплачено · тест", { exact: true }).waitFor(); await fits(page, width);

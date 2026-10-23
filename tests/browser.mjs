@@ -20,6 +20,7 @@ const screenshots = resolve(root, "test-results/screenshots");
 await mkdir(screenshots, { recursive: true });
 const server = createStaticServer(resolve(root, process.env.SITE_OUTPUT_DIR || "dist"));
 const errors = [];
+const widths = (process.env.BROWSER_WIDTHS || "1440,768,390,320").split(",").map(Number);
 let browser;
 let portal;
 let portalWorker;
@@ -43,7 +44,7 @@ try {
     ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}),
   });
 
-  for (const width of [1440, 768, 390, 320]) {
+  for (const width of widths) {
     clearInterval(portalWorker);
     portal.close();
     portal = portalFixture(origin);
@@ -150,7 +151,7 @@ try {
   assert.equal(await fallbackMarquee.locator('ul[aria-hidden="true"]').isVisible(), false);
   await noJs.close();
   assert.deepEqual(errors, [], "no console, network or hydration errors");
-  console.log("Passed: 4 viewports, authenticated profile switching across tabs, marketing, role accounts, server-backed payment stub, chat handoff, confirmed tasks, initial project creation, themes and no public demo routes.");
+  console.log(`Passed: ${widths.length} viewports, authenticated profile switching across tabs, marketing, role accounts, server-backed payment stub, chat handoff, confirmed tasks, initial project creation, themes and no public demo routes.`);
 } finally {
   await browser?.close();
   clearInterval(portalWorker);

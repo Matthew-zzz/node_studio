@@ -19,6 +19,7 @@ export interface Records {
   commits: PortalCommit & { id: string };
   conversations: Conversation;
   clientBriefs: ClientBrief;
+  briefLinks: { id: string; threadId: string; projectId: string; curatorId: string; updatedAt: string };
   briefRequests: { id: string; threadId: string; actorId: string; sourceHash: string; model: string; inputs: string[]; results: BriefDocument[]; round: number; step: number };
   messages: ChatMessage;
   drafts: TaskDraft;

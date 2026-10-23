@@ -21,6 +21,12 @@ export interface ClientBrief {
   readonly documentHash?: string;
   readonly generatedAt?: string;
   readonly updatedAt: string;
+  readonly projectId?: string;
+}
+export interface ProjectClientBrief {
+  readonly projectId: string;
+  readonly document: BriefDocument;
+  readonly generatedAt: string;
 }
 export function briefText(document: BriefDocument): string {
   return [`Техническое задание: ${document.name}`, ...BRIEF_SECTIONS.map(section => `${section.label}\n${document[section.key]}`)].join("\n\n");

@@ -5,7 +5,7 @@ import type { Integrations } from "./integrations.ts";
 import type { ErrorJournal } from "./error-journal.ts";
 import { withErrorContext } from "./error-context.ts";
 import type { ChatMessage, Viewer } from "../src/features/portal/model/types.ts";
-import type { ClientBrief } from "../src/features/portal/model/client-brief.ts";
+import type { ClientBrief, ProjectClientBrief } from "../src/features/portal/model/client-brief.ts";
 
 export function briefSource(messages: readonly ChatMessage[]) {
   return createHash("sha256").update(JSON.stringify(messages.map(({ id, role, author, text, createdAt }) => ({ id, role, author, text, createdAt })))).digest("hex");
@@ -65,7 +65,31 @@ export class ClientBriefs {
   }
 
   state(): ClientBrief[] {
-    return this.store.all("clientBriefs").map(brief => ({ ...brief, stale: Boolean(brief.document && brief.documentHash !== briefSource(this.messages(brief.threadId))) }));
+    return this.store.all("clientBriefs").map(brief => {
+      const link = this.store.get("briefLinks", brief.threadId);
+      return { ...brief, ...(link ? { projectId: link.projectId } : {}), stale: Boolean(brief.document && brief.documentHash !== briefSource(this.messages(brief.threadId))) };
+    });
+  }
+
+  link(viewer: Viewer, threadId: string, projectId: string) {
+    if (viewer.role !== "curator" || viewer.mustChangePassword) throw new PortalError(403, "Привязать бриф к проекту может только куратор.");
+    const thread = this.store.get("conversations", threadId);
+    if (!thread || thread.kind !== "telegram" || !this.store.get("clientBriefs", threadId)) throw new PortalError(404, "Бриф клиента не найден.");
+    this.store.transaction(() => {
+      if (!projectId) { this.store.db.prepare("DELETE FROM records WHERE kind='briefLinks' AND id=?").run(threadId); return; }
+      const project = this.store.get("projects", projectId);
+      if (!project || project.status === "archived") throw new PortalError(404, "Проект не найден.");
+      if (this.store.all("briefLinks").some(link => link.projectId === projectId && link.threadId !== threadId)) throw new PortalError(409, "У проекта уже есть другой бриф. Сначала снимите его привязку.");
+      this.store.put("briefLinks", { id: threadId, threadId, projectId, curatorId: viewer.id, updatedAt: now() });
+    });
+  }
+
+  projects(): ProjectClientBrief[] {
+    return this.store.all("briefLinks").flatMap(link => {
+      const brief = this.store.get("clientBriefs", link.threadId);
+      const project = this.store.get("projects", link.projectId);
+      return brief?.document && brief.generatedAt && project && project.status !== "archived" ? [{ projectId: project.id, document: brief.document, generatedAt: brief.generatedAt }] : [];
+    });
   }
 
   private enqueue(request: Records["briefRequests"]) {

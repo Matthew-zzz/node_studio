@@ -163,6 +163,8 @@ export class PortalService {
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
       clientBriefs: viewer.role === "curator" && !viewer.mustChangePassword ? this.briefs.state() : [],
+      projectBriefs: !viewer.mustChangePassword && ["client", "developer"].includes(viewer.role) ? this.briefs.projects() : [],
+      briefProjects: viewer.role === "curator" && !viewer.mustChangePassword ? projects.map(({ id, name, clientName, clientEmail }) => ({ id, name, clientName, clientEmail })) : [],
       hasMoreCommits: info?.more ?? false, syncedAt: info?.at || null, syncError: info?.error ?? null, integrations: this.integrations.ready,
       repositoryStatus: selected ? Object.fromEntries(projectRepositories(selected).map(part => { const state = this.synced.get(`${selected.id}:${part.id}`); return [part.id, { hasMore: state?.more ?? false, at: state?.at || null, error: state?.error ?? null }]; })) : {},
     };
@@ -206,6 +208,7 @@ export class PortalService {
     this.role(viewer, ["client", "developer", "curator"]);
     const type = text(action.type, 40);
     if (type === "brief.generate") { this.briefs.request(viewer, text(action.threadId, 100), this.agent.settings().model, action.refresh === true); return; }
+    if (type === "brief.link") { this.briefs.link(viewer, text(action.threadId, 100), text(action.projectId, 100, 0)); return; }
     if (type === "project.request") { this.projects.request(viewer, action); return; }
     if (type === "project.create") { await this.projects.create(viewer, action); return; }
     if (type === "project.repository.create") {

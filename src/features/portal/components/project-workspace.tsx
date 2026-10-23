@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/ui/icon";
 import { Chat } from "@/features/portal/components/chat";
+import { ProjectClientBrief } from "@/features/portal/components/client-brief";
 import { CommitHistory, ProjectBrief, Stages, Tasks } from "@/features/portal/components/project-work";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalProject } from "@/features/portal/model/types";
@@ -43,6 +44,7 @@ function ProjectSection({ project, controller, view, companion, subprojectId }: 
     <div className={portalStyles.stack}>
       <Stages project={project} controller={controller} {...(subprojectId ? { subprojectId } : {})} />
       {companion !== "tasks" && <Tasks project={project} controller={controller} compact />}
+      <ProjectClientBrief brief={controller.snapshot.projectBriefs?.find(brief => brief.projectId === project.id)} />
       <ProjectBrief project={project} />
     </div>
   );

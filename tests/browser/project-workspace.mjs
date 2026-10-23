@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { login, openProject } from "./portal.mjs";
+import { checkSharedProjectBrief } from "./client-briefs.mjs";
 
 export async function checkProjectWorkspace(browser, origin, width, screenshots, fixture) {
   const developer = fixture.login("developer").session;
@@ -33,6 +34,7 @@ export async function checkProjectWorkspace(browser, origin, width, screenshots,
       const draft = "Несохранённое сообщение проекта one";
       await chat.getByLabel("Сообщение", { exact: true }).fill(draft);
       await leftSelect.selectOption("overview");
+      await checkSharedProjectBrief(page);
       assert.equal(await chat.getByLabel("Сообщение", { exact: true }).inputValue(), draft);
       await openProject(page, width, "one", "История");
       assert.equal(await chat.getByLabel("Сообщение", { exact: true }).inputValue(), draft, "sidebar navigation preserves the pinned chat and its draft");

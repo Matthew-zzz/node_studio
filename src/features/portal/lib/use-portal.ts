@@ -6,6 +6,7 @@ import type { PortalAction, PortalSnapshot, Role } from "@/features/portal/model
 import type { EmailChallenge, LoginResult } from "@/features/portal/model/auth";
 import { createApiGateway } from "@/features/portal/lib/gateway";
 import { notify } from "@/lib/notifications";
+import { BriefUpdates } from "@/features/portal/model/brief-updates";
 
 const successMessages: Partial<Record<PortalAction["type"], string>> = {
   "brief.generate": "Подготовка брифа запущена. Можно продолжать работу.",
@@ -23,6 +24,13 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
   const gateway = useMemo(() => createApiGateway(presentation), [presentation]);
   useEffect(() => { gateway.activate(); return () => gateway.dispose(); }, [gateway]);
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
+  const [briefUpdates] = useState(() => new BriefUpdates());
+  useEffect(() => {
+    for (const event of briefUpdates.observe(snapshot)) {
+      if (event.success) notify.success(event.message, { scope: "active" });
+      else notify.error(event.message);
+    }
+  }, [snapshot, briefUpdates]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [challenge, setChallenge] = useState<EmailChallenge | null>(null);
@@ -82,7 +90,7 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
     return () => { connection.close(); channel.current = null; };
   }, [refresh, invalidate]);
 
-  async function perform(action: () => Promise<void>, success?: string, projectId?: string): Promise<boolean> {
+  async function perform(action: () => Promise<void>, success?: string, projectId?: string, activeNotification = false): Promise<boolean> {
     if (pending.current) return false;
     pending.current = true; setBusy(true); sequence.current++;
     try {
@@ -90,11 +98,19 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
       const next = await refresh();
       if (projectId && next?.selectedProjectId !== projectId) return false;
       if (actionNotification.current !== undefined) { notify.dismiss(actionNotification.current); actionNotification.current = undefined; }
-      if (success) notify.success(success);
+      if (success) notify.success(success, activeNotification ? { scope: "active" } : {});
       return true;
     }
     catch (error) { actionNotification.current = notify.error(error instanceof Error ? error.message : "Не удалось выполнить действие."); return false; }
     finally { pending.current = false; setBusy(false); }
+  }
+  async function run(action: PortalAction): Promise<boolean> {
+    if (pending.current) return false;
+    const tracked = action.type === "brief.generate" ? briefUpdates.track(snapshot, action.threadId, action.refresh === true) : undefined;
+    const success = action.type === "brief.link" ? action.projectId ? "Бриф добавлен в обзор проекта." : "Привязка брифа к проекту снята." : successMessages[action.type];
+    const result = await perform(() => gateway.action(action), success, undefined, action.type === "brief.generate" || action.type === "brief.link");
+    if (!result) briefUpdates.cancel(tracked);
+    return result;
   }
   async function authenticate(action: () => Promise<LoginResult>): Promise<void> {
     const authRequest = ++authSequence.current;
@@ -110,7 +126,7 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
   }
   return {
     snapshot, loading, busy, challenge, refresh, agent: gateway.agent, errors: gateway.errors,
-    run: (action: PortalAction) => perform(() => gateway.action(action), successMessages[action.type]),
+    run,
     select: (projectId: string) => perform(async () => { selected.current = projectId; pages.current = 1; }, undefined, projectId),
     acceptProject: (projectId: string) => perform(async () => {
       await gateway.action({ type: "project.accept", projectId });
