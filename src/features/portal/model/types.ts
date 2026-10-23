@@ -1,4 +1,5 @@
 import type { ClientBrief, ProjectClientBrief } from "./client-brief";
+import type { PaymentDelivery, ResendPaymentAction } from "./payment-delivery";
 export type Role = "client" | "developer" | "admin";
 export type WorkStatus = "new" | "in_progress" | "done" | "canceled";
 
@@ -146,6 +147,7 @@ export interface PortalSnapshot {
   readonly drafts: readonly TaskDraft[];
   readonly quotes: readonly PortalQuote[];
   readonly orders: readonly ProjectOrder[];
+  readonly paymentDeliveries: readonly PaymentDelivery[];
   readonly clientBriefs: readonly ClientBrief[];
   readonly projectBriefs: readonly ProjectClientBrief[];
   readonly briefProjects?: readonly Pick<PortalProject, "id" | "name" | "clientName" | "clientEmail">[];
@@ -173,11 +175,12 @@ export interface NewOrder {
 
 export const EMPTY_SNAPSHOT: PortalSnapshot = {
   viewer: null, profiles: [], csrf: "", selectedProjectId: "", projects: [], tasks: [], stages: [], commits: [],
-  conversations: [], messages: [], drafts: [], quotes: [], orders: [], clientBriefs: [], projectBriefs: [], hasMoreCommits: false, syncedAt: null,
+  conversations: [], messages: [], drafts: [], quotes: [], orders: [], paymentDeliveries: [], clientBriefs: [], projectBriefs: [], hasMoreCommits: false, syncedAt: null,
   syncError: null, integrations: { github: false, telegram: false, ai: false, mail: false, payments: "disabled" },
 };
 
 export type PortalAction =
+  | ResendPaymentAction
   | { type: "brief.generate"; threadId: string; refresh?: boolean }
   | { type: "brief.link"; threadId: string; projectId: string }
   | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string }

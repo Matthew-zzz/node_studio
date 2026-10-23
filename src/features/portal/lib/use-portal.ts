@@ -7,6 +7,7 @@ import type { EmailChallenge, LoginResult } from "@/features/portal/model/auth";
 import { createApiGateway } from "@/features/portal/lib/gateway";
 import { notify } from "@/lib/notifications";
 import { BriefUpdates } from "@/features/portal/model/brief-updates";
+import { PaymentUpdates } from "@/features/portal/model/payment-updates";
 
 const successMessages: Partial<Record<PortalAction["type"], string>> = {
   "brief.generate": "Подготовка брифа запущена. Можно продолжать работу.",
@@ -27,12 +28,13 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
   useEffect(() => { gateway.activate(); return () => gateway.dispose(); }, [gateway]);
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
   const [briefUpdates] = useState(() => new BriefUpdates());
+  const [paymentUpdates] = useState(() => new PaymentUpdates());
   useEffect(() => {
-    for (const event of briefUpdates.observe(snapshot)) {
+    for (const event of [...briefUpdates.observe(snapshot), ...paymentUpdates.observe(snapshot)]) {
       if (event.success) notify.success(event.message, { scope: "active" });
       else notify.error(event.message);
     }
-  }, [snapshot, briefUpdates]);
+  }, [snapshot, briefUpdates, paymentUpdates]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [challenge, setChallenge] = useState<EmailChallenge | null>(null);
@@ -109,9 +111,11 @@ export function usePortal(presentation: "web" | "miniapp" = "web") {
   async function run(action: PortalAction): Promise<boolean> {
     if (pending.current) return false;
     const tracked = action.type === "brief.generate" ? briefUpdates.track(snapshot, action.threadId, action.refresh === true) : undefined;
+    if (action.type === "payment.resend") paymentUpdates.track(snapshot, action);
     const success = action.type === "brief.link" ? action.projectId ? "Бриф добавлен в обзор проекта." : "Привязка брифа к проекту снята." : successMessages[action.type];
     const result = await perform(() => gateway.action(action), success, undefined, action.type === "brief.generate" || action.type === "brief.link");
     if (!result) briefUpdates.cancel(tracked);
+    if (!result && action.type === "payment.resend") paymentUpdates.cancel(action.requestId);
     return result;
   }
   async function authenticate(action: () => Promise<LoginResult>): Promise<void> {

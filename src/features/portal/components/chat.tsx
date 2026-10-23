@@ -13,6 +13,7 @@ import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 import { ActionsDialog } from "@/features/portal/components/focus-dialog";
 import { DeletePayment } from "@/features/portal/components/delete-confirmation";
+import { ResendPayment } from "@/features/portal/components/resend-payment";
 
 export function Chat({ thread, controller, draft, onDraftChange, showHeader = true }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void; showHeader?: boolean }) {
   const [localText, setLocalText] = useState("");
@@ -91,7 +92,16 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
             {human && <LongText text={`Стоимость разработчика: ${formatRubles(quote.baseKopecks)}\nНаценка 30%: ${formatRubles(quote.markupKopecks)}\nИтого клиенту: ${formatRubles(quote.totalKopecks)}`} label="Расчёт стоимости" />}
             {quote.status === "paid" ? <span className={styles.badge} data-status="paid">Оплачено · тест</span> : viewer.role === "client" ? snapshot.integrations.payments === "mock" ? <PaymentButton total={quote.totalKopecks} busy={busy} onPay={outcome => run({ type: "quote.pay", quoteId: quote.id, outcome })} /> : <p className={styles.small}>Оплата временно недоступна. Напишите в поддержку студии.</p> : <span className={styles.badge} data-status="pending">Ожидает оплаты</span>}
             {quote.status !== "paid" && <p className={styles.small} style={{ marginTop: 9 }}>Тестовый платёж без списания денег.</p>}
-            {viewer.role === "developer" && <ActionsDialog label={`Действия оплаты: ${quote.title}`} busy={busy} actions={[{ label: "Удалить оплату", icon: "trash", danger: true, content: close => <DeletePayment kind="quote" payment={quote} controller={controller} onClose={close} /> }]} />}
+            {viewer.role === "developer" && (
+            <ActionsDialog
+              label={`Действия оплаты: ${quote.title}`}
+              busy={busy}
+              actions={[
+              ...(quote.status === "pending" ? [{ label: "Повторно отправить ссылку", icon: "telegram" as const, content: <ResendPayment source="quote" sourceId={quote.id} controller={controller} /> }] : []),
+              { label: "Удалить оплату", icon: "trash", danger: true, content: close => <DeletePayment kind="quote" payment={quote} controller={controller} onClose={close} /> },
+            ]}
+            />
+)}
           </article>
         ))}
       </div>

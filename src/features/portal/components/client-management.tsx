@@ -8,6 +8,7 @@ import { CreateProject } from "@/features/portal/components/project-manager";
 import { ClientProjectForm } from "@/features/portal/components/client-project-form";
 import { ClientBriefButton } from "@/features/portal/components/client-brief";
 import { DeletePayment } from "@/features/portal/components/delete-confirmation";
+import { ResendPayment } from "@/features/portal/components/resend-payment";
 import { ProjectInfo } from "@/features/portal/components/project-work";
 import { Empty } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
@@ -212,6 +213,7 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
               label={`Действия заказа: ${order.projectName}`}
               busy={controller.busy}
               actions={[
+              ...(order.status === "pending" ? [{ label: "Повторно отправить ссылку", icon: "telegram" as const, content: <ResendPayment source="order" sourceId={order.id} controller={controller} /> }] : []),
               { label: "Согласованное ТЗ", icon: "document", content: <p>{order.brief}</p> },
               { label: "Контакты клиента", icon: "people", content: <p>{`${order.clientName}\n${order.email}\n@${order.username.replace(/^@/, "")}`}</p> },
               { label: "Удалить оплату", icon: "trash", danger: true, content: close => <DeletePayment kind="order" payment={order} controller={controller} onClose={close} /> },

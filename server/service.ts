@@ -170,6 +170,7 @@ export class PortalService {
       tasks: this.store.all("tasks").map(task => ({ ...task, paid: quotes.some(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameWorkSource(quote, task) && quote.status === "paid") })), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes, orders: this.store.all("orders"),
+      paymentDeliveries: viewer.role === "developer" && !viewer.mustChangePassword ? this.paymentNotifications.state() : [],
       clientBriefs: viewer.role === "developer" && !viewer.mustChangePassword ? this.briefs.state() : [],
       projectBriefs: !viewer.mustChangePassword && ["client", "developer"].includes(viewer.role) ? this.briefs.projects() : [],
       briefProjects: viewer.role === "developer" && !viewer.mustChangePassword ? projects.map(({ id, name, clientName, clientEmail }) => ({ id, name, clientName, clientEmail })) : [],
@@ -215,6 +216,13 @@ export class PortalService {
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     this.role(viewer, ["client", "developer"]);
     const type = text(action.type, 40);
+    if (type === "payment.resend") {
+      this.role(viewer, ["developer"]);
+      const source = action.source; const channel = action.channel;
+      if ((source !== "order" && source !== "quote") || (channel !== "both" && channel !== "mail" && channel !== "telegram")) throw new PortalError(400, "Выберите способ отправки ссылки.");
+      this.paymentNotifications.resend(viewer, { type, source, channel, sourceId: text(action.sourceId, 100), requestId: text(action.requestId, 100) });
+      return;
+    }
     if (type === "brief.generate") { this.briefs.request(viewer, text(action.threadId, 100), this.agent.settings().model, action.refresh === true); return; }
     if (type === "brief.link") { this.briefs.link(viewer, text(action.threadId, 100), text(action.projectId, 100, 0)); return; }
     if (type === "project.request") { this.projects.request(viewer, action); return; }
