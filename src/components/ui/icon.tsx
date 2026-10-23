@@ -53,6 +53,11 @@ const paths = {
   menu: (<>
     <path d="M4 7h16M4 12h16M4 17h16" />
   </>),
+  more: (<>
+    <circle cx="5" cy="12" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+  </>),
   site: (<>
     <rect x="3" y="4" width="18" height="16" rx="3" />
     <path d="M3 9h18M7 6.5h.01M10 6.5h.01M7 13h5M7 16h9" />

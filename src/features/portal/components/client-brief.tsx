@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Notifications } from "@/components/ui/notifications";
 import { Icon } from "@/components/ui/icon";
 import { BRIEF_SECTIONS, briefText } from "@/features/portal/model/client-brief";
@@ -8,12 +9,18 @@ import type { BriefDocument, ProjectClientBrief as SharedBrief } from "@/feature
 import type { Conversation } from "@/features/portal/model/types";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import { notify } from "@/lib/notifications";
+import { Empty } from "@/features/portal/components/ui";
 import portal from "./portal.module.css";
 import styles from "./client-brief.module.css";
 
 const statuses = { queued: "Бриф поставлен в очередь", generating: "ИИ составляет итоговое ТЗ", retrying: "ИИ временно недоступен. Повторим автоматически.", failed: "Не удалось подготовить бриф. Администратор получил подробности ошибки.", ready: "Бриф готов" };
 
-export function ClientBriefButton({ thread, controller }: { thread: Conversation; controller: PortalController }) {
+interface BriefTriggerProps {
+  renderTrigger?: (show: () => void) => ReactNode;
+  onClose?: () => void;
+}
+
+export function ClientBriefButton({ thread, controller, renderTrigger, onClose }: { thread: Conversation; controller: PortalController } & BriefTriggerProps) {
   const [open, setOpen] = useState(false); const [fullText, setFullText] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -40,11 +47,13 @@ export function ClientBriefButton({ thread, controller }: { thread: Conversation
   }
   return (
     <>
-      <button type="button" className={`${portal.secondary} ${styles.trigger}`} aria-label={`Итоговый бриф: ${clientLabel}`} disabled={controller.busy} onClick={show}>
-        <Icon name="document" />
-        Итоговый бриф
-      </button>
-      <dialog ref={dialog} className={`${portal.dialog} ${styles.dialog}`} aria-label={`Итоговый бриф: ${clientLabel}`} onClose={() => setOpen(false)}>
+      {renderTrigger ? renderTrigger(show) : (
+        <button type="button" className={`${portal.secondary} ${styles.trigger}`} aria-label={`Итоговый бриф: ${clientLabel}`} disabled={controller.busy} onClick={show}>
+          <Icon name="document" />
+          Итоговый бриф
+        </button>
+)}
+      <dialog ref={dialog} className={`${portal.dialog} ${styles.dialog}`} aria-label={`Итоговый бриф: ${clientLabel}`} onClose={() => { setOpen(false); onClose?.(); }}>
         {open && (
         <>
           <Notifications modal />
@@ -85,6 +94,40 @@ export function ClientBriefButton({ thread, controller }: { thread: Conversation
 )}
         </>
 )}
+      </dialog>
+    </>
+  );
+}
+
+export function ProjectBriefButton({ brief, projectName, renderTrigger, onClose }: { brief: SharedBrief | undefined; projectName: string; renderTrigger: (show: () => void) => ReactNode } & Pick<BriefTriggerProps, "onClose">) {
+  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (open && !dialog.current?.open) dialog.current?.showModal(); }, [open]);
+  return (
+    <>
+      {renderTrigger(() => setOpen(true))}
+      <dialog ref={dialog} className={`${portal.dialog} ${styles.dialog}`} aria-label={`Итоговый бриф проекта: ${projectName}`} onClose={() => { setOpen(false); onClose?.(); }}>
+        {open && (
+          <>
+            <Notifications modal />
+            <div className={styles.header}>
+              <div>
+                <span className={portal.kicker}>{projectName}</span>
+                <h2>Итоговый бриф</h2>
+              </div>
+              <button type="button" className={portal.iconButton} aria-label="Закрыть итоговый бриф" onClick={() => dialog.current?.close()}><Icon name="close" /></button>
+            </div>
+            {brief ? (
+              <>
+                <BriefDocumentContent document={brief.document} generatedAt={brief.generatedAt} />
+                <details>
+                  <summary>ТЗ целиком</summary>
+                  <textarea className={styles.fullText} readOnly aria-label="Полный текст итогового брифа" rows={12} value={briefText(brief.document)} onFocus={event => event.currentTarget.select()} />
+                </details>
+              </>
+            ) : <Empty title="Бриф ещё не добавлен" text="Он появится здесь, когда куратор привяжет готовый бриф к этому проекту." icon="document" />}
+          </>
+        )}
       </dialog>
     </>
   );

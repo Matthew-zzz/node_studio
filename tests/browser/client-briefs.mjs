@@ -4,9 +4,27 @@ import { fixtureAt } from "../helpers/portal-fixture.mjs";
 
 export async function checkClientBrief(page, origin, width, screenshots, miniapp = false) {
   if (miniapp) await page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Открыть диалог:/ }).first().click();
-  const button = miniapp ? page.getByRole("region", { name: "Открытый Telegram-диалог", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }) : page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
-  const label = await button.getAttribute("aria-label"); await button.click();
-  const dialog = page.getByRole("dialog", { name: label, exact: true });
+  const button = page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
+  const show = async () => {
+    if (miniapp) {
+      await page.locator("header").getByRole("button", { name: "Открыть действия диалога", exact: true }).click();
+      await page.getByRole("dialog", { name: "Действия диалога", exact: true }).getByRole("button", { name: "Итоговый бриф", exact: true }).click();
+    } else await button.click();
+  };
+  if (miniapp) {
+    const before = fixtureAt(origin).store.all("clientBriefs").length;
+    const trigger = page.locator("header").getByRole("button", { name: "Открыть действия диалога", exact: true });
+    await trigger.click();
+    const menu = page.getByRole("dialog", { name: "Действия диалога", exact: true });
+    assert.equal(await menu.getByRole("button", { name: "Итоговый бриф", exact: true }).count(), 1);
+    assert.equal(await page.locator("header").getByText("Node · ИИ-помощник", { exact: true }).count(), 0);
+    await page.screenshot({ path: resolve(screenshots, `${width}-curator-chat-actions.png`) });
+    await page.evaluate(() => window.__telegram.back()); await menu.waitFor({ state: "hidden" });
+    assert.equal(fixtureAt(origin).store.all("clientBriefs").length, before, "opening actions does not start AI generation");
+    assert.ok(await trigger.evaluate(element => element === document.activeElement));
+  }
+  await show();
+  const dialog = page.getByRole("dialog", { name: /^Итоговый бриф:/ });
   await dialog.getByText("Бриф готов", { exact: true }).waitFor();
   for (const title of ["Цель проекта", "Пользователи и сценарии", "Функциональные требования", "Дизайн и платформы", "Интеграции и данные", "Ограничения, бюджет и сроки", "Критерии готовности", "Открытые вопросы и противоречия"]) assert.ok(await dialog.getByText(title, { exact: true }).isVisible());
   await dialog.getByText("ТЗ целиком", { exact: true }).click();
@@ -41,11 +59,36 @@ export async function checkClientBrief(page, origin, width, screenshots, miniapp
   assert.notEqual(refreshed.clientBriefs[0].generatedAt, generatedAt);
   assert.equal(refreshed.clientBriefs[0].projectId, "one");
   await dialog.getByRole("button", { name: "Закрыть итоговый бриф", exact: true }).click();
-  await button.click(); await dialog.getByText("Бриф готов", { exact: true }).waitFor();
+  await show(); await dialog.getByText("Бриф готов", { exact: true }).waitFor();
   const repeat = await (await page.request.get(`${origin}/api/portal/snapshot`, { headers: miniapp ? { "X-Portal-Client": "miniapp" } : {} })).json();
   assert.equal(repeat.clientBriefs[0].generatedAt, refreshed.clientBriefs[0].generatedAt);
   if (miniapp) { await page.waitForFunction(() => window.__telegram.backVisible); await page.evaluate(() => window.__telegram.back()); await dialog.waitFor({ state: "hidden" }); }
   else await dialog.getByRole("button", { name: "Закрыть итоговый бриф", exact: true }).click();
+}
+
+export async function checkProjectChatActions(page, { miniapp = false, ready = false } = {}) {
+  const chat = page.getByRole("region", { name: "Чат проекта", exact: true });
+  const trigger = chat.getByRole("button", { name: "Открыть действия диалога", exact: true });
+  assert.equal(await chat.getByText("Node · ИИ-помощник", { exact: true }).count(), 0);
+  const menu = page.getByRole("dialog", { name: "Действия диалога", exact: true });
+  await trigger.click();
+  if (miniapp) await page.evaluate(() => window.__telegram.back()); else await page.keyboard.press("Escape");
+  await menu.waitFor({ state: "hidden" });
+  assert.ok(await trigger.evaluate(element => element === document.activeElement));
+  await trigger.click();
+  await menu.getByRole("button", { name: "Итоговый бриф", exact: true }).click();
+  const brief = page.getByRole("dialog", { name: /^Итоговый бриф проекта:/ });
+  if (ready) {
+    await brief.getByText("ТЗ целиком", { exact: true }).click();
+    assert.ok((await brief.getByRole("textbox", { name: "Полный текст итогового брифа", exact: true }).inputValue()).includes("Поиск товаров и фильтры"));
+  } else await brief.getByRole("heading", { name: "Бриф ещё не добавлен", exact: true }).waitFor();
+  assert.equal(await brief.getByRole("button", { name: "Обновить бриф", exact: true }).count(), 0);
+  assert.ok(await brief.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
+  if (miniapp) await page.evaluate(() => window.__telegram.back());
+  else await brief.getByRole("button", { name: "Закрыть итоговый бриф", exact: true }).click();
+  await brief.waitFor({ state: "hidden" });
+  assert.ok(await trigger.evaluate(element => element === document.activeElement));
+  await chat.waitFor();
 }
 
 export async function checkSharedProjectBrief(page) {

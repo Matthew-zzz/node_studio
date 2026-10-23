@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { login, openProject } from "./portal.mjs";
-import { checkSharedProjectBrief } from "./client-briefs.mjs";
+import { checkSharedProjectBrief, checkProjectChatActions } from "./client-briefs.mjs";
 
 export async function checkProjectWorkspace(browser, origin, width, screenshots, fixture) {
   const developer = fixture.login("developer").session;
@@ -22,6 +22,7 @@ export async function checkProjectWorkspace(browser, origin, width, screenshots,
       const leftSelect = workspace.getByLabel("Раздел слева", { exact: true });
       const rightSelect = workspace.getByLabel("Раздел справа", { exact: true });
       const chat = workspace.getByRole("region", { name: "Чат проекта", exact: true });
+      await checkProjectChatActions(page, { ready: true });
       await left.getByRole("heading", { name: "init: первоначальная версия проекта", exact: true }).waitFor();
       await right.getByText("Личная переписка one", { exact: true }).waitFor();
       const leftBounds = await left.boundingBox(); const rightBounds = await right.boundingBox();

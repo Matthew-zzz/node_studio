@@ -5,7 +5,7 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 import { completeEmailCode, preparePortalFixture } from "./browser/portal.mjs";
-import { checkClientBrief, checkSharedProjectBrief } from "./browser/client-briefs.mjs";
+import { checkClientBrief, checkSharedProjectBrief, checkProjectChatActions } from "./browser/client-briefs.mjs";
 
 const screenshots = resolve("test-results/screenshots/miniapp"); await mkdir(screenshots, { recursive: true });
 const server = createStaticServer(resolve(process.env.SITE_OUTPUT_DIR || "dist"));
@@ -85,6 +85,7 @@ try {
       await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
       await tab(page, "Чат");
       const chat = page.getByRole("region", { name: "Чат проекта", exact: true });
+      await checkProjectChatActions(page, { miniapp: true });
       await chat.getByLabel("Сообщение", { exact: true }).fill("Добавить удобный поиск товаров");
       await page.setViewportSize({ width, height: 380 });
       await page.waitForFunction(() => document.querySelector('[data-keyboard="true"]'));
@@ -198,10 +199,12 @@ try {
       await page.evaluate(() => window.__telegram.back());
       await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
       await tab(page, "Обзор"); await checkSharedProjectBrief(page);
+      await tab(page, "Чат"); await checkProjectChatActions(page, { miniapp: true, ready: true });
 
       await signIn(page, origin, "client");
       await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
       await tab(page, "Обзор"); await checkSharedProjectBrief(page); await tab(page, "Чат");
+      await checkProjectChatActions(page, { miniapp: true, ready: true });
       await page.getByRole("button", { name: "Оплатить · тест", exact: true }).click();
       await page.getByRole("dialog", { name: "Проверка оплаты", exact: true }).getByRole("button", { name: "Подтвердить тестовую оплату", exact: true }).click();
       await page.getByText("Оплачено · тест", { exact: true }).waitFor(); await fits(page, width);

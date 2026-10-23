@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { Notifications } from "@/components/ui/notifications";
 import { Empty, ThemeSwitch } from "@/features/portal/components/ui";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
+import { ChatActions } from "@/features/portal/components/chat-actions";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { PORTAL_VIEWS, ROLE_VIEWS } from "@/features/portal/model/navigation";
@@ -69,7 +70,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               <button type="button" className={`${styles.moreButton} ${styles.dialogBack}`} aria-label="Вернуться к диалогам" onClick={onCloseTelegramThread}><Icon name="arrow" /></button>
               <div>
                 <h1>{telegramThread.name}</h1>
-                <p>{telegramThread.ownerName ? `${telegramThread.ownerName} · на связи` : "Node · ИИ-помощник"}</p>
+                {telegramThread.ownerName && <p>{`${telegramThread.ownerName} · на связи`}</p>}
               </div>
             </div>
           ) : (
@@ -79,7 +80,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               <span>{ROLE_LABELS[viewer.role]}</span>
             </div>
           )}
-          <button className={styles.moreButton} type="button" aria-label="Открыть меню приложения" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => { menu.current?.showModal(); setMenuOpen(true); }}><Icon name="menu" /></button>
+          {telegramThread ? <ChatActions key={telegramThread.id} thread={telegramThread} controller={controller} /> : <button className={styles.moreButton} type="button" aria-label="Открыть меню приложения" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => { menu.current?.showModal(); setMenuOpen(true); }}><Icon name="menu" /></button>}
         </header>
         <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
           {!telegramThread && (

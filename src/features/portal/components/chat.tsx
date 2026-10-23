@@ -6,12 +6,13 @@ import { Icon } from "@/components/ui/icon";
 import { PaymentButton } from "@/features/portal/components/payment-button";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import { TelegramText } from "@/features/portal/components/telegram-text";
+import { ChatActions } from "@/features/portal/components/chat-actions";
 import { formatRubles } from "@/features/payments/model/payment";
 import type { Conversation } from "@/features/portal/model/types";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 
-export function Chat({ thread, controller, draft, onDraftChange }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void }) {
+export function Chat({ thread, controller, draft, onDraftChange, showHeader = true }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void; showHeader?: boolean }) {
   const [localText, setLocalText] = useState("");
   const text = draft ?? localText;
   const setText = onDraftChange ?? setLocalText;
@@ -31,16 +32,18 @@ export function Chat({ thread, controller, draft, onDraftChange }: { thread: Con
   }
   return (
     <section className={`${styles.panel} ${styles.chat}`} aria-label={thread.kind === "project" ? "Чат проекта" : "Telegram-диалог"}>
+      {showHeader && (
       <div className={styles.chatHeader}>
         <div className={styles.chatIdentity}>
           <span className={styles.chatSymbol}><Icon name={thread.kind === "telegram" ? "telegram" : thread.ownerId ? "people" : "spark"} /></span>
           <div>
             <h2>{thread.kind === "telegram" ? thread.name : "Диалог по проекту"}</h2>
-            <small>{thread.ownerName ? `${thread.ownerName} · на связи` : "Node · ИИ-помощник"}</small>
+            {thread.ownerName && <small>{`${thread.ownerName} · на связи`}</small>}
           </div>
         </div>
-        <span className={styles.badge}>{thread.kind === "telegram" ? "Telegram" : "Проект"}</span>
+        <ChatActions key={thread.id} thread={thread} controller={controller} />
       </div>
+)}
       {thread.handoffRequested && !thread.ownerId && (
       <p className={styles.handoff}>
         Ожидаем подключения

@@ -57,8 +57,7 @@ export function TelegramInbox({ controller, presentation = "web", selectedThread
   }
   if (miniapp && thread) return (
     <section className={styles.telegramScreen} aria-label="Открытый Telegram-диалог">
-      <div className={styles.telegramTools}><ClientBriefButton thread={thread} controller={controller} /></div>
-      <Chat key={thread.id} thread={thread} controller={controller} draft={drafts[thread.id] ?? ""} onDraftChange={value => setDrafts(previous => ({ ...previous, [thread.id]: value }))} />
+      <Chat key={thread.id} thread={thread} controller={controller} showHeader={false} draft={drafts[thread.id] ?? ""} onDraftChange={value => setDrafts(previous => ({ ...previous, [thread.id]: value }))} />
     </section>
   );
   return (
