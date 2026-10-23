@@ -4,15 +4,17 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
+import { RepositoryNameField } from "@/features/portal/components/repository-name-field";
 
 export function ClientProjectForm({ controller, onCreated }: { controller: PortalController; onCreated: () => void }) {
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [name, setName] = useState(""); const [clientEmail, setClientEmail] = useState("");
   const [description, setDescription] = useState(""); const [brief, setBrief] = useState("");
+  const [repositoryName, setRepositoryName] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await controller.run({ type: "project.request", requestId, name, clientEmail, description, brief })) {
-      setRequestId(crypto.randomUUID()); setName(""); setDescription(""); setBrief(""); onCreated();
+    if (await controller.run({ type: "project.request", requestId, name, clientEmail, description, brief, repositoryName: repositoryName.trim() })) {
+      setRequestId(crypto.randomUUID()); setName(""); setDescription(""); setBrief(""); setRepositoryName(""); onCreated();
     }
   }
   return (
@@ -21,6 +23,7 @@ export function ClientProjectForm({ controller, onCreated }: { controller: Porta
         Название проекта
         <input required maxLength={160} value={name} onChange={event => setName(event.target.value)} />
       </label>
+      <RepositoryNameField value={repositoryName} onChange={setRepositoryName} disabled={controller.busy} />
       <label>
         Почта клиента
         <input type="email" required maxLength={254} value={clientEmail} onChange={event => setClientEmail(event.target.value)} />

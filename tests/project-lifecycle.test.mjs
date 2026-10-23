@@ -9,6 +9,7 @@ import { PortalService } from "../server/service.ts";
 import { PortalStore } from "../server/store.ts";
 import { projectRepositories } from "../src/features/portal/model/project-repositories.ts";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
+import { portalApi } from "./helpers/http.mjs";
 
 const definition = () => ({ type: "project.request", requestId: randomUUID(), name: "Новый проект", clientEmail: "client@example.test", description: "Личный кабинет", brief: "Кабинет с каталогом и поиском. Подробное ТЗ клиента." });
 async function request(f, input = definition()) {
@@ -17,6 +18,70 @@ async function request(f, input = definition()) {
 }
 const repositoryAction = project => ({ type: "project.repository.create", projectId: project.id });
 const retryNow = f => f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='github.repository.create'").run();
+
+test("custom repository names are saved at project creation, reserved case-insensitively and hidden from the client", async () => {
+  const f = portalFixture();
+  try {
+    const input = { ...definition(), repositoryName: "AnimeLove-frontend" };
+    const project = await request(f, input); assert.equal(project.repositoryName, input.repositoryName); assert.equal(f.repositories.length, 0);
+    await request(f, input);
+    await assert.rejects(request(f, { ...input, repositoryName: "different-name" }), { status: 409 });
+    await assert.rejects(request(f, { ...definition(), repositoryName: "animelove-FRONTEND" }), { status: 409 });
+    const snapshot = await f.service.snapshot(f.login("client").session, project.id);
+    assert.equal(snapshot.projects.find(item => item.id === project.id).repositoryName, undefined);
+    const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    await f.service.action(developer, repositoryAction(project));
+    assert.equal(f.store.get("repositoryRequests", project.id).name, input.repositoryName);
+    await f.service.workJobs(); assert.equal(f.store.get("projects", project.id).repo, "Matthew-zzz/AnimeLove-frontend");
+  } finally { f.close(); }
+});
+
+test("repository names are validated on the server, and only the assigned developer may override the name before starting", async () => {
+  const f = portalFixture(); const { request: http, login } = portalApi(f);
+  try {
+    for (const repositoryName of ["Детали", "my repository", "owner/repo", "../repo", ".", "bad.git", "x".repeat(101), "<script>", 123]) await assert.rejects(request(f, { ...definition(), repositoryName }), { status: 400 });
+    const project = await request(f); const developer = await login("developer");
+    for (const role of ["client", "admin"]) assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "chosen" }, await login(role))).statusCode, 403);
+    assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "chosen" }, developer)).statusCode, 403);
+    await http("action", { type: "project.accept", projectId: project.id }, developer);
+    assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "owner/repo" }, developer)).statusCode, 400);
+    assert.equal(f.store.get("repositoryRequests", project.id), undefined);
+    assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "Chosen.repo_2" }, developer, { "x-csrf-token": "bad" })).statusCode, 403);
+    assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "Chosen.repo_2" }, developer)).statusCode, 200);
+    assert.equal(f.store.get("repositoryRequests", project.id).name, "Chosen.repo_2");
+    assert.equal((await http("action", { ...repositoryAction(project), repositoryName: "second-repo" }, developer)).statusCode, 409);
+    await f.service.workJobs(); assert.equal(f.store.get("projects", project.id).repo, "Matthew-zzz/Chosen.repo_2");
+  } finally { f.close(); }
+});
+
+test("a named repository cannot take an imported repository or another project's planned name", async () => {
+  const f = portalFixture();
+  try {
+    await assert.rejects(request(f, { ...definition(), repositoryName: "fixture-one" }), { status: 409 });
+    const project = await request(f, { ...definition(), repositoryName: "reserved-name" });
+    const developer = f.login("developer").session;
+    await assert.rejects(f.service.action(developer, { type: "project.create", requestId: randomUUID(), name: "Imported", clientEmail: f.users.client.email, description: "", repositories: [{ name: "Main", repo: "Matthew-zzz/RESERVED-NAME" }] }), { status: 409 });
+    assert.equal(f.store.get("projects", project.id).repo, "");
+  } finally { f.close(); }
+});
+
+test("a custom name and its ownership marker survive lost GitHub replies and a process restart", async () => {
+  const f = portalFixture(); const directory = await mkdtemp(join(tmpdir(), "node-named-repository-")); let store;
+  try {
+    const project = await request(f, { ...definition(), repositoryName: "StableName" }); const developer = f.login("developer").session;
+    await f.service.action(developer, { type: "project.accept", projectId: project.id });
+    await f.service.action(developer, repositoryAction(project));
+    const create = f.integrations.createRepository; const calls = []; let lost = true;
+    f.integrations.createRepository = async (name, identity) => { calls.push({ name, identity }); const repo = await create(name, identity); if (lost) { lost = false; throw new Error("Lost GitHub reply"); } return repo; };
+    await f.service.workJobs(); assert.equal(f.repositories.length, 1);
+    const path = join(directory, "portal.sqlite"); await backup(f.store.db, path); store = new PortalStore(path); store.db.exec("UPDATE jobs SET available=0");
+    const service = new PortalService(store, f.integrations, f.config); await service.workJobs();
+    assert.equal(store.get("projects", project.id).repo, "Matthew-zzz/StableName");
+    assert.deepEqual(calls, [{ name: "StableName", identity: project.id }, { name: "StableName", identity: project.id }]);
+    assert.equal(f.repositories.length, 1); assert.equal(f.issues.get("Matthew-zzz/StableName").length, 1);
+  } finally { store?.close(); f.close(); await rm(directory, { recursive: true, force: true }); }
+});
 
 test("intake creates an idempotent client project without requiring GitHub", async () => {
   const f = portalFixture();

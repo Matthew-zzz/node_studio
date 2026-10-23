@@ -15,7 +15,7 @@ import type { PaymentNotification } from "./payment-notifications.ts";
 export interface Records {
   staffAccounts: { id: string; userId: string; email: string; name: string; createdBy: string; createdAt: string };
   projects: PortalProject;
-  repositoryRequests: { id: string; projectId: string; owner: string; name: string; createdAt: string; status?: RepositoryCreation["status"] | "ready"; attempts?: number; updatedAt?: string; nextAttemptAt?: string };
+  repositoryRequests: { id: string; projectId: string; owner: string; name: string; identity?: string; createdAt: string; status?: RepositoryCreation["status"] | "ready"; attempts?: number; updatedAt?: string; nextAttemptAt?: string };
   tasks: WorkItem;
   stages: WorkItem;
   commits: PortalCommit & { id: string };

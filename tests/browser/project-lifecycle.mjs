@@ -17,6 +17,8 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await chooseAction(page, "Создать проект", "Создать для существующего клиента");
     const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
     await form.getByLabel("Название проекта", { exact: true }).fill(name);
+    const repositoryName = `node-custom-${width}`;
+    await form.getByLabel("Название GitHub-репозитория", { exact: true }).fill(repositoryName);
     await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
     await form.getByLabel("Краткое описание", { exact: true }).fill("Каталог и личный кабинет");
     await form.getByLabel("ТЗ проекта", { exact: true }).fill(brief);
@@ -43,6 +45,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await page.getByRole("heading", { name, level: 1, exact: true }).waitFor();
     const create = page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true });
     await create.waitFor(); assert.equal(fixture.repositories.length, before);
+    assert.equal(await page.getByLabel("Название GitHub-репозитория", { exact: true }).inputValue(), repositoryName);
     assert.equal(await page.getByText("Добавить этап", { exact: true }).count(), 0);
     fixture.integrations.createRepository = async () => { throw new Error("Temporary GitHub outage"); };
     await create.click();
@@ -64,6 +67,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
     assert.equal(fixture.repositories.length, before + 1);
     const created = fixture.store.get("projects", project.id);
+    assert.equal(created.repo, `Matthew-zzz/${repositoryName}`);
     assert.equal(created.repo, fixture.repositories.at(-1)); assert.equal(created.subprojects.length, 1);
     assert.equal(fixture.issues.get(created.repo).length, 1);
     await chooseAction(page, "О проекте", "Управление подпроектами");

@@ -58,6 +58,25 @@ test("repository adapter creates a private empty repo and reuses it on retries w
   await assert.rejects(otherOwner.createRepository("node-project"), { status: 503 });
 });
 
+test("named repository creation marks ownership and never writes into an unrelated existing GitHub repository", async () => {
+  let description; let exists = false; let creates = 0; const mutations = [];
+  const adapter = createIntegrations(config(), async (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/user") return reply({ login: "Matthew-zzz" });
+    if (path === "/user/repos") { const body = JSON.parse(init.body); description = body.description; exists = true; creates++; assert.equal(body.name, "AnimeLove"); return reply({ full_name: "Matthew-zzz/AnimeLove" }, 201); }
+    if (path === "/repos/Matthew-zzz/AnimeLove") return reply(exists ? { private: true, description } : {}, exists ? 200 : 404);
+    if (path.endsWith("/labels")) { if (init.method === "POST") mutations.push(init.body); return reply([]); }
+    throw new Error("Unexpected GitHub call");
+  });
+  assert.equal(await adapter.createRepository("AnimeLove", "project:original"), "Matthew-zzz/AnimeLove");
+  assert.equal(description, "Node Studio · project:original");
+  assert.equal(await adapter.createRepository("AnimeLove", "project:original"), "Matthew-zzz/AnimeLove"); assert.equal(creates, 1);
+  const before = mutations.length;
+  await assert.rejects(adapter.createRepository("AnimeLove", "project:another"), { status: 409 }); assert.equal(mutations.length, before);
+  description = null;
+  await assert.rejects(adapter.createRepository("AnimeLove", "project:original"), { status: 409 }); assert.equal(mutations.length, before);
+});
+
 test("assistant request contains only supplied messages, configured model, and a structured reply schema", async () => {
   let payload;
   const adapter = createIntegrations(config(), async (url, init) => {

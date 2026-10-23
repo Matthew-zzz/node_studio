@@ -251,7 +251,7 @@ export class PortalService {
     if (type === "project.repository.create") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
-      this.repositories.request(viewer, project.id); return;
+      this.repositories.request(viewer, project.id, action.repositoryName); return;
     }
     if (type === "project.repository.add") {
       this.role(viewer, ["developer"]);

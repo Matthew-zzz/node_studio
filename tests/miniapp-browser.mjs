@@ -171,6 +171,7 @@ try {
       const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
       const name = `Мобильный проект ${width}`;
       await form.getByLabel("Название проекта", { exact: true }).fill(name);
+      await form.getByLabel("Название GitHub-репозитория", { exact: true }).fill(`miniapp-project-${width}`);
       await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
       await form.getByLabel("ТЗ проекта", { exact: true }).fill("Каталог с поиском и личным кабинетом");
       await form.getByRole("button", { name: "Создать проект", exact: true }).click();
@@ -204,9 +205,11 @@ try {
       await signIn(page, origin, "developer");
       await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       await page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
+      assert.equal(await page.getByLabel("Название GitHub-репозитория", { exact: true }).inputValue(), `miniapp-project-${width}`);
       await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).click();
       await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
       assert.equal(fixture.repositories.length, 1);
+      assert.equal(fixture.repositories[0], `Matthew-zzz/miniapp-project-${width}`);
       await page.evaluate(() => window.__telegram.back());
       await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
       await tab(page, "Обзор"); await checkSharedProjectBrief(page);

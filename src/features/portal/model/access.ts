@@ -10,6 +10,7 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
     const publicProject = { ...project, repo: "", repositoryReady: Boolean(project.repo) };
     delete publicProject.subprojects;
     delete publicProject.repositoryCreation;
+    delete publicProject.repositoryName;
     return publicProject;
   });
   const ids = new Set(projects.map(project => project.id));

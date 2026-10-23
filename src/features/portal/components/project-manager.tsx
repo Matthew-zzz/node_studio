@@ -9,6 +9,7 @@ import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
 import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { LongText } from "@/features/portal/components/ui";
+import { RepositoryNameField } from "@/features/portal/components/repository-name-field";
 
 export function CreateProject({ controller, onCreated, embedded = false }: { controller: PortalController; onCreated: (id: string) => void; embedded?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -74,6 +75,7 @@ const repositoryMessages = {
 };
 
 function RepositorySetup({ project, controller }: { project: PortalProject; controller: PortalController }) {
+  const [repositoryName, setRepositoryName] = useState(project.repositoryName ?? "");
   const creation = project.repositoryCreation;
   const pending = creation && creation.status !== "failed";
   const content = repositoryMessages[creation?.status ?? "idle"];
@@ -84,11 +86,13 @@ function RepositorySetup({ project, controller }: { project: PortalProject; cont
         <LongText text={content.description} label="Подробнее о подготовке" />
         {creation?.nextAttemptAt && <p className={styles.small}>{`Следующая попытка после ${new Date(creation.nextAttemptAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}</p>}
       </div>
+      {creation && project.repositoryName && <p className={styles.small}>{project.repositoryName}</p>}
       {!pending && (
-        <div className={styles.formActions}>
-          <button type="button" className={styles.primary} disabled={controller.busy} onClick={() => void controller.run({ type: "project.repository.create", projectId: project.id })}>{creation ? "Повторить создание" : "Создать GitHub-репозиторий"}</button>
-        </div>
-      )}
+      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run({ type: "project.repository.create", projectId: project.id, ...(!creation ? { repositoryName: repositoryName.trim() } : {}) }); }}>
+        {!creation && <RepositoryNameField value={repositoryName} onChange={setRepositoryName} disabled={controller.busy} />}
+        <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>{creation ? "Повторить создание" : "Создать GitHub-репозиторий"}</button></div>
+      </form>
+)}
     </section>
   );
 }

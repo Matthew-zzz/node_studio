@@ -15,7 +15,7 @@ export interface Integrations {
   repository(repo: string): Promise<{ fullName: string; issuesEnabled: boolean; writable: boolean }>;
   issues(repo: string): Promise<WorkItem[]>;
   commits(repo: string, page: number): Promise<PortalCommit[]>;
-  createRepository(name: string): Promise<string>;
+  createRepository(name: string, projectIdentity?: string): Promise<string>;
   createIssue(repo: string, title: string, body: string, kind: WorkItem["kind"], marker: string): Promise<WorkItem>;
   updateIssue(repo: string, number: number, changes: { title?: string; body?: string; status?: WorkStatus; included?: boolean }): Promise<WorkItem>;
   assistant(messages: ChatMessage[], kind: "project" | "telegram", options?: { preferences: AgentPreferences; knowledge: KnowledgeHit[] }): Promise<AssistantReply>;
@@ -100,17 +100,19 @@ export function createIntegrations(config: PortalConfig, request: typeof fetch =
       const entries = await response.json() as GitHubCommit[];
       return entries.map(entry => ({ sha: entry.sha, projectId: "", title: entry.commit.message.split("\n")[0] ?? "Коммит", author: entry.commit.author.name, createdAt: entry.commit.author.date }));
     },
-    async createRepository(name) {
+    async createRepository(name, projectIdentity) {
       const owner = await gh<{ login: string }>("/user");
       if (owner.login.toLowerCase() !== config.githubOwner.toLowerCase()) throw new PortalError(503, "Токен GitHub принадлежит другому владельцу.");
       const full = `${config.githubOwner}/${name}`;
       // Deterministic name makes retries after a timeout safe.
       const response = await external(`https://api.github.com${repoPath(full)}`, { headers: { Authorization: `Bearer ${config.githubToken}`, Accept: "application/vnd.github+json" } }, [404]);
-      if (response.status === 404) await gh("/user/repos", "POST", { name, private: true, auto_init: false, has_issues: true });
+      const description = projectIdentity ? `Node Studio · ${projectIdentity}` : undefined;
+      if (response.status === 404) await gh("/user/repos", "POST", { name, private: true, auto_init: false, has_issues: true, ...(description ? { description } : {}) });
       else if (!response.ok) throw new PortalError(502, "Не удалось проверить репозиторий.");
       else {
-        const existing = await response.json() as { private: boolean };
+        const existing = await response.json() as { private: boolean; description?: string };
         if (!existing.private) throw new PortalError(409, "Ожидался закрытый репозиторий.");
+        if (description && existing.description !== description) throw new PortalError(409, "На GitHub уже есть репозиторий с таким названием. Он не будет подключён к этому проекту.");
       }
       await ensureLabels(full);
       return full;

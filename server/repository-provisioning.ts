@@ -10,9 +10,9 @@ export class RepositoryProvisioner {
 
   constructor(store: PortalStore, projects: ProjectRegistry) { this.store = store; this.projects = projects; }
 
-  request(viewer: Viewer, projectId: string) {
+  request(viewer: Viewer, projectId: string, repositoryName?: unknown) {
     this.store.transaction(() => {
-      const reservation = this.projects.prepareRepository(viewer, projectId);
+      const reservation = this.projects.prepareRepository(viewer, projectId, repositoryName);
       if (!reservation) return;
       const jobId = `repository:${projectId}`;
       const job = this.store.db.prepare("SELECT attempts FROM jobs WHERE id=?").get(jobId);
