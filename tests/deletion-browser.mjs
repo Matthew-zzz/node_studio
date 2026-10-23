@@ -44,7 +44,7 @@ try {
     const page = await context.newPage(); page.setDefaultTimeout(15000); const errors = []; page.on("pageerror", error => errors.push(error.message));
     const miniapp = presentation === "miniapp";
     async function navigate(label) {
-      if (miniapp) await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: label === "Создание проектов" ? "Проекты" : label, exact: true }).click();
+      if (miniapp) await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: label === "Создание проектов" ? "Создать" : label, exact: true }).click();
       else {
         if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
         await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: label, exact: true }).click();

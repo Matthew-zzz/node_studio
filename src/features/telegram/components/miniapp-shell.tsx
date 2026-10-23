@@ -33,7 +33,7 @@ interface MiniAppShellProps {
   children: ReactNode;
 }
 const tabs: Record<Role, readonly PortalView[]> = { client: PROJECT_VIEWS, developer: ["inbox", "queue", "orders"], admin: ["agent", "agent-knowledge", "errors"] };
-const shortLabels: Partial<Record<PortalView, string>> = { overview: "Обзор", orders: "Проекты", "agent-knowledge": "Знания", agent: "Агент" };
+const shortLabels: Partial<Record<PortalView, string>> = { overview: "Обзор", orders: "Создать", "agent-knowledge": "Знания", agent: "Агент" };
 
 export function MiniAppShell({ controller, theme, setTheme, activeView, project, onNavigate, onOpenProject, onProfileChange, telegramThread, onCloseTelegramThread, children }: MiniAppShellProps) {
   const viewer = controller.snapshot.viewer!;
@@ -57,6 +57,9 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
   useTelegramBack(canBack, back);
   function navigate(view: PortalView) {
     onNavigate(view); setShowProjects(false); menu.current?.close(); scroll.current?.scrollTo({ top: 0 });
+  }
+  function openProjects() {
+    setShowProjects(true); menu.current?.close(); scroll.current?.scrollTo({ top: 0 });
   }
   async function openProject(id: string) {
     if (await onOpenProject(id)) { setShowProjects(false); scroll.current?.scrollTo({ top: 0 }); }
@@ -88,7 +91,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
           {!telegramThread && (
           <div className={styles.heading}>
             {hasProjects && !showProjects && !viewer.mustChangePassword && (
-            <button type="button" className={styles.back} disabled={controller.busy} onClick={() => { setShowProjects(true); scroll.current?.scrollTo({ top: 0 }); }}>
+            <button type="button" className={styles.back} disabled={controller.busy} onClick={openProjects}>
               <Icon name="arrow" />
               Все проекты
             </button>
@@ -128,6 +131,12 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
         </main>
         {!viewer.mustChangePassword && !telegramThread && (
           <nav className={styles.tabs} aria-label="Навигация приложения">
+            {viewer.role === "developer" && (
+              <button type="button" disabled={controller.busy} aria-current={showProjects ? "page" : undefined} onClick={openProjects}>
+                <Icon name="site" />
+                <span>Проекты</span>
+              </button>
+            )}
             {navigationTabs.map(view => (
               <button type="button" key={view} disabled={controller.busy || (isProjectView(view) && (!project || (viewer.role === "developer" && project.developerId !== viewer.id)))} aria-current={!showProjects && activeView === view ? "page" : undefined} onClick={() => navigate(view)}>
                 <Icon name={PORTAL_VIEWS[view].icon} />
@@ -149,7 +158,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
           <p className={styles.identity}>{viewer.email}</p>
           <div className={styles.menuLinks}>
             {!viewer.mustChangePassword && hasProjects && (
-            <button type="button" onClick={() => { setShowProjects(true); menu.current?.close(); }}>
+            <button type="button" onClick={openProjects}>
               <Icon name="site" />
               Мои проекты
             </button>

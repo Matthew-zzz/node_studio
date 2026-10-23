@@ -119,6 +119,11 @@ try {
       await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });
       await queue.locator("article").filter({ has: page.getByRole("heading", { name: "one", exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
+      await tab(page, "Проекты");
+      await page.getByRole("heading", { name: "В работе", exact: true }).waitFor();
+      assert.equal(await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: "Проекты", exact: true }).getAttribute("aria-current"), "page");
+      await fits(page, width);
+      await page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
       await tab(page, "Задачи");
       const task = page.getByRole("region", { name: "Задачи проекта", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name: /Подготовленная задача$/ }) });
       await chooseAction(page, task.getByRole("button", { name: /^Действия задачи:/ }), "Управление задачей");
@@ -159,7 +164,7 @@ try {
       await page.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
       await page.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
       await page.getByRole("button", { name: "Вернуться к диалогам", exact: true }).click();
-      await tab(page, "Проекты");
+      await tab(page, "Создать");
       await chooseAction(page, "Создать проект", "Создать для существующего клиента");
       const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
       const name = `Мобильный проект ${width}`;
