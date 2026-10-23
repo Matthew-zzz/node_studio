@@ -19,7 +19,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCrea
   const projects = snapshot.projects.filter(project => project.status === "active" && !project.developerId);
   const query = search.trim().toLocaleLowerCase("ru");
   const visible = projects.filter(project => `${project.name} ${project.clientName} ${project.clientEmail}`.toLocaleLowerCase("ru").includes(query));
-  const handoffs = snapshot.conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
+  const handoffs = snapshot.conversations.filter(thread => thread.kind === "project" && thread.handoffRequested && !thread.ownerId);
 
   return (
     <div className={styles.stack}>
@@ -52,7 +52,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat, onCrea
             <input type="search" aria-label="Поиск проектов" value={search} onChange={event => setSearch(event.target.value)} placeholder="Проект или клиент" />
           </div>
         </div>
-        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Здесь появятся проекты от куратора. Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
+        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Создайте клиентский проект в разделе «Создание проектов». Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
         {visible.length === 0 && projects.length > 0 && <button className={styles.secondary} type="button" onClick={() => setSearch("")}>Сбросить поиск</button>}
         {visible.map(project => (
           <article className={styles.queueItem} key={project.id}>

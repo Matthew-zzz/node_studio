@@ -47,7 +47,7 @@ test("agent administration requires an administrator and CSRF; versions prevent 
   const f = portalFixture(); const request = api(f);
   try {
     assert.equal((await request('admin/agent')).statusCode, 401);
-    for (const role of ['client', 'developer', 'curator', 'temporary']) {
+    for (const role of ['client', 'developer', 'temporary']) {
       const account = await request('login', { email: f.users[role].email, password: fixturePassword });
       assert.equal((await request('admin/agent', undefined, account)).statusCode, 403);
       assert.equal((await request('admin/agent', { type: 'reindex', role: 'admin' }, account)).statusCode, 403);
@@ -67,7 +67,7 @@ test("agent administration requires an administrator and CSRF; versions prevent 
     f.config.aiKey = 'NEVER_EXPOSE_API_KEY'; f.config.telegramToken = 'NEVER_EXPOSE_TELEGRAM_TOKEN';
     const exported = JSON.stringify((await request('admin/agent/export', undefined, admin)).body);
     assert.ok(!exported.includes('NEVER_EXPOSE'));
-    for (const role of ['client', 'developer', 'curator']) assert.ok(!JSON.stringify(await f.service.snapshot(f.login(role).session)).includes('PRIVATE_AGENT_INSTRUCTIONS'));
+    for (const role of ['client', 'developer']) assert.ok(!JSON.stringify(await f.service.snapshot(f.login(role).session)).includes('PRIVATE_AGENT_INSTRUCTIONS'));
     const original = saved.body.revisions.find(revision => revision.version === 0);
     assert.equal((await request('admin/agent', { type: 'settings.restore', revisionId: original.id, version: 1 }, admin)).body.settings.version, 2);
   } finally { f.close(); }
@@ -121,7 +121,7 @@ test("Telegram agent applies live settings, retrieves knowledge, emits HTML and 
   const f = portalFixture();
   try {
     const settings = f.service.agent.settings();
-    f.service.agent.saveSettings({ ...settings, name: 'София', greeting: '<b>Привет!</b> Можно позвать куратора.' }, 0, f.users.admin);
+    f.service.agent.saveSettings({ ...settings, name: 'София', greeting: '<b>Привет!</b> Можно позвать разработчика.' }, 0, f.users.admin);
     f.service.agent.saveDocument({ title: 'Правила', content: 'Проект начинаем с согласования пожеланий.', enabled: true }, f.users.admin);
     f.integrations.assistant = async (messages, kind, options) => {
       assert.equal(options.preferences.name, 'София'); assert.equal(kind, 'telegram'); assert.ok(messages.every(message => message.threadId === 'telegram:901'));
@@ -137,19 +137,19 @@ test("Telegram agent applies live settings, retrieves knowledge, emits HTML and 
     assert.equal(f.store.get('conversations', 'telegram:901').email, 'client@example.test');
     update(f, 4, 'Расскажите про поддержку'); await f.service.workJobs();
     assert.equal(f.store.get('conversations', 'telegram:901').handoffRequested, false, 'mentioning support is not a request for a human');
-    update(f, 5, 'Позови куратора'); await f.service.workJobs();
+    update(f, 5, 'Позови разработчика'); await f.service.workJobs();
     assert.equal(f.store.get('conversations', 'telegram:901').handoffRequested, true);
   } finally { f.close(); }
 });
 
-test("curator takeover and changing agent configuration discard in-flight replies", async () => {
+test("intake takeover and changing agent configuration discard in-flight replies", async () => {
   for (const mutation of ['takeover', 'settings']) {
     const f = portalFixture();
     try {
       let resolveAnswer, started; const ready = new Promise(resolve => { started = resolve; }); let calls = 0;
       f.integrations.assistant = async () => { calls++; if (calls > 1) return assistantReply('<b>Новые настройки</b>'); started(); return new Promise(resolve => { resolveAnswer = resolve; }); };
       update(f, 1, 'Расскажи про студию'); const work = f.service.workJobs(); await ready;
-      if (mutation === 'takeover') await f.service.action(f.login('curator').session, { type: 'takeover', threadId: 'telegram:901' });
+      if (mutation === 'takeover') await f.service.action(f.login('developer').session, { type: 'takeover', threadId: 'telegram:901' });
       else f.service.agent.saveSettings({ ...f.service.agent.settings(), name: 'Новый агент' }, 0, f.users.admin);
       resolveAnswer(assistantReply('Устаревший ответ')); await work;
       assert.ok(!f.store.all('messages').some(message => message.text === 'Устаревший ответ'));
@@ -158,7 +158,7 @@ test("curator takeover and changing agent configuration discard in-flight replie
   }
 });
 
-test("upstream failure, pausing and reply limits provide a safe fallback and hand the thread to a curator", async () => {
+test("upstream failure, pausing and reply limits provide a safe fallback and hand the thread to a intake", async () => {
   for (const scenario of ['error', 'paused', 'limit']) {
     const f = portalFixture();
     try {
@@ -170,7 +170,7 @@ test("upstream failure, pausing and reply limits provide a safe fallback and han
       if (scenario === 'paused') assert.equal(calls, 0);
       assert.equal(f.store.get('conversations', 'telegram:901').handoffRequested, true);
       assert.ok(!JSON.stringify(f.store.all('messages')).includes('PRIVATE_UPSTREAM_SECRET'));
-      assert.ok(f.sent.some(message => message.text.includes('Передал запрос куратору')));
+      assert.ok(f.sent.some(message => message.text.includes('Передал запрос разработчику')));
     } finally { f.close(); }
   }
 });
@@ -181,7 +181,7 @@ test("agent settings, knowledge fragments and revision history survive database 
   try {
     let agent = new TelegramAgent(store, f.integrations, f.config);
     agent.saveSettings({ ...agent.settings(), name: 'Сохранённый агент' }, 0, f.users.admin);
-    agent.saveDocument({ title: 'Гарантия', content: 'Гарантия обсуждается с куратором студии.', enabled: true }, f.users.admin);
+    agent.saveDocument({ title: 'Гарантия', content: 'Гарантия обсуждается с разработчиком студии.', enabled: true }, f.users.admin);
     store.close(); store = new PortalStore(database); agent = new TelegramAgent(store, f.integrations, f.config);
     assert.equal(agent.settings().name, 'Сохранённый агент'); assert.equal(agent.state().revisions.length, 2);
     assert.equal((await agent.retrieve('Гарантия', agent.settings())).sources[0].title, 'Гарантия');

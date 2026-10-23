@@ -13,7 +13,6 @@ export const PORTAL_VIEWS: Record<PortalView, { label: string; icon: IconName }>
 };
 export const ROLE_VIEWS: Record<Role, readonly PortalView[]> = {
   client: ["overview", "tasks", "history", "chat", "settings"],
-  developer: ["queue", "overview", "tasks", "history", "chat", "settings"],
-  curator: ["inbox", "orders", "settings"],
+  developer: ["inbox", "queue", "orders", "overview", "tasks", "history", "chat", "settings"],
   admin: ["agent", "agent-prompts", "agent-knowledge", "agent-playground", "agent-history", "errors", "settings"],
 };

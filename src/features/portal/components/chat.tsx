@@ -24,7 +24,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
   const quotes = snapshot.quotes.filter(quote => quote.projectId === thread?.projectId && quote.status !== "superseded");
   useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages.length, drafts.length, quotes.length, thread?.id]);
   if (!thread || !viewer) return <section className={`${styles.panel} ${styles.chat}`}><Empty title="Диалог появится здесь" text="Выберите проект или обращение из очереди." icon="bot" /></section>;
-  const human = viewer.role === "developer" || viewer.role === "curator";
+  const human = viewer.role === "developer";
   const canWrite = viewer.role === "client" || thread.ownerId === viewer.id;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,7 +47,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
       {thread.handoffRequested && !thread.ownerId && (
       <p className={styles.handoff}>
         Ожидаем подключения
-        {thread.kind === "telegram" ? "куратора" : "разработчика"}
+        {thread.kind === "telegram" ? "разработчика" : "разработчика"}
       </p>
 )}
       {thread.kind === "telegram" && (

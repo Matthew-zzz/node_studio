@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { migrateDeveloperWorkflow } from "./developer-workflow-migration.ts";
 
 /** Keep account IDs and foreign keys while allowing one mailbox to own several roles. */
 export function initializeAuthSchema(db: DatabaseSync) {
@@ -7,15 +8,19 @@ export function initializeAuthSchema(db: DatabaseSync) {
     const columns = db.prepare("SELECT name FROM pragma_index_info(?)").all(String(index.name));
     return columns.length === 1 && columns[0]?.name === "email";
   });
-  if (emailOnlyIndex) {
+  const legacyStaff = String(db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get()?.sql).includes("'curator'")
+    || Boolean(db.prepare("SELECT 1 FROM users WHERE role='curator'").get());
+  if (emailOnlyIndex || legacyStaff) {
     db.exec("PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE");
     try {
+      const promotedId = legacyStaff ? migrateDeveloperWorkflow(db) : "";
       db.exec(`CREATE TABLE users_next (
         id TEXT PRIMARY KEY, email TEXT NOT NULL COLLATE NOCASE, name TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('client','developer','curator','admin')),
+        role TEXT NOT NULL CHECK(role IN ('client','developer','admin')),
         password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1, UNIQUE(email,role)
-      ); INSERT INTO users_next SELECT id,email,name,role,password,must_change FROM users;
-      DROP TABLE users; ALTER TABLE users_next RENAME TO users;
+      );`);
+      db.prepare("INSERT INTO users_next SELECT id,email,name,CASE WHEN role='curator' THEN 'developer' ELSE role END,password,must_change FROM users WHERE role<>'curator' OR id=?").run(promotedId);
+      db.exec(`DROP TABLE users; ALTER TABLE users_next RENAME TO users;
       CREATE UNIQUE INDEX one_developer ON users(role) WHERE role='developer';`);
       if (db.prepare("PRAGMA foreign_key_check").all().length) throw new Error("Account migration failed its foreign key check");
       db.exec("COMMIT");

@@ -20,7 +20,7 @@ async function create(f,input=definition(f)){
 test('developer imports existing repositories into one real client project; authorization, retries, duplicate bindings and remote validation are enforced',async()=>{
   const f=portalFixture();try{
     const input=definition(f);
-    for(const role of ['client','curator','admin','temporary'])await assert.rejects(f.service.action(f.login(role).session,input),{status:403});
+    for(const role of ['client', 'admin', 'temporary'])await assert.rejects(f.service.action(f.login(role).session,input),{status:403});
     await assert.rejects(f.service.action(f.login('developer').session,{...input,clientEmail:f.users.admin.email}),{status:404});
     await assert.rejects(f.service.action(f.login('developer').session,{...input,repositories:[{name:'Outside',repo:'another-owner/private'}]}),{status:400});
     await Promise.all([f.service.action(f.login('developer').session,input),f.service.action(f.login('developer').session,input)]);

@@ -30,6 +30,6 @@ export function status(value: unknown): WorkStatus {
 
 export function optionalRole(value: unknown): Role | undefined {
   if (value === undefined || value === "") return undefined;
-  if (!["client", "developer", "curator", "admin"].includes(String(value))) throw new PortalError(400, "Выберите роль аккаунта.");
+  if (!["client", "developer", "admin"].includes(String(value))) throw new PortalError(400, "Выберите роль аккаунта.");
   return value as Role;
 }

@@ -60,10 +60,10 @@ test("saved profiles expire without renewal and password changes revoke them on 
     assert.throws(() => f.store.switchProfile(developer.session, f.users.client.id), { status: 404 });
     assert.deepEqual(f.store.profiles(developer.session).map(profile => profile.role), [], "the whole affected device group is revoked");
     developer = f.login("developer");
-    const curator = f.store.login(f.users.curator.email, fixturePassword, "test", developer.session);
+    const intake = f.store.login(f.users.admin.email, fixturePassword, "test", developer.session);
     f.store.db.prepare("UPDATE sessions SET expires=0 WHERE token_hash=?").run(developer.session.tokenHash);
-    assert.throws(() => f.store.switchProfile(curator.session, f.users.developer.id), { status: 404 });
-    assert.deepEqual(f.store.profiles(curator.session).map(profile => profile.role), ["curator"]);
+    assert.throws(() => f.store.switchProfile(intake.session, f.users.developer.id), { status: 404 });
+    assert.deepEqual(f.store.profiles(intake.session).map(profile => profile.role), ["admin"]);
   } finally { f.close(); }
 });
 

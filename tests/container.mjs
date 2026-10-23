@@ -83,10 +83,10 @@ try {
   const account = await fetchApplication("/api/portal/snapshot", { headers: { Cookie: first.cookie } }).then(response => response.json());
   assert.equal(account.projects.length, 0, "a fresh installation does not seed customer projects");
   assert.equal(account.messages.length, 0, "a fresh installation does not seed customer messages");
-  const curator = access.find(user => user.role === "curator");
-  const added = await login(curator.email, curator.password, first.cookie);
+  const intake = access.find(user => user.role === "admin");
+  const added = await login(intake.email, intake.password, first.cookie);
   const profiles = added.snapshot;
-  assert.equal(profiles.viewer.role, "curator"); assert.equal(profiles.profiles.length, 2);
+  assert.equal(profiles.viewer.role, "admin"); assert.equal(profiles.profiles.length, 2);
   const back = await fetchApplication("/api/portal/profiles/switch", {
     method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: added.cookie, "X-CSRF-Token": profiles.csrf },
     body: JSON.stringify({ userId: account.viewer.id }),
@@ -103,7 +103,7 @@ try {
     method: "POST", headers: { Origin: origin, "Content-Type": "application/json", Cookie: first.cookie, "X-CSRF-Token": restored.csrf },
     body: JSON.stringify({ userId: profiles.viewer.id }),
   });
-  assert.equal(switched.status, 200); assert.equal((await switched.json()).viewer.role, "curator");
+  assert.equal(switched.status, 200); assert.equal((await switched.json()).viewer.role, "admin");
   console.log("Docker verified: frontend + API, health, non-root runtime, first login, password change and persistent accounts, sessions and profile switching across recreation.");
 } catch (error) {
   // Application logs contain no bootstrap credentials or incoming request bodies.

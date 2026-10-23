@@ -15,7 +15,7 @@ async function verify(f, request, pending, email = f.users.client.email) { retur
 function shareMailbox(f) {
   const email = "owner@example.test";
   const password = f.store.db.prepare("SELECT password FROM users WHERE id=?").get(f.users.client.id).password;
-  for (const role of ["client", "curator", "developer", "admin"]) {
+  for (const role of ["client", "developer", "admin"]) {
     f.store.db.prepare("UPDATE users SET email=?,password=? WHERE id=?").run(email, password, f.users[role].id);
     f.users[role] = f.store.user(f.users[role].id);
   }
@@ -51,16 +51,16 @@ test("shared email grants only existing profiles with the authenticated credenti
     const email = shareMailbox(f);
     const pending = await request("login", { email, password: fixturePassword, role: "client" });
     const account = await verify(f, request, pending, email);
-    assert.deepEqual(new Set(account.body.profiles.map(p => p.role)), new Set(["client", "curator", "developer", "admin"]));
+    assert.deepEqual(new Set(account.body.profiles.map(p => p.role)), new Set(["client", "developer", "admin"]));
     const deadline = f.store.db.prepare("SELECT min(expires) AS expires FROM sessions").get().expires;
     const sent = f.sent.length;
-    const curator = await request("profiles/switch", { userId: f.users.curator.id }, account);
-    assert.equal(curator.body.viewer.role, "curator"); assert.equal(f.sent.length, sent);
+    const intake = await request("profiles/switch", { userId: f.users.developer.id }, account);
+    assert.equal(intake.body.viewer.role, "developer"); assert.equal(f.sent.length, sent);
     assert.equal(f.store.db.prepare("SELECT min(expires) AS expires FROM sessions").get().expires, deadline);
-    assert.equal((await request("profiles/switch", { userId: f.users.other.id }, curator)).statusCode, 404);
+    assert.equal((await request("profiles/switch", { userId: f.users.other.id }, intake)).statusCode, 404);
     // Same mailbox with a different credential is not silently granted.
     f.store.db.prepare("UPDATE users SET password='different-hash' WHERE id=?").run(f.users.admin.id);
-    await request("logout", {}, curator); f.store.db.exec("DELETE FROM auth_limits");
+    await request("logout", {}, intake); f.store.db.exec("DELETE FROM auth_limits");
     const next = await request("login", { email, password: fixturePassword, role: "client" });
     const fresh = await verify(f, request, next, email);
     assert.ok(!fresh.body.profiles.some(p => p.role === "admin"));
@@ -136,7 +136,7 @@ test("login notifications contain a fixed-origin recovery link; reset consumes i
     for (const browser of [account, otherDevice]) assert.equal((await request("snapshot", undefined, browser)).body.viewer, null);
     assert.ok(f.service.auth.session(unrelated.token), "unrelated identities on other devices remain intact");
     assert.equal((await request("auth/reset", { token, replacement: "Another-password-2026" })).statusCode, 400);
-    for (const role of ["client", "curator", "developer", "admin"]) {
+    for (const role of ["client", "developer", "admin"]) {
       assert.throws(() => f.store.authenticatePassword(email, fixturePassword, "after-reset", role), { status: 401 });
       assert.equal(f.store.authenticatePassword(email, "New-owner-password-2026", "after-reset", role).id, f.users[role].id);
     }
@@ -160,12 +160,12 @@ test("forgot-password responses do not enumerate accounts and stale tokens and p
   } finally { f.close(); }
 });
 
-test("legacy account migration preserves foreign keys and IDs; owner setup keeps the client password, projects and exactly four roles", async () => {
+test("legacy account migration preserves foreign keys and IDs; owner setup keeps the client password, projects and exactly three roles", async () => {
   const directory = await mkdtemp(join(tmpdir(), "node-auth-")); const path = join(directory, "portal.sqlite");
   let store;
   try {
     store = new PortalStore(path);
-    const accounts = ["client", "curator", "developer", "admin"].map(role => store.createUser(`${role}@example.test`, role, role, fixturePassword, false));
+    const accounts = ["client", "developer", "admin"].map(role => store.createUser(`${role}@example.test`, role, role, fixturePassword, false));
     const oldClient = accounts[0]; const oldSession = store.login(oldClient.email, fixturePassword, "test");
     store.put("projects", { id: "project:existing", clientId: oldClient.id, clientEmail: oldClient.email, clientName: "Client", name: "Existing", description: "", repo: "Matthew-zzz/existing", brief: "Brief", status: "active", createdAt: "2026-10-01T00:00:00Z" });
     store.close(); store = undefined;
@@ -173,11 +173,11 @@ test("legacy account migration preserves foreign keys and IDs; owner setup keeps
     const legacy = new DatabaseSync(path); legacy.exec("PRAGMA foreign_keys=OFF; DROP TABLE auth_challenges; DROP TABLE auth_recoveries; DROP TABLE auth_verifications; DROP INDEX one_developer; ALTER TABLE users RENAME TO users_modern; CREATE TABLE users(id TEXT PRIMARY KEY,email TEXT NOT NULL UNIQUE COLLATE NOCASE,name TEXT NOT NULL,role TEXT NOT NULL,password TEXT NOT NULL,must_change INTEGER NOT NULL); INSERT INTO users SELECT * FROM users_modern; DROP TABLE users_modern; ALTER TABLE sessions RENAME TO sessions_previous; CREATE TABLE sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),csrf TEXT NOT NULL,expires INTEGER NOT NULL,group_id TEXT NOT NULL); INSERT INTO sessions SELECT * FROM sessions_previous; DROP TABLE sessions_previous;"); legacy.close();
     store = new PortalStore(path);
     assert.equal(store.session(oldSession.token).viewer.id, oldClient.id); assert.deepEqual(store.db.prepare("PRAGMA foreign_key_check").all(), []);
-    const result = configureOwnerAccounts(store, "owner@example.test"); assert.equal(result.length, 4);
+    const result = configureOwnerAccounts(store, "owner@example.test"); assert.equal(result.length, 3);
     assert.deepEqual(new Set(result.map(user => user.id)), new Set(accounts.map(user => user.id)));
-    assert.equal(store.db.prepare("SELECT count(*) AS count FROM users").get().count, 4);
+    assert.equal(store.db.prepare("SELECT count(*) AS count FROM users").get().count, 3);
     assert.equal(store.session(oldSession.token), undefined);
-    for (const role of ["client", "curator", "developer", "admin"]) assert.equal(store.authenticatePassword("owner@example.test", fixturePassword, "test", role).role, role);
+    for (const role of ["client", "developer", "admin"]) assert.equal(store.authenticatePassword("owner@example.test", fixturePassword, "test", role).role, role);
     assert.equal(store.get("projects", "project:existing").clientId, oldClient.id); assert.equal(store.get("projects", "project:existing").clientEmail, "owner@example.test");
     assert.throws(() => store.createUser("owner@example.test", "Again", "client", fixturePassword), { status: 409 });
   } finally { store?.close(); await rm(directory, { recursive: true, force: true }); }

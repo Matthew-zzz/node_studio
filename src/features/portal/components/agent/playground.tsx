@@ -35,7 +35,7 @@ export function AgentPlayground({ api, settings }: { api: AgentGateway; settings
         </div>
         <p className={portalStyles.small}>Используются текущие настройки формы, включая несохранённые изменения. Сообщения не отправляются в Telegram и не попадают в диалоги клиентов.</p>
         <div className={styles.log} role="log" aria-label="Тестовые сообщения" aria-live="polite">
-          {!messages.length && <Empty title="Проверьте вопрос клиента" text="Можно проверить стиль ответа, базу знаний и передачу куратору." icon="bot" />}
+          {!messages.length && <Empty title="Проверьте вопрос клиента" text="Можно проверить стиль ответа, базу знаний и передачу разработчику." icon="bot" />}
           {messages.map((message, index) => (
             <article key={index} className={styles.testMessage} data-role={message.role}>
               <small>{message.role === "client" ? "Вы" : settings.name}</small>
@@ -57,7 +57,7 @@ export function AgentPlayground({ api, settings }: { api: AgentGateway; settings
             <h2>Что использовал агент</h2>
             <span className={portalStyles.small}>{`${result.model} · ${result.durationMs} мс`}</span>
           </div>
-          {result.handoff && <p className={portalStyles.small}>Агент запросил подключение куратора. В тестовом чате заявка не создаётся.</p>}
+          {result.handoff && <p className={portalStyles.small}>Агент запросил подключение разработчика. В тестовом чате заявка не создаётся.</p>}
           {result.warnings.map(warning => <p key={warning} className={portalStyles.small}>{warning}</p>)}
           {!result.sources.length && <p className={portalStyles.small}>Подходящих фрагментов базы знаний не использовано.</p>}
           {result.sources.map((source, index) => (

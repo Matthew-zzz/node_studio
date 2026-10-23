@@ -12,8 +12,8 @@ import { initializeRuntime } from "./runtime.ts";
 import { configureTelegramMenu } from "./telegram-menu.ts";
 
 const [command, role, email, name] = process.argv.slice(2);
-if (!["bootstrap", "import-project", "archive-project", "configure-owner", "telegram-menu"].includes(command ?? "") && (command !== "create-user" || !["developer", "curator", "admin"].includes(role ?? "") || !email || !name)) {
-  console.error('Usage: node server/cli.ts create-user <developer|curator|admin> <email> "Name" < password-file');
+if (!["bootstrap", "import-project", "archive-project", "configure-owner", "telegram-menu"].includes(command ?? "") && (command !== "create-user" || !["developer", "admin"].includes(role ?? "") || !email || !name)) {
+  console.error('Usage: node server/cli.ts create-user <developer|admin> <email> "Name" < password-file');
   process.exit(1);
 }
 process.umask(0o077);
@@ -52,7 +52,7 @@ try {
     const users = JSON.parse(input) as { email: string; name: string; role: Role; password: string }[];
     store.transaction(() => {
       for (const user of users) {
-        if (!["developer", "curator", "admin"].includes(user.role)) throw new Error("Invalid employee role");
+        if (!["developer", "admin"].includes(user.role)) throw new Error("Invalid employee role");
         const existing = store.findUser(user.email, user.role);
         if (existing && existing.role !== user.role) throw new Error("Existing employee has another role");
         if (!existing) store.createUser(user.email, user.name, user.role, user.password);

@@ -25,12 +25,12 @@ export function initializeRuntime(store: PortalStore, config: PortalConfig) {
   if (!config.bootstrapEmployees || store.db.prepare("SELECT id FROM users WHERE role!='client' LIMIT 1").get()) return;
   const accessPath = resolve(config.stateDirectory, "initial-access.json");
   if (!existsSync(accessPath)) {
-    const employees = ([['developer', 'Разработчик'], ['curator', 'Поддержка'], ['admin', 'Администратор']] as const)
+    const employees = ([['developer', 'Разработчик'], ['admin', 'Администратор']] as const)
       .map(([role, name]) => ({ role, name, email: `${role}@node-studio.local`, password: randomBytes(24).toString("base64url") }));
     writeFileSync(accessPath, JSON.stringify(employees, null, 2), { mode: 0o600, flag: "wx" });
   }
-  const employees = JSON.parse(readFileSync(accessPath, "utf8")) as { role: Role; name: string; email: string; password: string }[];
-  if (employees.length !== 3 || !["developer", "curator", "admin"].every(role => employees.some(user => user.role === role))) throw new Error("Invalid initial employee access file");
+  const employees = (JSON.parse(readFileSync(accessPath, "utf8")) as { role: Role; name: string; email: string; password: string }[]).filter(user => ["developer", "admin"].includes(user.role));
+  if (employees.length !== 2 || !["developer", "admin"].every(role => employees.some(user => user.role === role))) throw new Error("Invalid initial employee access file");
   store.transaction(() => { for (const user of employees) store.createUser(user.email, user.name, user.role, user.password); });
   console.log("Initial employee access saved in the data volume: initial-access.json");
 }

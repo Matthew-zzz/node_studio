@@ -28,7 +28,7 @@ export class ProjectRegistry {
   }
 
   request(viewer: Viewer, input: Record<string, unknown>): PortalProject {
-    if (viewer.mustChangePassword || viewer.role !== "curator") throw new PortalError(403, "Создать проект для клиента может только куратор.");
+    if (viewer.mustChangePassword || viewer.role !== "developer") throw new PortalError(403, "Создать проект для клиента может только разработчик.");
     const requestId = text(input.requestId, 100);
     if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(requestId)) throw new PortalError(400, "Обновите форму создания проекта.");
     const client = this.store.findUser(text(input.clientEmail, 254).toLowerCase(), "client");
@@ -37,10 +37,10 @@ export class ProjectRegistry {
     return this.store.transaction(() => {
       const existing = this.store.get("projects", `project:${requestId}`);
       if (existing) {
-        if (existing.status === "archived" || existing.clientId !== client.id || existing.curatorId !== viewer.id) throw new PortalError(409, "Проект с этим идентификатором уже существует.");
+        if (existing.status === "archived" || existing.clientId !== client.id || existing.createdBy !== viewer.id) throw new PortalError(409, "Проект с этим идентификатором уже существует.");
         return existing;
       }
-      const project = this.store.put("projects", { id: `project:${requestId}`, name, description, brief, clientId: client.id, clientName: client.name, clientEmail: client.email, repo: "", origin: "curator", curatorId: viewer.id, status: "active", createdAt: now() });
+      const project = this.store.put("projects", { id: `project:${requestId}`, name, description, brief, clientId: client.id, clientName: client.name, clientEmail: client.email, repo: "", origin: "developer", createdBy: viewer.id, status: "active", createdAt: now() });
       const thread = this.store.put("conversations", { id: `chat:${project.id}`, projectId: project.id, kind: "project", name, username: "", email: client.email, telegramId: "", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: now() });
       this.store.put("messages", { id: id(), threadId: thread.id, author: "Node ИИ", role: "assistant", text: PROJECT_GREETING, createdAt: now() });
       return project;

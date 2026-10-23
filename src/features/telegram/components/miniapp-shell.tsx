@@ -32,18 +32,19 @@ interface MiniAppShellProps {
   onCloseTelegramThread: () => void;
   children: ReactNode;
 }
-const tabs: Record<Role, readonly PortalView[]> = { client: PROJECT_VIEWS, developer: PROJECT_VIEWS, curator: ["inbox", "orders"], admin: ["agent", "agent-knowledge", "errors"] };
+const tabs: Record<Role, readonly PortalView[]> = { client: PROJECT_VIEWS, developer: ["inbox", "queue", "orders"], admin: ["agent", "agent-knowledge", "errors"] };
 const shortLabels: Partial<Record<PortalView, string>> = { overview: "Обзор", orders: "Проекты", "agent-knowledge": "Знания", agent: "Агент" };
 
 export function MiniAppShell({ controller, theme, setTheme, activeView, project, onNavigate, onOpenProject, onProfileChange, telegramThread, onCloseTelegramThread, children }: MiniAppShellProps) {
   const viewer = controller.snapshot.viewer!;
   const hasProjects = viewer.role === "client" || viewer.role === "developer";
-  const [showProjects, setShowProjects] = useState(hasProjects);
+  const [showProjects, setShowProjects] = useState(viewer.role === "client");
   const [menuOpen, setMenuOpen] = useState(false);
   const menu = useRef<HTMLDialogElement>(null);
   const scroll = useRef<HTMLElement>(null);
   const projects = controller.snapshot.projects.filter(item => viewer.role === "client" || item.developerId === viewer.id);
   const projectVisible = !showProjects && isProjectView(activeView);
+  const navigationTabs = viewer.role === "developer" && projectVisible ? PROJECT_VIEWS : tabs[viewer.role];
   const canBack = Boolean(telegramThread) || menuOpen || (!showProjects && (hasProjects || activeView !== ROLE_VIEWS[viewer.role][0]));
   const back = useCallback(() => {
     const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
@@ -121,13 +122,13 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                     <Icon name="arrow" />
                   </span>
                 </button>
-              )) : <section className={portal.panel}><Empty title={viewer.role === "client" ? "Проект появится здесь" : "Пока нет проектов в работе"} text={viewer.role === "client" ? "Куратор подготовит проект и привяжет его к вашему кабинету." : "Изучите ТЗ в общей очереди и возьмите проект в работу."} /></section>}
+              )) : <section className={portal.panel}><Empty title={viewer.role === "client" ? "Проект появится здесь" : "Пока нет проектов в работе"} text={viewer.role === "client" ? "Разработчик подготовит проект и привяжет его к вашему кабинету." : "Изучите ТЗ в общей очереди и возьмите проект в работу."} /></section>}
             </div>
           ) : children}
         </main>
         {!viewer.mustChangePassword && !telegramThread && (
           <nav className={styles.tabs} aria-label="Навигация приложения">
-            {tabs[viewer.role].map(view => (
+            {navigationTabs.map(view => (
               <button type="button" key={view} disabled={controller.busy || (isProjectView(view) && (!project || (viewer.role === "developer" && project.developerId !== viewer.id)))} aria-current={!showProjects && activeView === view ? "page" : undefined} onClick={() => navigate(view)}>
                 <Icon name={PORTAL_VIEWS[view].icon} />
                 <span>{shortLabels[view] ?? PORTAL_VIEWS[view].label}</span>

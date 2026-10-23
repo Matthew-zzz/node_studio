@@ -2,7 +2,7 @@ import type { Role } from "./types.ts";
 
 export type ErrorSource = "request" | "integration" | "background" | "browser" | "runtime";
 export type ErrorProvider = "application" | "github" | "openai" | "telegram" | "resend" | "browser";
-export interface ErrorActor { id: string; name: string; email: string; role: Role | "telegram" }
+export interface ErrorActor { id: string; name: string; email: string; role: Role | "telegram" | "curator" }
 export interface ErrorEvent {
   id: string; code: string; title: string; explanation: string; recommendation: string; documentation?: string;
   source: ErrorSource; provider: ErrorProvider; severity: "error" | "warning";

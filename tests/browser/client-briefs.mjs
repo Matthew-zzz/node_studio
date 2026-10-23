@@ -18,7 +18,7 @@ export async function checkClientBrief(page, origin, width, screenshots, miniapp
     const menu = page.getByRole("dialog", { name: "Действия диалога", exact: true });
     assert.equal(await menu.getByRole("button", { name: "Итоговый бриф", exact: true }).count(), 1);
     assert.equal(await page.locator("header").getByText("Node · ИИ-помощник", { exact: true }).count(), 0);
-    await page.screenshot({ path: resolve(screenshots, `${width}-curator-chat-actions.png`) });
+    await page.screenshot({ path: resolve(screenshots, `${width}-intake-chat-actions.png`) });
     await page.evaluate(() => window.__telegram.back()); await menu.waitFor({ state: "hidden" });
     assert.equal(fixtureAt(origin).store.all("clientBriefs").length, before, "opening actions does not start AI generation");
     assert.ok(await trigger.evaluate(element => element === document.activeElement));

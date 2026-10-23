@@ -74,10 +74,10 @@ export async function checkNotifications(browser, origin, fixture, screenshots) 
       if (width === 1440) {
         await page.unroute(pattern, interrupted);
         const name = "Проверка ошибки создания проекта";
-        await fixture.service.action(fixture.login("curator").session, { type: "order.create", order: { projectName: name, clientName: "Клиент", email: "notifications-client@example.test", username: "client", brief: "ТЗ", totalKopecks: 10000 } });
+        await fixture.service.action(fixture.login("developer").session, { type: "order.create", order: { projectName: name, clientName: "Клиент", email: "notifications-client@example.test", username: "client", brief: "ТЗ", totalKopecks: 10000 } });
         const order = fixture.store.all("orders").find(order => order.projectName === name);
         fixture.service.payOrder(order.checkoutToken, "succeeded");
-        await login(page, origin, "curator");
+        await login(page, origin, "developer");
         await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
         fixture.config.mockProvisioning = false;
         try {

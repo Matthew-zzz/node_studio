@@ -34,14 +34,14 @@ export function GeneralSettings({ value, onChange, busy }: AgentEditorProps) {
         <h2>Функции</h2>
         {([
           ["knowledge", "Использовать базу знаний"], ["collectBrief", "Помогать собирать пожелания и ТЗ"],
-          ["collectContact", "Запрашивать и сохранять почту пользователя"], ["handoff", "Звать куратора по просьбе пользователя"],
+          ["collectContact", "Запрашивать и сохранять почту пользователя"], ["handoff", "Звать разработчика по просьбе пользователя"],
         ] as const).map(([key, label]) => (
           <label key={key} className={styles.check}>
             <input type="checkbox" checked={value.capabilities[key]} disabled={busy} onChange={event => onChange({ ...value, capabilities: { ...value.capabilities, [key]: event.target.checked } })} />
             <span>{label}</span>
           </label>
         ))}
-        <p className={portalStyles.small}>Куратор может подключиться к диалогу вручную. Пока он ведёт переписку, ИИ не отвечает.</p>
+        <p className={portalStyles.small}>Разработчик может подключиться к диалогу вручную. Пока он ведёт переписку, ИИ не отвечает.</p>
       </section>
       <details className={`${portalStyles.panel} ${styles.form}`}>
         <summary>Лимиты и контекст</summary>
@@ -87,7 +87,7 @@ export function PromptSettings({ value, onChange, busy }: AgentEditorProps) {
     <div className={portalStyles.stack}>
       {([
         ["systemPrompt", "Системный промпт", 20000, 12], ["formattingPrompt", "Оформление Telegram", 8000, 7],
-        ["greeting", "Приветствие", 12000, 5], ["handoffMessage", "Передача куратору", 8000, 4],
+        ["greeting", "Приветствие", 12000, 5], ["handoffMessage", "Передача разработчику", 8000, 4],
         ["fallbackMessage", "Ошибка или пауза агента", 8000, 4], ["noKnowledgeMessage", "Ответ не найден в базе знаний", 8000, 4],
       ] as const).map(([key, label, maxLength, rows], index) => (
         <details key={key} className={`${portalStyles.panel} ${styles.form}`} open={index === 0}>

@@ -11,7 +11,7 @@ export function portalFixture(origin = "http://localhost:3000") {
   const store = new PortalStore(":memory:");
   const config = readConfig({ PORTAL_ORIGIN: origin, PORTAL_MOCK_PAYMENTS: "true", PORTAL_MOCK_PROVISIONING: "true", PORTAL_ENCRYPTION_KEY: "ab".repeat(32), PORTAL_GITHUB_WEBHOOK_SECRET: "github-test-secret", PORTAL_TELEGRAM_WEBHOOK_SECRET: "telegram-test-secret" });
   const users = {};
-  for (const role of ["client", "developer", "curator", "admin"]) users[role] = store.createUser(`${role}@example.test`, role, role, fixturePassword, false);
+  for (const role of ["client", "developer", "admin"]) users[role] = store.createUser(`${role}@example.test`, role, role, fixturePassword, false);
   users.other = store.createUser("other@example.test", "Другой клиент", "client", fixturePassword, false);
   users.temporary = store.createUser("temporary@example.test", "Новый клиент", "client", fixturePassword, true);
   const issues = new Map(); const commits = new Map(); const sent = []; const repositories = [];

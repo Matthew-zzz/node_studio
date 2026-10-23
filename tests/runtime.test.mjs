@@ -32,7 +32,7 @@ test("persistent volume keeps secrets, passwords, conversations and sessions acr
     let config = readConfig(environment); store = new PortalStore(config.database);
     initializeRuntime(store, config);
     const access = JSON.parse(await readFile(join(directory, "initial-access.json"), "utf8"));
-    assert.equal(access.length, 3); assert.equal((await stat(join(directory, "initial-access.json"))).mode & 0o777, 0o600);
+    assert.equal(access.length, 2); assert.equal((await stat(join(directory, "initial-access.json"))).mode & 0o777, 0o600);
     assert.equal((await stat(join(directory, "runtime-secrets.json"))).mode & 0o777, 0o600);
     const developer = access.find(user => user.role === "developer");
     const login = store.login(developer.email, developer.password, "test");
@@ -44,7 +44,7 @@ test("persistent volume keeps secrets, passwords, conversations and sessions acr
     assert.equal(store.session(login.token).viewer.mustChangePassword, false);
     assert.equal(store.get("messages", "persistent").text, "Сохранённая переписка");
     assert.equal(store.login(developer.email, "Updated-runtime-password-2026", "test").session.viewer.role, "developer");
-    assert.equal(store.db.prepare("SELECT count(*) AS total FROM users").get().total, 3);
+    assert.equal(store.db.prepare("SELECT count(*) AS total FROM users").get().total, 2);
   } finally { store?.close(); await rm(directory, { recursive: true, force: true }); }
 });
 

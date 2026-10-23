@@ -20,7 +20,7 @@ export interface Records {
   commits: PortalCommit & { id: string };
   conversations: Conversation;
   clientBriefs: ClientBrief;
-  briefLinks: { id: string; threadId: string; projectId: string; curatorId: string; updatedAt: string };
+  briefLinks: { id: string; threadId: string; projectId: string; createdBy: string; updatedAt: string };
   briefRequests: { id: string; threadId: string; actorId: string; sourceHash: string; model: string; inputs: string[]; results: BriefDocument[]; round: number; step: number };
   messages: ChatMessage;
   drafts: TaskDraft;
@@ -75,7 +75,7 @@ export class PortalStore {
       PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY, email TEXT NOT NULL COLLATE NOCASE,
-        name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('client','developer','curator','admin')),
+        name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('client','developer','admin')),
         password TEXT NOT NULL, must_change INTEGER NOT NULL DEFAULT 1, UNIQUE(email,role)
       );
       CREATE UNIQUE INDEX IF NOT EXISTS one_developer ON users(role) WHERE role='developer';

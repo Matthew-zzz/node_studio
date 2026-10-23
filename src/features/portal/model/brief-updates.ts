@@ -15,7 +15,7 @@ export class BriefUpdates {
   private pending = new Map<string, BriefUpdate>();
 
   track(snapshot: PortalSnapshot, threadId: string, refresh: boolean): BriefUpdate | undefined {
-    if (snapshot.viewer?.role !== "curator") return;
+    if (snapshot.viewer?.role !== "developer") return;
     const brief = snapshot.clientBriefs.find(item => item.threadId === threadId);
     if (!refresh && brief?.status === "ready" && !brief.stale) return;
     const update = { viewerId: snapshot.viewer.id, csrf: snapshot.csrf, threadId, requestId: brief?.requestId, generatedAt: brief?.generatedAt, wasReady: brief?.status === "ready", refresh };

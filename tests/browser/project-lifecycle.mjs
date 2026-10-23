@@ -8,13 +8,13 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
   try {
     const page = await context.newPage(); const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    const name = `Проект куратора ${width}`; const brief = "Личный кабинет с каталогом, поиском и историей заказов.";
+    const name = `Проект разработчика ${width}`; const brief = "Личный кабинет с каталогом, поиском и историей заказов.";
     const before = fixture.repositories.length; const sent = fixture.sent.filter(item => item.email && !item.subject).length;
-    await login(page, origin, "curator");
+    await login(page, origin, "developer");
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
     await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
     await page.getByText("Создать для существующего клиента", { exact: true }).click();
-    const form = page.getByRole("form", { name: "Создание проекта куратором", exact: true });
+    const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
     await form.getByLabel("Название проекта", { exact: true }).fill(name);
     await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
     await form.getByLabel("Краткое описание", { exact: true }).fill("Каталог и личный кабинет");
@@ -29,6 +29,8 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await login(page, origin, "client"); await openProject(page, width, name);
     await page.getByText("Ожидает разработчика", { exact: true }).waitFor({ state: "attached" });
     await login(page, origin, "developer");
+    if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
+    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Общая очередь", exact: true }).click();
     const card = page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
     await card.locator("summary").filter({ hasText: "Изучить ТЗ проекта" }).click();
     await card.getByText(brief, { exact: true }).waitFor();
@@ -72,6 +74,6 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     const snapshot = await (await page.request.get(`${origin}/api/portal/snapshot?project=${encodeURIComponent(project.id)}`)).json();
     assert.equal(snapshot.projects.find(item => item.id === project.id).repositoryReady, true);
     assert.ok(!JSON.stringify(snapshot).includes(created.repo)); assert.deepEqual(errors, []);
-    console.log(`Project lifecycle ${width}px: curator creation, acceptance, durable GitHub retry after reload, manual recovery and exclusive repository creation passed`);
+    console.log(`Project lifecycle ${width}px: intake creation, acceptance, durable GitHub retry after reload, manual recovery and exclusive repository creation passed`);
   } finally { fixture.integrations.createRepository = createRepository; await context.close(); }
 }

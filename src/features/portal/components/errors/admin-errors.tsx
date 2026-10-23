@@ -11,7 +11,7 @@ import portal from "@/features/portal/components/portal.module.css";
 import styles from "./errors.module.css";
 
 const date = (value: string) => new Date(value).toLocaleString("ru-RU");
-const role = (event: ErrorEvent) => event.actor ? event.actor.role === "telegram" ? "Пользователь Telegram" : ROLE_LABELS[event.actor.role] : "Без авторизации / не определён";
+const role = (event: ErrorEvent) => event.actor ? event.actor.role === "telegram" ? "Пользователь Telegram" : event.actor.role === "curator" ? "Бывший сотрудник" : ROLE_LABELS[event.actor.role] : "Без авторизации / не определён";
 
 function ErrorDetails({ event, busy, onResolve }: { event: ErrorEvent; busy: boolean; onResolve: () => void }) {
   return (

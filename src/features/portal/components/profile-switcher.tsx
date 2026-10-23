@@ -12,8 +12,8 @@ import portal from "./portal.module.css";
 import styles from "./profile-switcher.module.css";
 import { EmailVerification } from "@/features/portal/components/email-verification";
 
-const profileRoles: Role[] = ["curator", "client", "developer"];
-const roleIcons: Record<Role, IconName> = { curator: "telegram", client: "people", developer: "code", admin: "service" };
+const profileRoles: Role[] = ["client", "developer", "admin"];
+const roleIcons: Record<Role, IconName> = { client: "people", developer: "code", admin: "service" };
 
 export function ProfileSwitcher({ controller, onChange, inline = false }: { controller: PortalController; onChange: () => void; inline?: boolean }) {
   const { viewer, profiles } = controller.snapshot;
@@ -50,12 +50,11 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
     if (complete) { setOpen(false); onChange(); }
   }
 
-  const roles = profiles.some(profile => profile.role === "admin") ? [...profileRoles, "admin" as const] : profileRoles;
   const list = (
     <div className={styles.list} role="group" aria-label="Переключение профилей">
       <p className={styles.caption}>Профили</p>
       {controller.challenge && <button type="button" className={styles.add} onClick={() => { setRole(controller.challenge!.role); setOpen(true); }}>Продолжить подтверждение профиля</button>}
-      {roles.map(itemRole => {
+      {profileRoles.map(itemRole => {
         const accounts = profiles.filter(profile => profile.role === itemRole);
         return accounts.length ? accounts.map(profile => (
           <button type="button" key={profile.id} className={styles.profile} data-role={itemRole} aria-label={`Переключиться: ${ROLE_LABELS[itemRole]}, ${profile.name}`} aria-pressed={profile.id === viewer.id} disabled={controller.busy} onClick={() => void switchProfile(profile.id)}>

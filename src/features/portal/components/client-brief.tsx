@@ -125,7 +125,7 @@ export function ProjectBriefButton({ brief, projectName, renderTrigger, onClose 
                   <textarea className={styles.fullText} readOnly aria-label="Полный текст итогового брифа" rows={12} value={briefText(brief.document)} onFocus={event => event.currentTarget.select()} />
                 </details>
               </>
-            ) : <Empty title="Бриф ещё не добавлен" text="Он появится здесь, когда куратор привяжет готовый бриф к этому проекту." icon="document" />}
+            ) : <Empty title="Бриф ещё не добавлен" text="Он появится здесь, когда разработчик привяжет готовый бриф к этому проекту." icon="document" />}
           </>
         )}
       </dialog>

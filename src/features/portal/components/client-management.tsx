@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
-import { CuratorProject } from "@/features/portal/components/curator-project";
+import { ClientProjectForm } from "@/features/portal/components/client-project-form";
 import { ClientBriefButton } from "@/features/portal/components/client-brief";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
@@ -32,7 +32,7 @@ export function TelegramInbox({ controller, presentation = "web", selectedThread
   useLayoutEffect(() => {
     if (miniapp && !selectedThreadId) list.current?.closest("main")?.scrollTo({ top: listScroll.current });
   }, [miniapp, selectedThreadId]);
-  const conversations = controller.snapshot.conversations;
+  const conversations = controller.snapshot.conversations.filter(thread => thread.kind === "telegram");
   const viewerId = controller.snapshot.viewer?.id;
   const waiting = conversations.filter(thread => thread.handoffRequested && !thread.ownerId);
   const mine = conversations.filter(thread => thread.ownerId === viewerId);
@@ -68,8 +68,8 @@ export function TelegramInbox({ controller, presentation = "web", selectedThread
             Все
             <span>{conversations.length}</span>
           </button>
-          <button type="button" aria-label="Ждут куратора" aria-pressed={filter === "waiting"} onClick={() => changeSelection("waiting", search)}>
-            Ждут куратора
+          <button type="button" aria-label="Ждут разработчика" aria-pressed={filter === "waiting"} onClick={() => changeSelection("waiting", search)}>
+            Ждут разработчика
             <span>{waiting.length}</span>
           </button>
           <button type="button" aria-label="Мои диалоги" aria-pressed={filter === "mine"} onClick={() => changeSelection("mine", search)}>
@@ -127,7 +127,7 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/" }: { con
   }
   return (
     <div className={styles.stack}>
-      <CuratorProject controller={controller} />
+      <ClientProjectForm controller={controller} />
       <section className={styles.panel} aria-label="Оплата и выдача доступа">
         <h2>Оплата и выдача доступа</h2>
         <p className={styles.subtitle}>Данные клиента и согласованный объём основной работы.</p>

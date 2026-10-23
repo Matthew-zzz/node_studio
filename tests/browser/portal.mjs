@@ -29,7 +29,7 @@ export async function login(page, origin, role, password = fixturePassword) {
   const signOut = page.getByRole("button", { name: "Выйти", exact: true });
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
   if (await signOut.count()) await signOut.click();
-  await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(["developer", "curator", "admin"].includes(role) ? role : "client");
+  await page.getByRole("combobox", { name: "Профиль", exact: true }).selectOption(["developer", "admin"].includes(role) ? role : "client");
   await page.getByLabel("Почта", { exact: true }).fill(`${role}@example.test`);
   await page.getByLabel("Пароль", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Войти в кабинет", exact: true }).click();
@@ -57,7 +57,7 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
       await profiles.waitFor({ state: "visible" });
     }
     async function waitForRole(role) { await page.waitForFunction(role => document.querySelector('[data-testid="portal"]')?.dataset.role === role, role); }
-    for (const [role, label] of [["curator", "Куратор"], ["developer", "Разработчик"]]) {
+    for (const [role, label] of [["developer", "Разработчик"], ["admin", "Администратор"]]) {
       await openProfiles();
       await profiles.getByRole("button", { name: `Добавить профиль: ${label}`, exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
@@ -78,7 +78,7 @@ export async function checkProfileSwitching(browser, origin, width, screenshots)
     }
     const second = await context.newPage();
     await second.goto(origin + "/cabinet/"); await second.getByTestId("portal").waitFor();
-    for (const [role, label] of [["client", "Клиент"], ["curator", "Куратор"], ["developer", "Разработчик"], ["client", "Клиент"]]) {
+    for (const [role, label] of [["client", "Клиент"], ["developer", "Разработчик"], ["admin", "Администратор"], ["client", "Клиент"]]) {
       await openProfiles();
       await profiles.getByRole("button", { name: `Переключиться: ${label}, ${role}`, exact: true }).click();
       await waitForRole(role);
@@ -177,6 +177,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
 
   const title = "Подготовленная задача";
   await login(page, origin, "developer");
+  await navigate(page, width, "Общая очередь");
   const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });
   const queuedProject = id => queue.locator("article").filter({ has: page.getByRole("heading", { name: id, exact: true }) });
   assert.equal(await page.getByRole("navigation", { name: "Проекты в работе", exact: true }).count(), 0, "unclaimed projects are absent from the sidebar");
@@ -195,7 +196,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   assert.equal(await chat.count(), 0, "developer chat has its own project section");
   if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
   const globalMenu = page.getByRole("navigation", { name: "Разделы кабинета", exact: true });
-  assert.deepEqual(await globalMenu.getByRole("button").allTextContents(), ["Общая очередь", "Настройки"]);
+  assert.deepEqual(await globalMenu.getByRole("button").allTextContents(), ["Диалоги", "Общая очередь", "Создание проектов", "Настройки"]);
   const sections = page.getByRole("group", { name: "Разделы проекта one", exact: true });
   assert.deepEqual(await sections.getByRole("button").allTextContents(), ["Обзор проекта", "Задачи", "История", "Чат"]);
   await page.screenshot({ path: resolve(screenshots, `${width}-developer-project-menu-light.png`), fullPage: true });
@@ -271,7 +272,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await queue.getByRole("heading", { name: "Очередь свободна", exact: true }).waitFor();
   await openProject(page, width, "one", "Обзор проекта");
 
-  await login(page, origin, "curator");
+  await login(page, origin, "developer");
   await checkClientBrief(page, origin, width, screenshots);
   assert.equal(await page.getByRole("region", { name: "Задачи проекта", exact: true }).count(), 0);
   const inbox = page.getByRole("region", { name: "Очередь обращений", exact: true });
@@ -281,7 +282,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await inbox.getByText("Дмитрий", { exact: true }).waitFor();
   await page.getByLabel("Поиск диалогов", { exact: true }).fill("");
   const filters = page.getByRole("group", { name: "Фильтр диалогов", exact: true });
-  await filters.getByRole("button", { name: "Ждут куратора", exact: true }).click();
+  await filters.getByRole("button", { name: "Ждут разработчика", exact: true }).click();
   const telegram = page.getByRole("region", { name: "Telegram-диалог", exact: true });
   await telegram.getByRole("button", { name: "Подключиться к диалогу", exact: true }).click();
   await telegram.getByRole("button", { name: "Покинуть диалог", exact: true }).waitFor();
@@ -291,7 +292,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await telegram.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
   await telegram.getByText("Здравствуйте! Помогу с проектом.", { exact: true }).waitFor();
   await telegram.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
-  await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-curator.png`), fullPage: true });
+  await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-intake.png`), fullPage: true });
 
   const projectName = `Новый проект ${width}`;
   await navigate(page, width, "Создание проектов");
@@ -363,7 +364,7 @@ export async function checkWorkspacePreferences(browser, origin) {
     await second.goto(origin + "/cabinet/"); await second.getByTestId("portal").waitFor();
     await second.getByRole("button", { name: "Включить тёмную тему", exact: true }).click();
     await page.waitForFunction(() => document.querySelector('[data-testid="portal"]').dataset.theme === "dark");
-    await login(page, origin, "curator");
+    await login(page, origin, "developer");
     assert.equal(await root.getAttribute("data-theme"), "dark");
   } finally { await context.close(); }
   const privateContext = await browser.newContext({ viewport: { width: 320, height: 844 } });

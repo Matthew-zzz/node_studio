@@ -82,7 +82,7 @@ export function AgentAdmin({ controller, view }: { controller: PortalController;
               <article className={styles.item} key={run.id}>
                 <div className={styles.itemHeader}>
                   <h3>{run.model}</h3>
-                  <span className={styles.pill} data-state={run.status === "error" ? "error" : "ready"}>{({ answered: "Отвечено", handoff: "Передан куратору", paused: "На паузе", limited: "Лимит ответов", error: "Резервный ответ" })[run.status]}</span>
+                  <span className={styles.pill} data-state={run.status === "error" ? "error" : "ready"}>{({ answered: "Отвечено", handoff: "Передан разработчику", paused: "На паузе", limited: "Лимит ответов", error: "Резервный ответ" })[run.status]}</span>
                 </div>
                 <p className={portalStyles.small}>{`${run.durationMs} мс · источников: ${run.sourceIds.length} · ${new Date(run.createdAt).toLocaleString("ru-RU")}`}</p>
               </article>

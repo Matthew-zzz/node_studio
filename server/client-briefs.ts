@@ -40,7 +40,7 @@ export class ClientBriefs {
   }
 
   request(viewer: Viewer, threadId: string, model: string, refresh: boolean) {
-    if (viewer.role !== "curator" || viewer.mustChangePassword) throw new PortalError(403, "Итоговый бриф доступен только куратору.");
+    if (viewer.role !== "developer" || viewer.mustChangePassword) throw new PortalError(403, "Итоговый бриф доступен только разработчику.");
     const thread = this.store.get("conversations", threadId);
     if (!thread || thread.kind !== "telegram") throw new PortalError(404, "Telegram-диалог не найден.");
     if (!this.integrations.ready.ai || !model) throw new PortalError(503, "Подключите ИИ для создания брифа.");
@@ -72,7 +72,7 @@ export class ClientBriefs {
   }
 
   link(viewer: Viewer, threadId: string, projectId: string) {
-    if (viewer.role !== "curator" || viewer.mustChangePassword) throw new PortalError(403, "Привязать бриф к проекту может только куратор.");
+    if (viewer.role !== "developer" || viewer.mustChangePassword) throw new PortalError(403, "Привязать бриф к проекту может только разработчик.");
     const thread = this.store.get("conversations", threadId);
     if (!thread || thread.kind !== "telegram" || !this.store.get("clientBriefs", threadId)) throw new PortalError(404, "Бриф клиента не найден.");
     this.store.transaction(() => {
@@ -80,7 +80,7 @@ export class ClientBriefs {
       const project = this.store.get("projects", projectId);
       if (!project || project.status === "archived") throw new PortalError(404, "Проект не найден.");
       if (this.store.all("briefLinks").some(link => link.projectId === projectId && link.threadId !== threadId)) throw new PortalError(409, "У проекта уже есть другой бриф. Сначала снимите его привязку.");
-      this.store.put("briefLinks", { id: threadId, threadId, projectId, curatorId: viewer.id, updatedAt: now() });
+      this.store.put("briefLinks", { id: threadId, threadId, projectId, createdBy: viewer.id, updatedAt: now() });
     });
   }
 
@@ -102,7 +102,7 @@ export class ClientBriefs {
     const current = this.store.get("clientBriefs", request.threadId);
     if (current?.requestId !== request.id) return;
     const actor = this.store.user(request.actorId);
-    if (!actor || actor.role !== "curator" || actor.mustChangePassword) throw new PortalError(403, "Куратор брифа больше недоступен.");
+    if (!actor || actor.role !== "developer" || actor.mustChangePassword) throw new PortalError(403, "Разработчик брифа больше недоступен.");
     this.store.put("clientBriefs", { ...current, status: "generating", updatedAt: now() });
     const result = await this.integrations.brief(request.inputs[request.results.length]!, request.model, request.round === 0 ? "extract" : "merge");
     this.store.transaction(() => {

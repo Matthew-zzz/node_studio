@@ -12,21 +12,21 @@ import { portalFixture } from "./helpers/portal-fixture.mjs";
 
 const definition = () => ({ type: "project.request", requestId: randomUUID(), name: "Новый проект", clientEmail: "client@example.test", description: "Личный кабинет", brief: "Кабинет с каталогом и поиском. Подробное ТЗ клиента." });
 async function request(f, input = definition()) {
-  await f.service.action(f.login("curator").session, input);
+  await f.service.action(f.login("developer").session, input);
   return f.store.get("projects", `project:${input.requestId}`);
 }
 const repositoryAction = project => ({ type: "project.repository.create", projectId: project.id });
 const retryNow = f => f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='github.repository.create'").run();
 
-test("curator creates an idempotent client project without GitHub or access to private chats", async () => {
+test("intake creates an idempotent client project without requiring GitHub", async () => {
   const f = portalFixture();
   try {
     const input = definition();
-    for (const role of ["client", "developer", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, input), { status: 403 });
+    for (const role of ["client", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, input), { status: 403 });
     await assert.rejects(request(f, { ...input, clientEmail: "missing@example.test" }), { status: 404 });
     await assert.rejects(request(f, { ...input, clientEmail: "developer@example.test" }), { status: 404 });
     f.integrations.ready.github = false;
-    f.integrations.createRepository = async () => { throw new Error("Must not call GitHub during curator creation"); };
+    f.integrations.createRepository = async () => { throw new Error("Must not call GitHub during intake creation"); };
     const project = await request(f, input); await request(f, input);
     assert.equal(project.repo, ""); assert.deepEqual(projectRepositories(project), []);
     assert.equal(project.developerId, undefined);
@@ -38,9 +38,9 @@ test("curator creates an idempotent client project without GitHub or access to p
     const client = await f.service.snapshot(f.login("client").session, project.id);
     assert.equal(client.projects.find(item => item.id === project.id).repositoryReady, false);
     assert.ok(!(await f.service.snapshot(f.login("other").session)).projects.some(item => item.id === project.id));
-    const curator = await f.service.snapshot(f.login("curator").session);
-    assert.ok(curator.projects.some(item => item.id === project.id));
-    assert.equal(curator.messages.length, 0); assert.equal(curator.conversations.length, 0);
+    const intake = await f.service.snapshot(f.login("developer").session);
+    assert.ok(intake.projects.some(item => item.id === project.id));
+    assert.ok(intake.conversations.some(thread => thread.projectId === project.id));
   } finally { f.close(); }
 });
 
@@ -48,7 +48,7 @@ test("only the assigned developer creates one exclusive repository and initial G
   const f = portalFixture();
   try {
     const project = await request(f); const action = repositoryAction(project);
-    for (const role of ["client", "other", "curator", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, action), { status: 403 });
+    for (const role of ["client", "other", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, action), { status: 403 });
     const developer = f.login("developer").session;
     await assert.rejects(f.service.action(developer, action), { status: 403 });
     assert.equal(f.repositories.length, 0);
@@ -62,7 +62,7 @@ test("only the assigned developer creates one exclusive repository and initial G
     assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='github.repository.create'").get().n, 1);
     const pending = await f.service.snapshot(developer, project.id);
     assert.equal(pending.projects.find(item => item.id === project.id).repositoryCreation.status, "queued");
-    for (const role of ["client", "curator"]) {
+    for (const role of ["client"]) {
       const snapshot = await f.service.snapshot(f.login(role).session, project.id);
       const visible = snapshot.projects.find(item => item.id === project.id);
       assert.equal(visible.repositoryCreation, undefined);
@@ -146,10 +146,10 @@ test("paid project and client access can be provisioned while GitHub is disconne
   const f = portalFixture();
   try {
     f.integrations.ready.github = false;
-    const curator = f.login("curator").session;
-    await f.service.action(curator, { type: "order.create", order: { projectName: "Paid", clientName: "New", email: "new@example.test", username: "new", brief: "Paid brief", totalKopecks: 10000 } });
+    const intake = f.login("developer").session;
+    await f.service.action(intake, { type: "order.create", order: { projectName: "Paid", clientName: "New", email: "new@example.test", username: "new", brief: "Paid brief", totalKopecks: 10000 } });
     const order = f.store.all("orders")[0]; f.service.payOrder(order.checkoutToken, "succeeded");
-    await f.service.action(curator, { type: "order.provision", orderId: order.id }); await f.service.workJobs();
+    await f.service.action(intake, { type: "order.provision", orderId: order.id }); await f.service.workJobs();
     const project = f.store.get("projects", `project:${order.id}`);
     assert.ok(project); assert.equal(project.repo, ""); assert.equal(f.repositories.length, 0);
     assert.equal(f.store.get("orders", order.id).status, "ready"); assert.equal(f.sent.filter(item => item.deliveryId === `access:${order.id}`).length, 1);
@@ -178,7 +178,7 @@ test("archived projects disappear for every role and queued jobs cannot recreate
     assert.equal(archived.status, "archived"); assert.ok(archived.archivedAt);
     await f.service.workJobs();
     assert.equal(f.sent.length, 0); assert.equal(f.store.db.prepare("SELECT count(*) AS count FROM jobs").get().count, 0);
-    for (const role of ["client", "developer", "curator", "admin"]) {
+    for (const role of ["client", "developer", "admin"]) {
       const snapshot = await f.service.snapshot(f.login(role).session, project.id);
       for (const kind of ["projects", "tasks", "stages", "commits", "drafts", "quotes"]) assert.ok(!snapshot[kind].some(item => item.id === project.id || item.projectId === project.id), `${role}: ${kind}`);
       assert.ok(!snapshot.orders.some(item => item.id === order.id));

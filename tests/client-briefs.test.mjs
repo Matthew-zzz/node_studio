@@ -25,25 +25,25 @@ function message(f, threadId, text, role = "client") { f.store.put("messages", {
 const action = threadId => ({ type: "brief.generate", threadId });
 async function drain(f, service = f.service) { for (let i = 0; i < 100 && f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='brief.generate' AND attempts<8").get().n; i++) await service.workJobs(); }
 
-test("curator requests a durable brief from all history, isolated by client; repeated clicks and cached views do not regenerate", async () => {
+test("intake requests a durable brief from all history, isolated by client; repeated clicks and cached views do not regenerate", async () => {
   const f = portalFixture();
   try {
     const id = thread(f); const other = thread(f, "two"); message(f, other, "ЧУЖОЙ СЕКРЕТ");
     for (let i = 0; i < 85; i++) message(f, id, `Ответ ${i}`);
-    message(f, id, "Вопрос куратора", "curator"); message(f, id, "Предположение ИИ", "assistant");
+    message(f, id, "Вопрос разработчика", "developer"); message(f, id, "Предположение ИИ", "assistant");
     let input; let calls = 0; const original = f.integrations.brief;
     f.integrations.brief = async (...args) => { calls++; input = args[0]; return original(...args); };
-    const curator = f.login("curator").session;
-    for (const role of ["client", "developer", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, action(id)), { status: 403 });
-    await assert.rejects(f.service.action(curator, action("chat-one")), { status: 404 });
-    await Promise.all([1,2,3].map(() => f.service.action(curator, action(id))));
+    const intake = f.login("developer").session;
+    for (const role of ["client", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session, action(id)), { status: 403 });
+    await assert.rejects(f.service.action(intake, action("chat-one")), { status: 404 });
+    await Promise.all([1,2,3].map(() => f.service.action(intake, action(id))));
     assert.equal(calls, 0); assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='brief.generate'").get().n, 1);
     await drain(f);
-    assert.equal(calls, 1); assert.ok(input.includes("Самое раннее требование")); assert.ok(input.includes("Ответ 84")); assert.ok(input.includes("Вопрос куратора")); assert.ok(input.includes("Предположение ИИ")); assert.ok(!input.includes("ЧУЖОЙ СЕКРЕТ"));
-    const snapshot = await f.service.snapshot(curator); assert.equal(snapshot.clientBriefs[0].status, "ready"); assert.equal(snapshot.clientBriefs[0].messageCount, 88);
+    assert.equal(calls, 1); assert.ok(input.includes("Самое раннее требование")); assert.ok(input.includes("Ответ 84")); assert.ok(input.includes("Вопрос разработчика")); assert.ok(input.includes("Предположение ИИ")); assert.ok(!input.includes("ЧУЖОЙ СЕКРЕТ"));
+    const snapshot = await f.service.snapshot(intake); assert.equal(snapshot.clientBriefs[0].status, "ready"); assert.equal(snapshot.clientBriefs[0].messageCount, 88);
     assert.ok(briefText(snapshot.clientBriefs[0].document).length <= 16000);
-    for (const role of ["client", "developer", "admin"]) assert.deepEqual((await f.service.snapshot(f.login(role).session)).clientBriefs, []);
-    await f.service.action(curator, action(id)); await drain(f); assert.equal(calls, 1);
+    for (const role of ["client", "admin"]) assert.deepEqual((await f.service.snapshot(f.login(role).session)).clientBriefs, []);
+    await f.service.action(intake, action(id)); await drain(f); assert.equal(calls, 1);
     assert.equal(f.sent.length, 0, "briefs are never posted to Telegram or emailed automatically");
     assert.equal(f.store.all("briefRequests").length, 0, "completed raw request snapshots are removed");
   } finally { f.close(); }
@@ -61,7 +61,7 @@ test("long messages and early history are processed completely, then merged; che
     assert.equal(parts.map(part => part.text).join(""), source); assert.ok(chunks.every(chunk => chunk.length <= 24000));
     const phases = []; let first = true; const original = f.integrations.brief;
     f.integrations.brief = async (...args) => { if (first) { first = false; throw new Error("Provider temporarily unavailable"); } phases.push(args[2]); return original(...args); };
-    await f.service.action(f.login("curator").session, action(id)); await f.service.workJobs();
+    await f.service.action(f.login("developer").session, action(id)); await f.service.workJobs();
     assert.equal(f.store.get("clientBriefs", id).status, "retrying");
     f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='brief.generate'").run();
     await f.service.workJobs();
@@ -79,19 +79,19 @@ test("long messages and early history are processed completely, then merged; che
 test("a changed conversation marks the document stale, failed refresh preserves it, and manual retry resumes safely", async () => {
   const f = portalFixture();
   try {
-    const id = thread(f); const curator = f.login("curator").session;
-    await f.service.action(curator, action(id)); await drain(f);
+    const id = thread(f); const intake = f.login("developer").session;
+    await f.service.action(intake, action(id)); await drain(f);
     const document = f.store.get("clientBriefs", id).document;
-    message(f, id, "Новое пожелание"); assert.equal((await f.service.snapshot(curator)).clientBriefs[0].stale, true);
+    message(f, id, "Новое пожелание"); assert.equal((await f.service.snapshot(intake)).clientBriefs[0].stale, true);
     const original = f.integrations.brief; f.integrations.brief = async () => { throw new Error("Unavailable"); };
-    await f.service.action(curator, action(id));
+    await f.service.action(intake, action(id));
     for (let i=0;i<8;i++) { f.store.db.prepare("UPDATE jobs SET available=0 WHERE kind='brief.generate'").run(); await f.service.workJobs(); }
     assert.equal(f.store.get("clientBriefs", id).status, "failed"); assert.deepEqual(f.store.get("clientBriefs", id).document, document);
-    const event = f.service.errors.query({}).events.find(event => event.operation === "brief.generate"); assert.equal(event.actor.id, curator.viewer.id);
+    const event = f.service.errors.query({}).events.find(event => event.operation === "brief.generate"); assert.equal(event.actor.id, intake.viewer.id);
     const request = f.store.get("clientBriefs", id).requestId;
     f.integrations.brief = original;
-    await f.service.action(curator, action(id)); assert.equal(f.store.get("clientBriefs", id).requestId, request);
-    await drain(f); assert.equal((await f.service.snapshot(curator)).clientBriefs[0].stale, false);
+    await f.service.action(intake, action(id)); assert.equal(f.store.get("clientBriefs", id).requestId, request);
+    await drain(f); assert.equal((await f.service.snapshot(intake)).clientBriefs[0].stale, false);
   } finally { f.close(); }
 });
 
@@ -101,71 +101,71 @@ test("a new message during generation remains visibly outside the frozen brief, 
     const id = thread(f); let release; let started; const ready = new Promise(resolve => { started = resolve; });
     const original = f.integrations.brief;
     f.integrations.brief = async (...args) => { started(); await new Promise(resolve => { release = resolve; }); return original(...args); };
-    await f.service.action(f.login("curator").session, action(id));
+    await f.service.action(f.login("developer").session, action(id));
     const pending = f.service.workJobs(); await ready;
     message(f, id, "Пожелание после запуска"); f.store.enqueue("telegram.send", { chatId: "fixture", text: "Обычное сообщение" });
     await f.service.workJobs(); assert.ok(f.sent.some(item => item.text === "Обычное сообщение"));
     release(); await pending;
-    assert.equal((await f.service.snapshot(f.login("curator").session)).clientBriefs[0].stale, true);
+    assert.equal((await f.service.snapshot(f.login("developer").session)).clientBriefs[0].stale, true);
   } finally { f.close(); }
 });
 
 test("brief action is protected by HTTP session, role, Origin and CSRF", async () => {
   const f = portalFixture(); const {request,login} = portalApi(f);
   try {
-    const id = thread(f); const curator = await login("curator", fixturePassword);
+    const id = thread(f); const intake = await login("developer", fixturePassword);
     assert.equal((await request("action",action(id))).statusCode,401);
-    assert.equal((await request("action",action(id),curator,{origin:"https://evil.test"})).statusCode,403);
-    assert.equal((await request("action",action(id),curator,{"x-csrf-token":"wrong"})).statusCode,403);
-    assert.equal((await request("action",action(id),curator)).statusCode,200);
+    assert.equal((await request("action",action(id),intake,{origin:"https://evil.test"})).statusCode,403);
+    assert.equal((await request("action",action(id),intake,{"x-csrf-token":"wrong"})).statusCode,403);
+    assert.equal((await request("action",action(id),intake)).statusCode,200);
     const link = { type: "brief.link", threadId: id, projectId: "one" };
     assert.equal((await request("action",link)).statusCode,401);
-    assert.equal((await request("action",link,curator,{origin:"https://evil.test"})).statusCode,403);
-    assert.equal((await request("action",link,curator,{"x-csrf-token":"wrong"})).statusCode,403);
-    assert.equal((await request("action",link,curator)).statusCode,200);
+    assert.equal((await request("action",link,intake,{origin:"https://evil.test"})).statusCode,403);
+    assert.equal((await request("action",link,intake,{"x-csrf-token":"wrong"})).statusCode,403);
+    assert.equal((await request("action",link,intake)).statusCode,200);
   } finally { f.close(); }
 });
 
-test("curator links one brief to a project; its owner and developer receive only the document, and updates propagate", async () => {
+test("intake links one brief to a project; its owner and developer receive only the document, and updates propagate", async () => {
   const f = portalFixture();
   try {
-    const id = thread(f); const other = thread(f,"other"); const curator = f.login("curator").session;
+    const id = thread(f); const other = thread(f,"other"); const intake = f.login("developer").session;
     const link = (threadId,projectId) => ({type:"brief.link",threadId,projectId});
-    await f.service.action(curator,action(id)); await drain(f);
-    for(const role of ["client","developer","admin","temporary"]) await assert.rejects(f.service.action(f.login(role).session,link(id,"one")),{status:403});
-    await assert.rejects(f.service.action(curator,link(id,"missing")),{status:404});
-    await assert.rejects(f.service.action(curator,link("chat-one","one")),{status:404});
-    await f.service.action(curator,link(id,"one"));
-    assert.equal((await f.service.snapshot(curator)).clientBriefs[0].projectId,"one");
-    assert.ok((await f.service.snapshot(curator)).briefProjects.some(project=>project.id==="one"));
-    for(const role of ["client","developer"]) {
+    await f.service.action(intake,action(id)); await drain(f);
+    for(const role of ["client", "admin", "temporary"]) await assert.rejects(f.service.action(f.login(role).session,link(id,"one")),{status:403});
+    await assert.rejects(f.service.action(intake,link(id,"missing")),{status:404});
+    await assert.rejects(f.service.action(intake,link("chat-one","one")),{status:404});
+    await f.service.action(intake,link(id,"one"));
+    assert.equal((await f.service.snapshot(intake)).clientBriefs[0].projectId,"one");
+    assert.ok((await f.service.snapshot(intake)).briefProjects.some(project=>project.id==="one"));
+    for(const role of ["client", "developer"]) {
       const snapshot=await f.service.snapshot(f.login(role).session);
       assert.deepEqual(snapshot.projectBriefs,[{projectId:"one",document:f.store.get("clientBriefs",id).document,generatedAt:f.store.get("clientBriefs",id).generatedAt}]);
-      assert.deepEqual(snapshot.clientBriefs,[]); assert.deepEqual(snapshot.briefProjects,[]);
-      assert.ok(snapshot.conversations.every(thread=>thread.kind==="project"));
+      if (role === "client") { assert.deepEqual(snapshot.clientBriefs,[]); assert.deepEqual(snapshot.briefProjects,[]); assert.ok(snapshot.conversations.every(thread=>thread.kind==="project")); }
+      else assert.ok(snapshot.clientBriefs.some(brief=>brief.threadId===id));
     }
-    for(const role of ["other","admin","temporary"]) assert.deepEqual((await f.service.snapshot(f.login(role).session)).projectBriefs,[]);
-    await f.service.action(curator,action(other)); await drain(f);
-    await assert.rejects(f.service.action(curator,link(other,"one")),{status:409});
+    for(const role of ["other", "admin", "temporary"]) assert.deepEqual((await f.service.snapshot(f.login(role).session)).projectBriefs,[]);
+    await f.service.action(intake,action(other)); await drain(f);
+    await assert.rejects(f.service.action(intake,link(other,"one")),{status:409});
     const previous=f.store.get("clientBriefs",id); let calls=0;
     const original=f.integrations.brief; f.integrations.brief=async(...args)=>{calls++;return {...await original(...args),goal:"Обновлённая цель"};};
-    await f.service.action(curator,{...action(id),refresh:true});
+    await f.service.action(intake,{...action(id),refresh:true});
     assert.notEqual(f.store.get("clientBriefs",id).requestId,previous.requestId);
     assert.deepEqual((await f.service.snapshot(f.login("client").session)).projectBriefs[0].document,previous.document);
     await drain(f); assert.equal(calls,1);
     assert.equal((await f.service.snapshot(f.login("client").session)).projectBriefs[0].document.goal,"Обновлённая цель");
-    await f.service.action(curator,link(id,"two"));
+    await f.service.action(intake,link(id,"two"));
     assert.deepEqual((await f.service.snapshot(f.login("client").session)).projectBriefs.map(brief=>brief.projectId),["two"]);
     f.store.put("projects",{...f.store.get("projects","two"),status:"archived"});
     assert.deepEqual((await f.service.snapshot(f.login("developer").session)).projectBriefs,[]);
-    await assert.rejects(f.service.action(curator,link(id,"two")),{status:404});
-    await f.service.action(curator,link(id,"")); assert.equal(f.store.all("briefLinks").length,0);
+    await assert.rejects(f.service.action(intake,link(id,"two")),{status:404});
+    await f.service.action(intake,link(id,"")); assert.equal(f.store.all("briefLinks").length,0);
   } finally { f.close(); }
 });
 
 test("brief completion notifications wait for a new result, survive navigation, deduplicate and stay within the session", () => {
   const updates=new BriefUpdates();
-  const viewer={id:"curator",role:"curator",name:"Куратор",email:"curator@example.test",mustChangePassword:false};
+  const viewer={id:"developer",role:"developer",name:"Разработчик",email:"intake@example.test",mustChangePassword:false};
   const brief={id:"tg",threadId:"tg",requestId:"old",status:"ready",stale:false,generatedAt:"first",sourceHash:"source",messageCount:1,updatedAt:"first"};
   const snapshot={...EMPTY_SNAPSHOT,viewer,csrf:"session",clientBriefs:[brief]};
   assert.equal(updates.track(snapshot,"tg",false),undefined);

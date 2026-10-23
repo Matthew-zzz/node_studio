@@ -19,7 +19,7 @@ export function portalApi(fixture, verifyLogins = false) {
     return response;
   }
   async function login(role, password, current) {
-    const result = await request(current ? "profiles/add" : "login", { email: fixture.users[role].email, password, role: ["developer", "curator", "admin"].includes(role) ? role : "client" }, current);
+    const result = await request(current ? "profiles/add" : "login", { email: fixture.users[role].email, password, role: ["developer", "admin"].includes(role) ? role : "client" }, current);
     if (result.body.kind !== "verification") return result;
     const code = fixture.sent.filter(mail => mail.email === fixture.users[role].email && mail.subject === "Код для входа — Node Studio").at(-1).content.match(/\b\d{6}\b/)[0];
     return request("auth/verify", { code }, result);

@@ -13,7 +13,7 @@ function telegram(f, overrides = {}) {
     email: "", telegramId: "123", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: new Date().toISOString(), ...overrides });
 }
 async function createOrder(f, overrides = {}) {
-  await f.service.action(f.login("curator").session, { type: "order.create", order: { projectName: "Каталог <NS> & магазин", clientName: "Клиент",
+  await f.service.action(f.login("developer").session, { type: "order.create", order: { projectName: "Каталог <NS> & магазин", clientName: "Клиент",
     email: "new@example.test", username: "@CLIENT_V", brief: "Согласованное ТЗ, не включать в уведомление", totalKopecks: 500001, ...overrides } });
   return f.store.all("orders").at(-1);
 }

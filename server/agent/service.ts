@@ -10,6 +10,7 @@ import type { AgentPreferences, AgentSettings, AgentAdminState, AgentTestResult,
 import { formatTelegramHtml } from "../../src/features/portal/model/telegram-html.ts";
 import { cosine, keywordScores, splitKnowledge } from "./knowledge.ts";
 import type { KnowledgeChunk } from "./knowledge.ts";
+import { developerTerminology } from "../developer-workflow-migration.ts";
 
 function boolean(value: unknown): boolean {
   if (typeof value !== "boolean") throw new PortalError(400, "Проверьте переключатели настроек.");
@@ -36,9 +37,9 @@ export function validateAgentPreferences(input: unknown): AgentPreferences {
   if (typeof rag.minSimilarity !== "number" || !Number.isFinite(minSimilarity) || minSimilarity < 0 || minSimilarity > 1) throw new PortalError(400, "Порог сходства должен быть от 0 до 1.");
   return {
     enabled: boolean(value.enabled), name: text(value.name, 64), model: model(value.model),
-    systemPrompt: text(value.systemPrompt, 20000), greeting: text(value.greeting, 12000),
-    fallbackMessage: text(value.fallbackMessage, 8000), handoffMessage: text(value.handoffMessage, 8000),
-    noKnowledgeMessage: text(value.noKnowledgeMessage, 8000), formattingPrompt: text(value.formattingPrompt, 8000),
+    systemPrompt: developerTerminology(text(value.systemPrompt, 20000)), greeting: developerTerminology(text(value.greeting, 12000)),
+    fallbackMessage: developerTerminology(text(value.fallbackMessage, 8000)), handoffMessage: developerTerminology(text(value.handoffMessage, 8000)),
+    noKnowledgeMessage: developerTerminology(text(value.noKnowledgeMessage, 8000)), formattingPrompt: text(value.formattingPrompt, 8000),
     historyLimit: integer(value.historyLimit, 2, 80), maxOutputTokens: integer(value.maxOutputTokens, 256, 16000),
     maxReplyChars: integer(value.maxReplyChars, 100, 4000), repliesPerHour: integer(value.repliesPerHour, 1, 120),
     generation: { temperature: generation.temperature as number | null, reasoningEffort: generation.reasoningEffort as AgentPreferences["generation"]["reasoningEffort"], verbosity: generation.verbosity as AgentPreferences["generation"]["verbosity"] },

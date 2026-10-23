@@ -1,5 +1,5 @@
 import type { ClientBrief, ProjectClientBrief } from "./client-brief";
-export type Role = "client" | "developer" | "curator" | "admin";
+export type Role = "client" | "developer" | "admin";
 export type WorkStatus = "new" | "in_progress" | "done" | "canceled";
 
 export interface Viewer {
@@ -21,8 +21,8 @@ export interface PortalProject {
   readonly repositoryReady?: boolean;
   readonly repositoryCreation?: RepositoryCreation;
   readonly subprojects?: readonly ProjectRepository[];
-  readonly origin?: "order" | "import" | "curator";
-  readonly curatorId?: string;
+  readonly origin?: "order" | "import" | "developer";
+  readonly createdBy?: string;
   readonly brief: string;
   readonly status: "active" | "provisioning" | "archived";
   readonly archivedAt?: string;
@@ -81,7 +81,8 @@ export interface ChatMessage {
   readonly id: string;
   readonly threadId: string;
   readonly author: string;
-  readonly role: Role | "assistant" | "system";
+  /** Legacy staff messages keep their original author role; no account can use it. */
+  readonly role: Role | "curator" | "assistant" | "system";
   readonly text: string;
   readonly html?: string;
   readonly createdAt: string;
@@ -196,7 +197,7 @@ export interface Checkout {
 }
 
 export const ROLE_LABELS: Record<Role, string> = {
-  client: "Клиент", developer: "Разработчик", curator: "Куратор", admin: "Администратор",
+  client: "Клиент", developer: "Разработчик", admin: "Администратор",
 };
 
 export const STATUS_LABELS: Record<WorkStatus, string> = {

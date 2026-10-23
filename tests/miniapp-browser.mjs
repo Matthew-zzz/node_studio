@@ -121,7 +121,7 @@ try {
       await completeEmailCode(page, origin, "developer@example.test");
       await page.waitForFunction(() => document.querySelector('[data-testid="portal"]')?.dataset.role === "developer");
       fixture.store.db.exec("DELETE FROM auth_limits");
-      await page.getByRole("button", { name: /Общая очередь.*Новые проекты студии/ }).click();
+      await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });
       await queue.locator("article").filter({ has: page.getByRole("heading", { name: "one", exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       await tab(page, "Задачи");
@@ -131,11 +131,11 @@ try {
       await task.getByRole("button", { name: "Выставить оценку", exact: true }).click(); await fits(page, width);
       await page.screenshot({ path: resolve(screenshots, `${width}-developer-tasks.png`) });
 
-      await signIn(page, origin, "curator");
+      await signIn(page, origin, "developer");
       assert.equal(await page.getByRole("region", { name: "Telegram-диалог", exact: true }).count(), 0, "the inbox starts with a list, without opening a conversation");
       await page.getByLabel("Поиск диалогов", { exact: true }).fill("kate_studio");
       await fits(page, width);
-      await page.screenshot({ path: resolve(screenshots, `${width}-curator-dialog-list.png`) });
+      await page.screenshot({ path: resolve(screenshots, `${width}-intake-dialog-list.png`) });
       await checkClientBrief(page, origin, width, screenshots, true);
       assert.equal(await page.getByRole("region", { name: "Очередь обращений", exact: true }).count(), 0, "an open conversation has its own screen");
       assert.equal(await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).count(), 0);
@@ -143,8 +143,8 @@ try {
       await page.getByRole("textbox", { name: "Сообщение", exact: true }).fill("Черновик только для Екатерины");
       await page.setViewportSize({ width, height: 380 });
       await page.waitForFunction(() => document.querySelector('[data-keyboard="true"]'));
-      const curatorCompose = await page.getByRole("textbox", { name: "Сообщение", exact: true }).boundingBox();
-      assert.ok(curatorCompose.y >= 0 && curatorCompose.y + curatorCompose.height <= 380, "curator composer stays above the keyboard");
+      const intakeCompose = await page.getByRole("textbox", { name: "Сообщение", exact: true }).boundingBox();
+      assert.ok(intakeCompose.y >= 0 && intakeCompose.y + intakeCompose.height <= 380, "intake composer stays above the keyboard");
       await page.setViewportSize({ width, height: 800 });
       await page.evaluate(() => window.__telegram.back());
       await page.getByRole("region", { name: "Очередь обращений", exact: true }).waitFor();
@@ -159,21 +159,21 @@ try {
       assert.equal(await page.getByRole("textbox", { name: "Сообщение", exact: true }).inputValue(), "Черновик только для Екатерины");
       await page.getByRole("button", { name: "Покинуть диалог", exact: true }).waitFor();
       await fits(page, width);
-      await page.screenshot({ path: resolve(screenshots, `${width}-curator-open-dialog.png`) });
+      await page.screenshot({ path: resolve(screenshots, `${width}-intake-open-dialog.png`) });
       await page.getByRole("textbox", { name: "Сообщение", exact: true }).fill("Здравствуйте, я помогу с проектом");
       await page.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
       await page.getByRole("button", { name: "Покинуть диалог", exact: true }).click();
       await page.getByRole("button", { name: "Вернуться к диалогам", exact: true }).click();
       await tab(page, "Проекты");
       await page.getByText("Создать для существующего клиента", { exact: true }).click();
-      const form = page.getByRole("form", { name: "Создание проекта куратором", exact: true });
+      const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
       const name = `Мобильный проект ${width}`;
       await form.getByLabel("Название проекта", { exact: true }).fill(name);
       await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
       await form.getByLabel("ТЗ проекта", { exact: true }).fill("Каталог с поиском и личным кабинетом");
       await form.getByRole("button", { name: "Создать проект", exact: true }).click();
       await page.getByRole("heading", { name, exact: true }).waitFor(); await fits(page, width);
-      await page.screenshot({ path: resolve(screenshots, `${width}-curator.png`) });
+      await page.screenshot({ path: resolve(screenshots, `${width}-intake.png`) });
       if (width === 390) {
         const paymentSetup = page.getByRole("region", { name: "Оплата и выдача доступа", exact: true });
         await paymentSetup.getByText("Подготовить проект", { exact: true }).click();
@@ -200,7 +200,7 @@ try {
       }
 
       await signIn(page, origin, "developer");
-      await page.getByRole("button", { name: /Общая очередь.*Новые проекты студии/ }).click();
+      await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       await page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).click();
       await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();
@@ -228,7 +228,7 @@ try {
       await page.getByRole("link", { name: "Поддержка студии", exact: true }).click();
       assert.ok((await page.evaluate(() => window.__telegram.links)).includes("https://t.me/node_studio_bot"));
       assert.deepEqual(errors, []);
-      console.log(`Mini App ${width}px: MFA, roles, native back/theme, keyboard, curator project, GitHub creation, client draft, developer pricing and stub payment passed`);
+      console.log(`Mini App ${width}px: MFA, roles, native back/theme, keyboard, intake project, GitHub creation, client draft, developer pricing and stub payment passed`);
     } catch (error) {
       await page.screenshot({ path: resolve(screenshots, `${width}-failure.png`) }).catch(() => undefined);
       console.error((await page.locator("body").innerText()).slice(0, 7000));

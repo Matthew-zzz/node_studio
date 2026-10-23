@@ -5,12 +5,6 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
   source = { ...source, projects: source.projects.filter(project => project.status !== "archived") };
   const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], clientBriefs: [], projectBriefs: [], briefProjects: [], selectedProjectId: "", repositoryStatus: {} };
   if (viewer.mustChangePassword || viewer.role === "admin") return blank;
-  if (viewer.role === "curator") {
-    const conversations = source.conversations.filter(thread => thread.kind === "telegram");
-    const ids = new Set(conversations.map(thread => thread.id));
-    const projects = source.projects.filter(project => project.origin === "curator").map(project => { const visible = { ...project, repo: "", repositoryReady: Boolean(project.repo) }; delete visible.subprojects; delete visible.repositoryCreation; return visible; });
-    return { ...blank, projects, conversations, briefProjects: source.briefProjects ?? [], clientBriefs: (source.clientBriefs ?? []).filter(brief => ids.has(brief.threadId)), messages: source.messages.filter(message => ids.has(message.threadId)), orders: source.orders.filter(order => !order.projectId || source.projects.some(project => project.id === order.projectId)) };
-  }
   const projects = source.projects.filter(project => viewer.role === "developer" || project.clientId === viewer.id).map(project => {
     if (viewer.role !== "client") return project;
     const publicProject = { ...project, repo: "", repositoryReady: Boolean(project.repo) };
@@ -20,10 +14,14 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
   });
   const ids = new Set(projects.map(project => project.id));
   const selectedProjectId = projects.find(project => project.id === selectedId)?.id ?? projects[0]?.id ?? "";
-  const conversations = source.conversations.filter(thread => thread.kind === "project" && ids.has(thread.projectId));
+  const developer = viewer.role === "developer";
+  const conversations = source.conversations.filter(thread => developer && thread.kind === "telegram" || thread.kind === "project" && ids.has(thread.projectId));
   const threads = new Set(conversations.map(thread => thread.id));
   return {
-    ...source, viewer, projects, selectedProjectId, orders: [], conversations, clientBriefs: [], briefProjects: [],
+    ...source, viewer, projects, selectedProjectId, conversations,
+    orders: developer ? source.orders.filter(order => !order.projectId || ids.has(order.projectId)) : [],
+    clientBriefs: developer ? (source.clientBriefs ?? []).filter(brief => threads.has(brief.threadId)) : [],
+    briefProjects: developer ? source.briefProjects ?? [] : [],
     projectBriefs: (source.projectBriefs ?? []).filter(brief => ids.has(brief.projectId)),
     repositoryStatus: viewer.role === "developer" ? source.repositoryStatus ?? {} : {},
     tasks: source.tasks.filter(task => ids.has(task.projectId)),

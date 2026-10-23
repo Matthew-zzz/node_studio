@@ -23,7 +23,7 @@ import { seal, unseal } from "./secret-box.ts";
 import { PaymentNotifications } from "./payment-notifications.ts";
 
 export const projectGreeting = PROJECT_GREETING;
-export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
+export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
 
 interface SyncInfo { at: string; pages: number; more: boolean; error: string | null; failure?: unknown; retryAt?: number; failures?: number }
 interface Job { id: string; kind: string; payload: string; attempts: number }
@@ -77,7 +77,7 @@ export class PortalService {
   private thread(viewer: Viewer, threadId: string): Conversation {
     const thread = this.store.get("conversations", threadId);
     if (!thread) throw new PortalError(404, "Диалог не найден.");
-    if (thread.kind === "telegram") this.role(viewer, ["curator"]);
+    if (thread.kind === "telegram") this.role(viewer, ["developer"]);
     else this.project(viewer, thread.projectId);
     return thread;
   }
@@ -165,16 +165,16 @@ export class PortalService {
       tasks: this.store.all("tasks"), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
-      clientBriefs: viewer.role === "curator" && !viewer.mustChangePassword ? this.briefs.state() : [],
+      clientBriefs: viewer.role === "developer" && !viewer.mustChangePassword ? this.briefs.state() : [],
       projectBriefs: !viewer.mustChangePassword && ["client", "developer"].includes(viewer.role) ? this.briefs.projects() : [],
-      briefProjects: viewer.role === "curator" && !viewer.mustChangePassword ? projects.map(({ id, name, clientName, clientEmail }) => ({ id, name, clientName, clientEmail })) : [],
+      briefProjects: viewer.role === "developer" && !viewer.mustChangePassword ? projects.map(({ id, name, clientName, clientEmail }) => ({ id, name, clientName, clientEmail })) : [],
       hasMoreCommits: info?.more ?? false, syncedAt: info?.at || null, syncError: info?.error ?? null, integrations: this.integrations.ready,
       repositoryStatus: selected ? Object.fromEntries(projectRepositories(selected).map(part => { const state = this.synced.get(`${selected.id}:${part.id}`); return [part.id, { hasMore: state?.more ?? false, at: state?.at || null, error: state?.error ?? null }]; })) : {},
     };
     return visibleSnapshot(data, viewer, selected?.id);
   }
 
-  private append(thread: Conversation, author: string, role: "client" | "developer" | "curator" | "assistant" | "system", message: string, messageId = id(), html?: string) {
+  private append(thread: Conversation, author: string, role: "client" | "developer" | "assistant" | "system", message: string, messageId = id(), html?: string) {
     const result = this.store.put("messages", { id: messageId, threadId: thread.id, author, role, text: message, ...(html ? { html } : {}), createdAt: now() });
     if (thread.kind === "telegram" && role !== "client") this.store.enqueue("telegram.send", { chatId: thread.telegramId, text: message, ...(html ? { html } : {}) }, `send:${messageId}`);
     return result;
@@ -208,7 +208,7 @@ export class PortalService {
     const action = object(value);
     const viewer = this.store.user(session.viewer.id);
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
-    this.role(viewer, ["client", "developer", "curator"]);
+    this.role(viewer, ["client", "developer"]);
     const type = text(action.type, 40);
     if (type === "brief.generate") { this.briefs.request(viewer, text(action.threadId, 100), this.agent.settings().model, action.refresh === true); return; }
     if (type === "brief.link") { this.briefs.link(viewer, text(action.threadId, 100), text(action.projectId, 100, 0)); return; }
@@ -242,14 +242,14 @@ export class PortalService {
         const message = text(action.text, thread.kind === "telegram" ? 4000 : 8000);
         if (viewer.role !== "client" && thread.ownerId !== viewer.id) throw new PortalError(409, "Сначала подключитесь к диалогу.");
         this.store.transaction(() => {
-          const entry = this.append(thread, viewer.name, viewer.role as "client" | "developer" | "curator", message);
-          const handoff = viewer.role === "client" && /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови).{0,45}(?:человека|человек|разработчик|куратор|поддержк)/i.test(message);
+          const entry = this.append(thread, viewer.name, viewer.role as "client" | "developer", message);
+          const handoff = viewer.role === "client" && /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови).{0,45}(?:человека|человек|разработчик|поддержк)/i.test(message);
           this.store.put("conversations", { ...thread, handoffRequested: thread.handoffRequested || handoff, revision: (thread.revision ?? 0) + 1, updatedAt: now() });
           if (handoff && !thread.ownerId) this.append(thread, "Node", "system", "Запрос передан. Человек подключится к этому диалогу.");
           if (viewer.role === "client" && !thread.ownerId && !handoff) this.store.enqueue("assistant", { threadId, messageId: entry.id });
         });
       } else {
-        this.role(viewer, thread.kind === "project" ? ["developer"] : ["curator"]);
+        this.role(viewer, ["developer"]);
         this.store.transaction(() => {
           const latest = this.thread(viewer, threadId);
           if (type === "takeover" && latest.ownerId && latest.ownerId !== viewer.id) throw new PortalError(409, "Диалог уже ведёт другой сотрудник.");
@@ -334,7 +334,7 @@ export class PortalService {
       return;
     }
     if (type === "order.create") {
-      this.role(viewer, ["curator"]);
+      this.role(viewer, ["developer"]);
       const input = object(action.order);
       const email = text(input.email, 254).toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту клиента.");
@@ -351,7 +351,7 @@ export class PortalService {
       return;
     }
     if (type === "order.provision") {
-      this.role(viewer, ["curator"]);
+      this.role(viewer, ["developer"]);
       const order = this.store.get("orders", text(action.orderId, 100));
       if (!order) throw new PortalError(404, "Заказ не найден.");
       if (order.status === "ready") return;
@@ -426,7 +426,7 @@ export class PortalService {
     }
     const content = text(message.text, 8000);
     const entry = this.append(thread, thread.name, "client", content, messageId);
-    const handoff = !settings.enabled || (settings.capabilities.handoff && (/^\/human(?:\s|$)|^(?:куратор|оператор|человек)[.!?\s]*$/i.test(content) || /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови|свяжи|поговорить).{0,60}(?:человек|разработчик|куратор|оператор|поддержк)/i.test(content)));
+    const handoff = !settings.enabled || (settings.capabilities.handoff && (/^\/human(?:\s|$)|^(?:разработчик|оператор|человек)[.!?\s]*$/i.test(content) || /(?:позови|пригласи|подключи|хочу|нужен|нужна|вызови|свяжи|поговорить).{0,60}(?:человек|разработчик|оператор|поддержк)/i.test(content)));
     if ((firstMessage || /^\/start(?:\s|$)/i.test(content)) && !thread.ownerId && !handoff) {
       const greeting = formatTelegramHtml(settings.greeting, settings.maxReplyChars);
       this.append(thread, settings.name, "assistant", greeting.text, `greeting:${messageId}`, greeting.html);

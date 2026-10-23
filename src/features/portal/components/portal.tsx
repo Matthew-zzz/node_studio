@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Notifications } from "@/components/ui/notifications";
 import { Login, PasswordForm } from "@/features/portal/components/auth";
-import { ProjectOrders, TelegramInbox } from "@/features/portal/components/curator";
+import { ProjectOrders, TelegramInbox } from "@/features/portal/components/client-management";
 import { DeveloperQueue } from "@/features/portal/components/developer";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
 import { ProjectWorkspace } from "@/features/portal/components/project-workspace";
@@ -57,7 +57,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
   const requestedView = view && available.includes(view) ? view : available[0] ?? "overview";
   const activeView = developer && isProjectView(requestedView) && project?.developerId !== viewer.id ? "queue" : requestedView;
   const projectView = isProjectView(activeView) && viewer.role !== "admin";
-  const telegramThread = presentation === "miniapp" && viewer.role === "curator" && activeView === "inbox" && telegramSelection?.viewerId === viewer.id && telegramSelection.csrf === snapshot.csrf ? snapshot.conversations.find(thread => thread.kind === "telegram" && thread.id === telegramSelection.threadId) : undefined;
+  const telegramThread = presentation === "miniapp" && viewer.role === "developer" && activeView === "inbox" && telegramSelection?.viewerId === viewer.id && telegramSelection.csrf === snapshot.csrf ? snapshot.conversations.find(thread => thread.kind === "telegram" && thread.id === telegramSelection.threadId) : undefined;
   const selectTelegramThread = (id: string | null) => setTelegramSelection(id ? { viewerId: viewer.id, csrf: snapshot.csrf, threadId: id } : null);
   const globalViews = available.filter(key => !isProjectView(key));
   const sidebarProjects = developer ? snapshot.projects.filter(item => item.developerId === viewer.id) : viewer.role === "client" ? snapshot.projects : [];
@@ -212,9 +212,9 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
           <main id="main" className={styles.content} aria-busy={busy}>
             <div className={styles.pageHeader}>
               <div>
-                <span className={styles.kicker}>{projectView ? views[activeView].label : viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "curator" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
+                <span className={styles.kicker}>{projectView ? views[activeView].label : viewer.role === "client" ? "Ваше рабочее пространство" : viewer.role === "developer" ? "Сопровождение и поддержка" : "Рабочее пространство студии"}</span>
                 <h1>{pageTitle}</h1>
-                <p className={styles.subtitle}>{projectView ? project?.description : viewer.role === "curator" ? "Переписка с клиентами и подготовка новых проектов" : viewer.role === "developer" ? "Все проекты и задачи в одном месте" : ""}</p>
+                <p className={styles.subtitle}>{projectView ? project?.description : viewer.role === "developer" ? "От первого обращения до готового проекта" : ""}</p>
               </div>
               {projectView && project && <span className={styles.sync}>{snapshot.syncError ? "Нет свежих данных" : snapshot.syncedAt ? "Синхронизировано с GitHub" : !project.developerId ? "Ожидает разработчика" : !(project.repositoryReady ?? Boolean(project.repo)) ? "Подготовка к разработке" : "Ожидаем GitHub"}</span>}
             </div>

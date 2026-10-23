@@ -4,7 +4,7 @@ import { completeEmailCode } from "./portal.mjs";
 import { fixturePassword } from "../helpers/portal-fixture.mjs";
 
 export async function checkEmailAuthentication(browser, origin, fixture, screenshots) {
-  const email = "owner@example.test"; const roles = ["client", "curator", "developer", "admin"];
+  const email = "owner@example.test"; const roles = ["client", "developer", "admin"];
   const original = roles.map(role => ({ ...fixture.users[role] }));
   const hash = fixture.store.db.prepare("SELECT password FROM users WHERE id=?").get(fixture.users.client.id).password;
   for (const user of original) fixture.store.db.prepare("UPDATE users SET email=?,password=? WHERE id=?").run(email, hash, user.id);
@@ -50,7 +50,7 @@ export async function checkEmailAuthentication(browser, origin, fixture, screens
         assert.ok(cookie.expires * 1000 <= Date.now() + 12 * 3_600_000);
         if (width <= 650) await page.getByRole("button", { name: "Открыть профили", exact: true }).click();
         const profiles = page.getByRole("group", { name: "Переключение профилей", exact: true });
-        assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 4);
+        assert.equal(await profiles.getByRole("button", { name: /^Переключиться:/ }).count(), 3);
         await profiles.getByRole("button", { name: "Переключиться: Администратор, admin", exact: true }).click();
         await page.getByRole("heading", { name: "ИИ-агент Telegram", exact: true }).waitFor();
         await page.reload(); await page.getByTestId("portal").waitFor(); assert.equal(notices().length, count);
@@ -79,7 +79,7 @@ export async function checkEmailAuthentication(browser, origin, fixture, screens
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); assert.deepEqual(errors, []);
         fixture.store.transaction(() => fixture.store.resetIdentityPassword(email, fixturePassword));
         fixture.store.db.exec("DELETE FROM auth_limits; DELETE FROM login_limits");
-        console.log(`Email authentication ${width}px: required code, four roles, expiry, notification recovery, global logout and new-password login passed`);
+        console.log(`Email authentication ${width}px: required code, three roles, expiry, notification recovery, global logout and new-password login passed`);
       } finally { await context.close(); }
     }
   } finally {

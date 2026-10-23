@@ -7,7 +7,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
   const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
   const previous = fixture.integrations.assistant;
   fixture.integrations.assistant = async (messages, kind, options) => kind === "telegram" ? {
-    reply: `<b>Консультация</b>\n\n${escapeHtml(options?.knowledge[0]?.text ?? 'Уточните вопрос.')}\n\n<i>Можно позвать куратора.</i>`, title: '', body: '', handoff: false,
+    reply: `<b>Консультация</b>\n\n${escapeHtml(options?.knowledge[0]?.text ?? 'Уточните вопрос.')}\n\n<i>Можно позвать разработчика.</i>`, title: '', body: '', handoff: false,
   } : previous(messages, kind, options);
   const errors = [];
   try {
@@ -29,7 +29,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await navigate('Промпты');
     await page.getByLabel('Системный промпт', { exact: true }).fill('Отвечай как консультант студии. Используй только сведения из базы знаний.');
     await page.locator('summary').filter({ hasText: /^Приветствие$/ }).click();
-    await page.getByLabel('Приветствие', { exact: true }).fill('<b>Здравствуйте!</b> Если нужен куратор, просто попросите.');
+    await page.getByLabel('Приветствие', { exact: true }).fill('<b>Здравствуйте!</b> Если нужен разработчик, просто попросите.');
     await save();
     assert.equal(fixture.service.agent.settings().name, `София ${width}`, 'unsaved changes survive navigation between admin sections');
     await page.reload(); await page.getByTestId('portal').waitFor();
@@ -39,7 +39,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await navigate('База знаний');
     await page.locator('summary').filter({ hasText: /^Добавить материал$/ }).click();
     const title = `Работа над проектом ${width}`;
-    const content = 'Разработка начинается с брифа. Сначала обсуждаем пожелания, затем согласуем ТЗ. Связаться с куратором можно в Telegram.';
+    const content = 'Разработка начинается с брифа. Сначала обсуждаем пожелания, затем согласуем ТЗ. Связаться с разработчиком можно в Telegram.';
     await page.getByLabel('Импорт материала', { exact: true }).setInputFiles({ name: 'process.md', mimeType: 'text/markdown', buffer: Buffer.from(content) });
     await page.waitForFunction(content => document.querySelector('textarea[maxlength="50000"]')?.value === content, content);
     await page.getByLabel('Название материала', { exact: true }).fill(title);
@@ -100,7 +100,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
 
     fixture.service.receiveTelegram({ update_id: 90000 + width, message: { text: 'С чего начинается разработка?', chat: { type: 'private', id: 90000 + width }, from: { first_name: 'Проверка', username: `agent_fixture_${width}` } } });
     await fixture.service.workJobs();
-    await login(page, origin, 'curator');
+    await login(page, origin, 'developer');
     await page.getByLabel('Поиск диалогов', { exact: true }).fill(`agent_fixture_${width}`);
     await page.getByRole('region', { name: 'Очередь обращений', exact: true }).getByRole('button', { name: /^Открыть диалог:/ }).click();
     await page.getByRole('region', { name: 'Telegram-диалог', exact: true }).locator('b').filter({ hasText: 'Консультация' }).waitFor();
