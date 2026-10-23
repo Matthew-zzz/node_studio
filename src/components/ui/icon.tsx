@@ -38,6 +38,9 @@ const paths = {
   close: (<>
     <path d="m6 6 12 12M18 6 6 18" />
   </>),
+  trash: (<>
+    <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+  </>),
   copy: (<>
     <rect x="8" y="8" width="12" height="13" rx="2" />
     <path d="M16 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4" />

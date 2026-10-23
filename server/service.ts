@@ -21,6 +21,7 @@ import type { ErrorQuery } from "../src/features/portal/model/errors.ts";
 import { PortalAuth } from "./auth.ts";
 import { seal, unseal } from "./secret-box.ts";
 import { PaymentNotifications } from "./payment-notifications.ts";
+import { PaymentDeletion } from "./payment-deletion.ts";
 
 export const projectGreeting = PROJECT_GREETING;
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с разработчиком, просто попросите — я его позову.";
@@ -39,6 +40,7 @@ export class PortalService {
   readonly auth: PortalAuth;
   readonly briefs: ClientBriefs;
   readonly paymentNotifications: PaymentNotifications;
+  private paymentDeletion: PaymentDeletion;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -52,6 +54,7 @@ export class PortalService {
     this.repositories = new RepositoryProvisioner(store, this.projects);
     this.auth = new PortalAuth(store, integrations, config);
     this.paymentNotifications = new PaymentNotifications(store, integrations, config);
+    this.paymentDeletion = new PaymentDeletion(store, this.paymentNotifications);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -95,6 +98,7 @@ export class PortalService {
   }
 
   private saveWork(projectId: string, work: WorkItem, subprojectId?: string) {
+    if (this.store.get("projects", projectId)?.status === "archived") throw new PortalError(404, "Проект удалён из кабинета.");
     return this.store.put(work.kind === "stage" ? "stages" : "tasks", { ...work, ...(subprojectId ? { subprojectId } : {}), id: workItemId(projectId, subprojectId ?? work.subprojectId, work.number), projectId });
   }
 
@@ -156,15 +160,16 @@ export class PortalService {
       }
     }
     const info = selected && this.synced.get(selected.id);
+    const quotes = this.store.all("quotes");
     const data: PortalSnapshot = {
       ...EMPTY_SNAPSHOT, viewer, profiles: this.store.profiles(session), csrf: session.csrf, projects: projects.map(project => {
         const current = this.store.get("projects", project.id)!;
         const creation = this.repositories.state(current);
         return creation ? { ...current, repositoryCreation: creation } : current;
       }),
-      tasks: this.store.all("tasks"), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      tasks: this.store.all("tasks").map(task => ({ ...task, paid: quotes.some(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameWorkSource(quote, task) && quote.status === "paid") })), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
-      drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
+      drafts: this.store.all("drafts"), quotes, orders: this.store.all("orders"),
       clientBriefs: viewer.role === "developer" && !viewer.mustChangePassword ? this.briefs.state() : [],
       projectBriefs: !viewer.mustChangePassword && ["client", "developer"].includes(viewer.role) ? this.briefs.projects() : [],
       briefProjects: viewer.role === "developer" && !viewer.mustChangePassword ? projects.map(({ id, name, clientName, clientEmail }) => ({ id, name, clientName, clientEmail })) : [],
@@ -214,6 +219,22 @@ export class PortalService {
     if (type === "brief.link") { this.briefs.link(viewer, text(action.threadId, 100), text(action.projectId, 100, 0)); return; }
     if (type === "project.request") { this.projects.request(viewer, action); return; }
     if (type === "project.create") { await this.projects.create(viewer, action); return; }
+    if (type === "project.delete") {
+      this.role(viewer, ["developer"]);
+      const project = this.store.get("projects", text(action.projectId, 100));
+      if (!project) throw new PortalError(404, "Проект не найден.");
+      updateErrorContext({ projectId: project.id, projectName: project.name });
+      if (project.developerId && project.developerId !== viewer.id) throw new PortalError(403, "Проект принадлежит другому разработчику.");
+      if (action.confirmation !== project.name) throw new PortalError(400, "Для подтверждения введите название проекта.");
+      this.projects.archive(project.id, viewer.id);
+      for (const key of this.synced.keys()) if (key === project.id || key.startsWith(`${project.id}:`)) this.synced.delete(key);
+      return;
+    }
+    if (type === "order.delete" || type === "quote.delete") {
+      this.role(viewer, ["developer"]);
+      this.paymentDeletion.remove(viewer, type === "order.delete" ? "orders" : "quotes", text(type === "order.delete" ? action.orderId : action.quoteId, 100));
+      return;
+    }
     if (type === "project.repository.create") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
@@ -285,6 +306,7 @@ export class PortalService {
       const scopeId = project.subprojects?.length ? part.id : undefined;
       await this.exclusive(`write:${project.id}`, async () => {
         await this.sync(project, 1, true, part.id);
+        this.project(viewer, project.id);
         const number = integer(action.number, type === "stage.save" ? 0 : 1);
         if (type === "stage.save") {
           const title = text(action.title, 200); const body = text(action.body, 8000, 0); const nextStatus = status(action.status);
@@ -300,14 +322,14 @@ export class PortalService {
             if (quotes.some(quote => quote.status === "paid")) throw new PortalError(409, "Задача уже оплачена.");
             const price = createPaymentQuote(id(), integer(action.baseKopecks), "wish");
             this.store.transaction(() => {
-              quotes.filter(quote => quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
+              quotes.filter(quote => !quote.deletedAt && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
               const quote = this.store.put("quotes", { id: price.reference, projectId: project.id, ...(scopeId ? { subprojectId: scopeId } : {}), taskNumber: number, title: task.title, baseKopecks: price.baseKopecks, markupKopecks: price.markupKopecks, totalKopecks: price.totalKopecks, status: "pending", createdAt: now() });
               this.paymentNotifications.quote(quote, project, "requested");
             });
           } else if (type === "task.include") {
             if (this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "paid")) throw new PortalError(409, "У задачи уже есть оплаченная оценка.");
             this.saveWork(project.id, await this.integrations.updateIssue(part.repo, number, { included: true }), scopeId);
-            this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
+            this.store.all("quotes", project.id).filter(quote => !quote.deletedAt && quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
           } else {
             const nextStatus = status(action.status);
             if (["in_progress", "done"].includes(nextStatus) && !task.included && task.kind === "wish"
@@ -323,7 +345,7 @@ export class PortalService {
       this.role(viewer, ["client"]);
       if (!this.config.mockPayments) throw new PortalError(503, "Тестовая оплата отключена.");
       const quote = this.store.get("quotes", text(action.quoteId, 100));
-      if (!quote) throw new PortalError(404, "Оценка не найдена.");
+      if (!quote || quote.deletedAt) throw new PortalError(404, "Оценка не найдена.");
       const project = this.project(viewer, quote.projectId);
       if (quote.status === "superseded") throw new PortalError(409, "Стоимость обновилась. Откройте новую оценку.");
       if (!["succeeded", "failed"].includes(String(action.outcome))) throw new PortalError(400, "Неизвестный результат оплаты.");
@@ -353,7 +375,7 @@ export class PortalService {
     if (type === "order.provision") {
       this.role(viewer, ["developer"]);
       const order = this.store.get("orders", text(action.orderId, 100));
-      if (!order) throw new PortalError(404, "Заказ не найден.");
+      if (!order || order.deletedAt) throw new PortalError(404, "Заказ не найден.");
       if (order.status === "ready") return;
       if (order.status === "pending") throw new PortalError(409, "Сначала требуется подтверждение оплаты.");
       if (order.projectId && this.store.get("projects", order.projectId)?.status === "archived") throw new PortalError(404, "Проект удалён из кабинета.");
@@ -373,7 +395,7 @@ export class PortalService {
 
   checkout(checkoutToken: string) {
     const order = this.store.all("orders").find(order => order.checkoutToken === checkoutToken);
-    if (!order || !/^[a-f0-9]{64}$/.test(checkoutToken)) throw new PortalError(404, "Ссылка на оплату не найдена.");
+    if (!order || order.deletedAt || !/^[a-f0-9]{64}$/.test(checkoutToken)) throw new PortalError(404, "Ссылка на оплату не найдена.");
     if (order.projectId && this.store.get("projects", order.projectId)?.status === "archived") throw new PortalError(404, "Ссылка на оплату не найдена.");
     return order;
   }
@@ -485,7 +507,7 @@ export class PortalService {
         const order = payload.orderId ? this.store.get("orders", payload.orderId) : undefined;
         const thread = payload.threadId ? this.store.get("conversations", payload.threadId) : undefined;
         const projectId = payload.projectId || order?.projectId || (order ? `project:${order.id}` : "") || thread?.projectId;
-        if (projectId && this.store.get("projects", projectId)?.status === "archived") {
+        if (order?.deletedAt || (projectId && this.store.get("projects", projectId)?.status === "archived")) {
           this.store.db.prepare("DELETE FROM jobs WHERE id=?").run(job.id); continue;
         }
         const context = this.jobContext(job, payload);

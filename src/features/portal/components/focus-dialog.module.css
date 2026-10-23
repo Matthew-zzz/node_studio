@@ -15,6 +15,7 @@
 .menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border: 0; border-radius: 12px; padding: 12px; text-align: left; background: transparent; color: var(--p-text); font-size: var(--type-body); font-weight: var(--weight-medium); }
 .menu button:hover, .menu button:focus-visible { background: var(--p-soft); }
 .menu svg { flex: none; width: 18px; height: 18px; color: var(--p-accent); }
+.menu button[data-danger="true"], .menu button[data-danger="true"] svg { color: var(--p-red); }
 .menu span { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 650px) { .dialog { width: calc(100% - 24px); max-width: calc(100% - 24px); max-height: calc(var(--node-viewport-height, 100dvh) - var(--miniapp-top, 0px) - var(--miniapp-bottom, 0px) - 32px); border-radius: 18px; } .header { padding: 16px 18px; } .body { padding: 18px; } }
 

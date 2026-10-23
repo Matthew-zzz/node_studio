@@ -11,6 +11,8 @@ import { formatRubles } from "@/features/payments/model/payment";
 import type { Conversation } from "@/features/portal/model/types";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
+import { ActionsDialog } from "@/features/portal/components/focus-dialog";
+import { DeletePayment } from "@/features/portal/components/delete-confirmation";
 
 export function Chat({ thread, controller, draft, onDraftChange, showHeader = true }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void; showHeader?: boolean }) {
   const [localText, setLocalText] = useState("");
@@ -89,6 +91,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
             {human && <LongText text={`Стоимость разработчика: ${formatRubles(quote.baseKopecks)}\nНаценка 30%: ${formatRubles(quote.markupKopecks)}\nИтого клиенту: ${formatRubles(quote.totalKopecks)}`} label="Расчёт стоимости" />}
             {quote.status === "paid" ? <span className={styles.badge} data-status="paid">Оплачено · тест</span> : viewer.role === "client" ? snapshot.integrations.payments === "mock" ? <PaymentButton total={quote.totalKopecks} busy={busy} onPay={outcome => run({ type: "quote.pay", quoteId: quote.id, outcome })} /> : <p className={styles.small}>Оплата временно недоступна. Напишите в поддержку студии.</p> : <span className={styles.badge} data-status="pending">Ожидает оплаты</span>}
             {quote.status !== "paid" && <p className={styles.small} style={{ marginTop: 9 }}>Тестовый платёж без списания денег.</p>}
+            {viewer.role === "developer" && <ActionsDialog label={`Действия оплаты: ${quote.title}`} busy={busy} actions={[{ label: "Удалить оплату", icon: "trash", danger: true, content: close => <DeletePayment kind="quote" payment={quote} controller={controller} onClose={close} /> }]} />}
           </article>
         ))}
       </div>

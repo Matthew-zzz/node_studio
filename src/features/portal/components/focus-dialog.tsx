@@ -83,7 +83,7 @@ export function DetailDialog({ label, title = label, children, className, button
   );
 }
 
-export interface MenuAction { label: string; icon?: IconName; disabled?: boolean; onSelect: () => void }
+export interface MenuAction { label: string; icon?: IconName; disabled?: boolean; danger?: boolean; onSelect: () => void }
 
 export function ActionsMenu({ label = "Действия", triggerLabel = "Действия", actions, buttonRef, disabled = false }: { label?: string; triggerLabel?: string; actions: readonly MenuAction[]; buttonRef?: RefObject<HTMLButtonElement | null>; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -99,7 +99,7 @@ export function ActionsMenu({ label = "Действия", triggerLabel = "Дей
       <FocusDialog open={open} title={label} returnFocus={trigger} compact onClose={() => { setOpen(false); const action = pending.current; pending.current = null; action?.(); }}>
         <div className={styles.menu}>
           {actions.map(action => (
-            <button key={action.label} type="button" disabled={action.disabled} onClick={() => { pending.current = action.onSelect; setOpen(false); }}>
+            <button key={action.label} type="button" data-danger={action.danger || undefined} disabled={action.disabled} onClick={() => { pending.current = action.onSelect; setOpen(false); }}>
               <Icon name={action.icon ?? "diagonal"} />
               <span>{action.label}</span>
             </button>
@@ -110,14 +110,14 @@ export function ActionsMenu({ label = "Действия", triggerLabel = "Дей
   );
 }
 
-export function ActionsDialog({ label, triggerLabel, actions }: { label: string; triggerLabel?: string; actions: readonly { label: string; icon?: IconName; content: ReactNode | ((close: () => void) => ReactNode) }[] }) {
+export function ActionsDialog({ label, triggerLabel, actions, busy = false }: { label: string; triggerLabel?: string; busy?: boolean; actions: readonly { label: string; icon?: IconName; danger?: boolean; content: ReactNode | ((close: () => void) => ReactNode) }[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const action = actions.find(action => action.label === selected);
   return (
     <>
-      <ActionsMenu label={label} {...(triggerLabel ? { triggerLabel } : {})} buttonRef={trigger} actions={actions.map(action => ({ label: action.label, ...(action.icon ? { icon: action.icon } : {}), onSelect: () => setSelected(action.label) }))} />
-      <FocusDialog open={Boolean(action)} title={action?.label ?? label} returnFocus={trigger} onClose={() => setSelected(null)}>{typeof action?.content === "function" ? action.content(() => setSelected(null)) : action?.content}</FocusDialog>
+      <ActionsMenu label={label} {...(triggerLabel ? { triggerLabel } : {})} buttonRef={trigger} disabled={busy} actions={actions.map(action => ({ label: action.label, ...(action.icon ? { icon: action.icon } : {}), ...(action.danger ? { danger: true } : {}), onSelect: () => setSelected(action.label) }))} />
+      <FocusDialog open={Boolean(action)} title={action?.label ?? label} busy={busy} returnFocus={trigger} onClose={() => setSelected(null)}>{typeof action?.content === "function" ? action.content(() => setSelected(null)) : action?.content}</FocusDialog>
     </>
   );
 }

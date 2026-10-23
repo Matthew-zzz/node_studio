@@ -26,6 +26,7 @@ export interface PortalProject {
   readonly brief: string;
   readonly status: "active" | "provisioning" | "archived";
   readonly archivedAt?: string;
+  readonly archivedBy?: string;
   readonly developerId?: string;
   readonly acceptedAt?: string;
   readonly createdAt: string;
@@ -50,6 +51,8 @@ export interface WorkItem {
   readonly status: WorkStatus;
   readonly kind: "initial" | "wish" | "stage";
   readonly included: boolean;
+  /** Derived by the server from payment history, including removed payment cards. */
+  readonly paid?: boolean;
   readonly updatedAt: string;
 }
 
@@ -108,6 +111,8 @@ export interface PortalQuote {
   readonly markupKopecks: number;
   readonly totalKopecks: number;
   readonly status: "pending" | "paid" | "superseded";
+  readonly deletedAt?: string;
+  readonly deletedBy?: string;
   readonly createdAt: string;
 }
 
@@ -120,6 +125,8 @@ export interface ProjectOrder {
   readonly brief: string;
   readonly totalKopecks: number;
   readonly status: "pending" | "paid" | "provisioning" | "ready" | "needs_setup";
+  readonly deletedAt?: string;
+  readonly deletedBy?: string;
   readonly checkoutToken: string;
   readonly projectId: string;
   readonly createdAt: string;
@@ -178,6 +185,7 @@ export type PortalAction =
   | { type: "project.repository.create"; projectId: string }
   | { type: "project.repository.add"; projectId: string; name: string; repo: string }
   | { type: "project.accept"; projectId: string }
+  | { type: "project.delete"; projectId: string; confirmation: string }
   | { type: "message"; threadId: string; text: string }
   | { type: "takeover" | "leave"; threadId: string }
   | { type: "draft.confirm"; draftId: string }
@@ -186,8 +194,10 @@ export type PortalAction =
   | { type: "task.include"; projectId: string; number: number; subprojectId?: string }
   | { type: "quote.create"; projectId: string; number: number; baseKopecks: number; subprojectId?: string }
   | { type: "quote.pay"; quoteId: string; outcome: "succeeded" | "failed" }
+  | { type: "quote.delete"; quoteId: string }
   | { type: "order.create"; order: NewOrder }
-  | { type: "order.provision"; orderId: string };
+  | { type: "order.provision"; orderId: string }
+  | { type: "order.delete"; orderId: string };
 
 export interface Checkout {
   readonly projectName: string;

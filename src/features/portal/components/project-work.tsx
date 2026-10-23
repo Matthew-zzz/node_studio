@@ -13,6 +13,7 @@ import styles from "./portal.module.css";
 import { ActionsDialog, DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ProjectBriefContent } from "@/features/portal/components/client-brief";
 import { RepositoryManager } from "@/features/portal/components/project-manager";
+import { DeleteProject } from "@/features/portal/components/delete-confirmation";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
   return <select aria-label="Статус" value={value} onChange={event => change(event.target.value as WorkStatus)}>{Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>;
@@ -110,7 +111,7 @@ function TaskControls({ task, controller, onSaved }: { task: WorkItem; controlle
         </label>
         <button className={styles.secondary} type="submit" disabled={controller.busy}>Обновить</button>
       </form>
-      {task.kind === "wish" && !task.included && quote?.status !== "paid" && (
+      {task.kind === "wish" && !task.included && !task.paid && quote?.status !== "paid" && (
         <>
           <form className={styles.inlineForm} onSubmit={event => { event.preventDefault(); if (kopecks) void controller.run({ type: "quote.create", projectId: task.projectId, number: task.number, baseKopecks: kopecks, ...scope }).then(done => { if (done) onSaved(); }); }}>
             <label>
@@ -153,7 +154,7 @@ export function Tasks({ project, controller, compact = false }: { project: Porta
                 <div className={styles.meta}>
                   {controller.snapshot.viewer?.role === "developer" && (project.subprojects?.length ?? 0) > 1 && <span>{project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name}</span>}
                   <span>{task.kind === "initial" ? "Первоначальное ТЗ" : task.included ? "Входит в ТЗ" : "Пожелание"}</span>
-                  {quote && <span>{quote.status === "paid" ? "Оплачено · тест" : `${formatRubles(quote.totalKopecks)} · в чате`}</span>}
+                  {task.paid || quote?.status === "paid" ? <span>Оплачено · тест</span> : quote && <span>{`${formatRubles(quote.totalKopecks)} · в чате`}</span>}
                 </div>
               </div>
               <WorkBadge status={task.status} />
@@ -177,10 +178,12 @@ export function ProjectInfo({ project, controller }: { project: PortalProject; c
     <ActionsDialog
       label="О проекте"
       triggerLabel="О проекте"
+      busy={controller.busy}
       actions={[
       { label: "Открыть описание проекта", icon: "document", content: <p>{project.brief || project.description || "Описание пока не добавлено."}</p> },
       { label: "Итоговый бриф", icon: "document", content: <ProjectBriefContent brief={controller.snapshot.projectBriefs.find(brief => brief.projectId === project.id)} /> },
       ...(controller.snapshot.viewer?.role === "developer" && project.developerId === controller.snapshot.viewer.id && Boolean(project.repo) ? [{ label: "Управление подпроектами", icon: "code" as const, content: (close: () => void) => <RepositoryManager project={project} controller={controller} embedded onSaved={close} /> }] : []),
+      ...(controller.snapshot.viewer?.role === "developer" && (!project.developerId || project.developerId === controller.snapshot.viewer.id) ? [{ label: "Удалить проект", icon: "trash" as const, danger: true, content: (close: () => void) => <DeleteProject project={project} controller={controller} onClose={close} /> }] : []),
     ]}
     />
   );

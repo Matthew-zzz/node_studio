@@ -67,7 +67,8 @@ export class ClientBriefs {
   state(): ClientBrief[] {
     return this.store.all("clientBriefs").map(brief => {
       const link = this.store.get("briefLinks", brief.threadId);
-      return { ...brief, ...(link ? { projectId: link.projectId } : {}), stale: Boolean(brief.document && brief.documentHash !== briefSource(this.messages(brief.threadId))) };
+      const activeLink = link && this.store.get("projects", link.projectId)?.status !== "archived" ? link : undefined;
+      return { ...brief, ...(activeLink ? { projectId: activeLink.projectId } : {}), stale: Boolean(brief.document && brief.documentHash !== briefSource(this.messages(brief.threadId))) };
     });
   }
 

@@ -78,7 +78,8 @@ export class PaymentNotifications {
     let notification = this.store.get("paymentNotifications", notificationId);
     if (!notification || notification.cancelledAt || notification[channel === "mail" ? "mailSentAt" : "telegramSentAt"]) return;
     const source = notification.source === "order" ? this.store.get("orders", notification.sourceId) : this.store.get("quotes", notification.sourceId);
-    if (!source || (notification.event === "requested" && source.status !== "pending")) {
+    const projectId = source?.projectId || notification.projectId;
+    if (!source || source.deletedAt || (projectId && this.store.get("projects", projectId)?.status === "archived") || (notification.event === "requested" && source.status !== "pending")) {
       this.store.put("paymentNotifications", { ...notification, cancelledAt: now() }); return;
     }
     if (channel === "telegram" && !notification.telegramId) {
@@ -102,6 +103,14 @@ export class PaymentNotifications {
         }
       }
     });
+  }
+
+  /** Called in the payment deletion transaction; completed deliveries stay in the audit history. */
+  cancel(source: PaymentNotification["source"], sourceId: string) {
+    for (const notification of this.store.all("paymentNotifications").filter(item => item.source === source && item.sourceId === sourceId)) {
+      if (!notification.cancelledAt) this.store.put("paymentNotifications", { ...notification, cancelledAt: now() });
+      this.store.db.prepare("DELETE FROM jobs WHERE json_extract(payload,'$.notificationId')=?").run(notification.id);
+    }
   }
 
   private content(notification: PaymentNotification) {

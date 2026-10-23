@@ -48,11 +48,11 @@ export class ProjectRegistry {
   }
 
   /** Keep the remote code and local history; archived projects cannot be reopened by jobs. */
-  archive(projectId: string): PortalProject {
+  archive(projectId: string, archivedBy?: string): PortalProject {
     return this.store.transaction(() => {
       const project = this.store.get("projects", projectId);
       if (!project) throw new PortalError(404, "Проект не найден.");
-      return project.status === "archived" ? project : this.store.put("projects", { ...project, status: "archived", archivedAt: now() });
+      return project.status === "archived" ? project : this.store.put("projects", { ...project, status: "archived", archivedAt: now(), ...(archivedBy ? { archivedBy } : {}) });
     });
   }
 

@@ -130,6 +130,8 @@
 .primary:hover:not(:disabled) { filter: brightness(1.06); }
 .secondary { background: var(--p-panel); border-color: var(--p-line); color: var(--p-muted); }
 .secondary:hover:not(:disabled) { background: var(--p-inset); }
+.secondary.danger { color: var(--p-red); border-color: color-mix(in srgb, var(--p-red) 40%, var(--p-line)); }
+.secondary.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--p-red) 8%, var(--p-panel)); }
 .primary svg, .secondary svg { width: 15px; height: 15px; }
 .textButton { border: 0; background: transparent; color: var(--p-muted); font-size: var(--type-meta); padding: 0; text-align: left; }
 .textButton:hover { color: var(--p-accent); }

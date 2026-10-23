@@ -7,7 +7,9 @@ import { ActionsDialog, ActionsMenu, FocusDialog } from "@/features/portal/compo
 import { CreateProject } from "@/features/portal/components/project-manager";
 import { ClientProjectForm } from "@/features/portal/components/client-project-form";
 import { ClientBriefButton } from "@/features/portal/components/client-brief";
-import { Empty, LongText } from "@/features/portal/components/ui";
+import { DeletePayment } from "@/features/portal/components/delete-confirmation";
+import { ProjectInfo } from "@/features/portal/components/project-work";
+import { Empty } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { Conversation } from "@/features/portal/model/types";
 import { formatRubles, parseRubles } from "@/features/payments/model/payment";
@@ -191,7 +193,7 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
           <p className={styles.small}>{project.clientEmail}</p>
           <div className={styles.formActions}>
             <button className={styles.secondary} type="button" onClick={() => onOpenProject(project.id)}>Открыть проект</button>
-            <LongText text={project.brief} label="ТЗ проекта" />
+            <ProjectInfo project={project} controller={controller} />
           </div>
         </article>
       ))}
@@ -208,9 +210,11 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
             {order.status === "ready" && <button type="button" className={styles.secondary} onClick={() => onOpenProject(order.projectId)}>Открыть проект</button>}
             <ActionsDialog
               label={`Действия заказа: ${order.projectName}`}
+              busy={controller.busy}
               actions={[
               { label: "Согласованное ТЗ", icon: "document", content: <p>{order.brief}</p> },
               { label: "Контакты клиента", icon: "people", content: <p>{`${order.clientName}\n${order.email}\n@${order.username.replace(/^@/, "")}`}</p> },
+              { label: "Удалить оплату", icon: "trash", danger: true, content: close => <DeletePayment kind="order" payment={order} controller={controller} onClose={close} /> },
             ]}
             />
           </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Empty, LongText } from "@/features/portal/components/ui";
+import { Empty } from "@/features/portal/components/ui";
+import { ProjectInfo } from "@/features/portal/components/project-work";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 
@@ -58,7 +59,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
               <h3>{project.name}</h3>
               <p className={styles.projectDescription}>{project.description}</p>
               <p className={styles.small}>{project.clientEmail}</p>
-              <LongText text={project.brief} label="Изучить ТЗ проекта" />
+              <ProjectInfo project={project} controller={controller} />
               {!project.repo && <p className={styles.small}>После принятия проекта вы сможете создать его GitHub-репозиторий.</p>}
             </div>
             <button type="button" className={styles.primary} disabled={busy} onClick={() => onAcceptProject(project.id, "overview")}>Взять в работу</button>

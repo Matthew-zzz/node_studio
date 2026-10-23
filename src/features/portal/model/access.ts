@@ -19,9 +19,9 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
   const threads = new Set(conversations.map(thread => thread.id));
   return {
     ...source, viewer, projects, selectedProjectId, conversations,
-    orders: developer ? source.orders.filter(order => !order.projectId || ids.has(order.projectId)) : [],
+    orders: developer ? source.orders.filter(order => !order.deletedAt && (!order.projectId || ids.has(order.projectId))) : [],
     clientBriefs: developer ? (source.clientBriefs ?? []).filter(brief => threads.has(brief.threadId)) : [],
-    briefProjects: developer ? source.briefProjects ?? [] : [],
+    briefProjects: developer ? (source.briefProjects ?? []).filter(project => ids.has(project.id)) : [],
     projectBriefs: (source.projectBriefs ?? []).filter(brief => ids.has(brief.projectId)),
     repositoryStatus: viewer.role === "developer" ? source.repositoryStatus ?? {} : {},
     tasks: source.tasks.filter(task => ids.has(task.projectId)),
@@ -29,6 +29,6 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
     commits: source.commits.filter(commit => commit.projectId === selectedProjectId),
     messages: source.messages.filter(message => threads.has(message.threadId)),
     drafts: source.drafts.filter(draft => ids.has(draft.projectId)),
-    quotes: source.quotes.filter(quote => ids.has(quote.projectId)).map(quote => viewer.role === "client" ? { ...quote, baseKopecks: 0, markupKopecks: 0 } : quote),
+    quotes: source.quotes.filter(quote => !quote.deletedAt && ids.has(quote.projectId)).map(quote => viewer.role === "client" ? { ...quote, baseKopecks: 0, markupKopecks: 0 } : quote),
   };
 }

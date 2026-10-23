@@ -33,8 +33,8 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
     await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Общая очередь", exact: true }).click();
     const card = page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
-    await card.getByRole("button", { name: "Изучить ТЗ проекта", exact: true }).click();
-    await card.getByText(brief, { exact: true }).waitFor();
+    const description = await chooseAction(page, card.getByRole("button", { name: "О проекте", exact: true }), "Открыть описание проекта");
+    await description.getByText(brief, { exact: true }).waitFor();
     await closeDialog(page);
     assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
     await page.evaluate(() => document.activeElement?.blur());
