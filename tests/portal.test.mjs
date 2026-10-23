@@ -218,14 +218,14 @@ test("paid order creates a client and project without GitHub; developer creates 
     await f.service.action(curator, { type: "order.provision", orderId: order.id });
     await f.service.action(curator, { type: "order.provision", orderId: order.id });
     let queued;
-    f.integrations.mail = async (email, content) => { queued = String(f.store.db.prepare("SELECT payload FROM jobs WHERE kind='mail'").get().payload); f.sent.push({ email, content }); };
+    f.integrations.mail = async (email, content, deliveryId, subject) => { if (deliveryId.startsWith("access:")) queued = String(f.store.db.prepare("SELECT payload FROM jobs WHERE id=?").get(deliveryId).payload); f.sent.push({ email, content, deliveryId, subject }); };
     await f.service.workJobs();
     assert.equal(f.repositories.length, 0);
     const project = f.store.get("projects", `project:${order.id}`);
     assert.equal(project.repo, ""); assert.equal(project.developerId, undefined);
     assert.equal(f.store.all("tasks", project.id).length, 0);
     const client = f.store.findUser("new@example.test"); assert.equal(client.mustChangePassword, true);
-    const mail = f.sent.find(item => item.email === client.email); assert.ok(mail.content.includes("Временный пароль"));
+    const mail = f.sent.find(item => item.deliveryId === `access:${order.id}`); assert.ok(mail.content.includes("Временный пароль"));
     assert.ok(!queued.includes("Временный пароль")); assert.ok(!queued.includes(mail.content.match(/Временный пароль: (.+)/)[1]));
     assert.equal(f.store.get("orders", order.id).status, "ready");
     await f.service.action(curator, { type: "order.provision", orderId: order.id }); assert.equal(f.repositories.length, 0);

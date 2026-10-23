@@ -10,6 +10,7 @@ import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "
 import { errorContext } from "./error-context.ts";
 import { initializeAuthSchema } from "./auth-schema.ts";
 import type { ClientBrief, BriefDocument } from "../src/features/portal/model/client-brief.ts";
+import type { PaymentNotification } from "./payment-notifications.ts";
 
 export interface Records {
   projects: PortalProject;
@@ -25,6 +26,7 @@ export interface Records {
   drafts: TaskDraft;
   quotes: PortalQuote;
   orders: ProjectOrder;
+  paymentNotifications: PaymentNotification;
   agentSettings: AgentSettings;
   agentDocuments: KnowledgeDocument;
   agentRevisions: AgentRevision;

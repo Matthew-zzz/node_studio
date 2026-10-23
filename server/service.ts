@@ -20,6 +20,7 @@ import type { ErrorContext } from "./error-context.ts";
 import type { ErrorQuery } from "../src/features/portal/model/errors.ts";
 import { PortalAuth } from "./auth.ts";
 import { seal, unseal } from "./secret-box.ts";
+import { PaymentNotifications } from "./payment-notifications.ts";
 
 export const projectGreeting = PROJECT_GREETING;
 export const telegramGreeting = "Я помогу собрать пожелания по проекту. Если захотите поговорить с куратором, просто попросите — я его позову.";
@@ -37,6 +38,7 @@ export class PortalService {
   readonly repositories: RepositoryProvisioner;
   readonly auth: PortalAuth;
   readonly briefs: ClientBriefs;
+  readonly paymentNotifications: PaymentNotifications;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -49,6 +51,7 @@ export class PortalService {
     this.projects = new ProjectRegistry(store, integrations, config.githubOwner);
     this.repositories = new RepositoryProvisioner(store, this.projects);
     this.auth = new PortalAuth(store, integrations, config);
+    this.paymentNotifications = new PaymentNotifications(store, integrations, config);
   }
 
   private async exclusive<T>(key: string, action: () => Promise<T>): Promise<T> {
@@ -298,7 +301,8 @@ export class PortalService {
             const price = createPaymentQuote(id(), integer(action.baseKopecks), "wish");
             this.store.transaction(() => {
               quotes.filter(quote => quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
-              this.store.put("quotes", { id: price.reference, projectId: project.id, ...(scopeId ? { subprojectId: scopeId } : {}), taskNumber: number, title: task.title, baseKopecks: price.baseKopecks, markupKopecks: price.markupKopecks, totalKopecks: price.totalKopecks, status: "pending", createdAt: now() });
+              const quote = this.store.put("quotes", { id: price.reference, projectId: project.id, ...(scopeId ? { subprojectId: scopeId } : {}), taskNumber: number, title: task.title, baseKopecks: price.baseKopecks, markupKopecks: price.markupKopecks, totalKopecks: price.totalKopecks, status: "pending", createdAt: now() });
+              this.paymentNotifications.quote(quote, project, "requested");
             });
           } else if (type === "task.include") {
             if (this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameWorkSource(quote, task) && quote.status === "paid")) throw new PortalError(409, "У задачи уже есть оплаченная оценка.");
@@ -320,10 +324,13 @@ export class PortalService {
       if (!this.config.mockPayments) throw new PortalError(503, "Тестовая оплата отключена.");
       const quote = this.store.get("quotes", text(action.quoteId, 100));
       if (!quote) throw new PortalError(404, "Оценка не найдена.");
-      this.project(viewer, quote.projectId);
+      const project = this.project(viewer, quote.projectId);
       if (quote.status === "superseded") throw new PortalError(409, "Стоимость обновилась. Откройте новую оценку.");
       if (!["succeeded", "failed"].includes(String(action.outcome))) throw new PortalError(400, "Неизвестный результат оплаты.");
-      if (action.outcome === "succeeded" && quote.status === "pending") this.store.put("quotes", { ...quote, status: "paid" });
+      if (action.outcome === "succeeded" && quote.status === "pending") this.store.transaction(() => {
+        const paid = this.store.put("quotes", { ...quote, status: "paid" });
+        this.paymentNotifications.quote(paid, project, "succeeded");
+      });
       return;
     }
     if (type === "order.create") {
@@ -333,10 +340,13 @@ export class PortalService {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту клиента.");
       const existing = this.store.findUser(email, "client") ?? this.store.findUser(email);
       if (existing && existing.role !== "client") throw new PortalError(409, "Эта почта принадлежит сотруднику студии.");
-      this.store.put("orders", {
-        id: id(), projectName: text(input.projectName, 200), clientName: text(input.clientName, 100), email,
-        username: text(input.username, 64).replace(/^@/, ""), brief: text(input.brief, 16000), totalKopecks: integer(input.totalKopecks),
-        status: "pending", checkoutToken: randomBytes(32).toString("hex"), projectId: "", createdAt: now(),
+      this.store.transaction(() => {
+        const order = this.store.put("orders", {
+          id: id(), projectName: text(input.projectName, 200), clientName: text(input.clientName, 100), email,
+          username: text(input.username, 64).replace(/^@/, ""), brief: text(input.brief, 16000), totalKopecks: integer(input.totalKopecks),
+          status: "pending", checkoutToken: randomBytes(32).toString("hex"), projectId: "", createdAt: now(),
+        });
+        this.paymentNotifications.order(order, "requested");
       });
       return;
     }
@@ -372,7 +382,10 @@ export class PortalService {
     if (!this.config.mockPayments) throw new PortalError(503, "Тестовая оплата отключена.");
     const order = this.checkout(checkoutToken);
     if (!["succeeded", "failed"].includes(String(outcome))) throw new PortalError(400, "Некорректный результат оплаты.");
-    if (outcome === "succeeded" && order.status === "pending") this.store.put("orders", { ...order, status: "paid" });
+    if (outcome === "succeeded" && order.status === "pending") this.store.transaction(() => {
+      const paid = this.store.put("orders", { ...order, status: "paid" });
+      this.paymentNotifications.order(paid, "succeeded");
+    });
   }
 
   receiveTelegram(value: unknown) {
@@ -479,6 +492,7 @@ export class PortalService {
         await withErrorContext(context, async () => { try {
           if (job.kind === "telegram.inbound") await this.telegramInbound(payload.update!);
           if (job.kind === "telegram.send") await this.integrations.telegram(payload.chatId!, payload.text!, payload.html);
+          if (job.kind === "payment.notify.mail" || job.kind === "payment.notify.telegram") await this.paymentNotifications.deliver(payload.notificationId!, job.kind === "payment.notify.mail" ? "mail" : "telegram", job.id);
           if (job.kind === "agent.index") await this.agent.index(payload.documentId!);
           if (job.kind === "auth.mail") await this.auth.deliverMail(payload, job.id);
           if (job.kind === "github.sync") {

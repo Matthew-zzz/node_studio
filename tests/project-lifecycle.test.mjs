@@ -152,7 +152,7 @@ test("paid project and client access can be provisioned while GitHub is disconne
     await f.service.action(curator, { type: "order.provision", orderId: order.id }); await f.service.workJobs();
     const project = f.store.get("projects", `project:${order.id}`);
     assert.ok(project); assert.equal(project.repo, ""); assert.equal(f.repositories.length, 0);
-    assert.equal(f.store.get("orders", order.id).status, "ready"); assert.equal(f.sent.filter(item => item.email).length, 1);
+    assert.equal(f.store.get("orders", order.id).status, "ready"); assert.equal(f.sent.filter(item => item.deliveryId === `access:${order.id}`).length, 1);
     await f.service.action(f.login("developer").session, { type: "project.accept", projectId: project.id });
     // A delayed duplicate provisioning job must preserve acceptance and cannot reset the project.
     f.store.enqueue("provision", { orderId: order.id }, "delayed-provision"); await f.service.workJobs();
