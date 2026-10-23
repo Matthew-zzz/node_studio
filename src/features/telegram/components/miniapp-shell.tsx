@@ -156,6 +156,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             <button type="button" className={styles.moreButton} aria-label="Закрыть меню приложения" onClick={() => menu.current?.close()}><Icon name="close" /></button>
           </div>
           <p className={styles.identity}>{viewer.email}</p>
+          {!viewer.mustChangePassword && <ProfileSwitcher controller={controller} inline onChange={() => { menu.current?.close(); onProfileChange(); }} />}
           <div className={styles.menuLinks}>
             {!viewer.mustChangePassword && hasProjects && (
             <button type="button" onClick={openProjects}>
@@ -174,7 +175,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             <span>Оформление</span>
             <ThemeSwitch theme={theme} onChange={setTheme} />
           </div>
-          {!viewer.mustChangePassword && <ProfileSwitcher controller={controller} inline onChange={() => { menu.current?.close(); onProfileChange(); }} />}
           <div className={styles.menuLinks}>
             <a href="https://t.me/node_studio_bot" target="_blank" rel="noopener noreferrer">
               <Icon name="telegram" />

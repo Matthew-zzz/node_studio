@@ -119,7 +119,7 @@ export class PortalAuth {
     this.cleanup(); this.mailReady();
     if (current && !this.matchesContext(current, context)) throw new PortalError(401, "Подтвердите вход в текущем профиле.");
     const email = inputEmail.trim().toLowerCase(); const requestedRole = role ?? "client";
-    if (current && !allowedProfileRoles(current.viewer.role).includes(requestedRole)) throw new PortalError(403, "Добавлять профили сотрудников может только администратор.");
+    if (current && !allowedProfileRoles(current.viewer.role).includes(requestedRole)) throw new PortalError(403, "Вход в эту роль недоступен из текущего профиля.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PortalError(400, "Проверьте почту.");
     this.limit(`login-ip:${metadata.address}`, 30, 900_000);
     const user = this.store.findUser(email, requestedRole);

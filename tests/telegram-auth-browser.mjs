@@ -43,6 +43,23 @@ try {
     await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
     await completeEmailCode(page, origin, fixture.users.developer.email); await role("developer");
 
+    await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await page.screenshot({ path: resolve(screenshots, "320-staff-switch-menu.png") });
+    await page.getByRole("button", { name: "Добавить профиль: Администратор", exact: true }).click();
+    const add = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
+    await add.getByLabel("Почта профиля", { exact: true }).fill(fixture.users.admin.email);
+    await add.getByRole("button", { name: "Получить код и добавить", exact: true }).click();
+    await page.getByLabel("Код из письма", { exact: true }).waitFor();
+    assert.equal(await page.getByTestId("portal").getAttribute("data-role"), "developer", "administrator access requires its own email code");
+    await completeEmailCode(page, origin, fixture.users.admin.email); await role("admin");
+    const staffCodes = fixture.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length;
+    for (const [expected, label] of [["developer", "Разработчик"], ["admin", "Администратор"], ["developer", "Разработчик"]]) {
+      await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      await page.getByRole("button", { name: `Переключиться: ${label}, ${expected}`, exact: true }).click(); await role(expected);
+      await page.getByRole("dialog", { name: "Меню приложения", exact: true }).waitFor({ state: "hidden" });
+    }
+    assert.equal(fixture.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length, staffCodes);
+
     await switchTo(b); await page.getByRole("heading", { name: "С возвращением", exact: true }).waitFor(); assert.equal(await page.getByTestId("portal").count(), 0);
     await page.getByLabel("Почта", { exact: true }).fill(fixture.users.client.email); await page.getByRole("button", { name: "Получить код", exact: true }).click();
     await page.getByLabel("Код из письма", { exact: true }).waitFor();
@@ -72,6 +89,6 @@ try {
     const web = await context.newPage(); await web.goto(origin + "/cabinet/"); await web.getByLabel("Почта", { exact: true }).waitFor(); assert.equal(await web.getByTestId("portal").count(), 0); await web.close();
     assert.ok(requests.every(request => request.headers()["x-telegram-init-data"] === a || request.headers()["x-telegram-init-data"] === b));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); assert.deepEqual(errors, []);
-    console.log("Telegram account isolation 320px: delayed SDK, shared cookies, A/B role and code isolation, in-place switching, late replies, individual logout, reload and web separation passed.");
+    console.log("Telegram 320px: verified developer/admin menu switching without logout, delayed SDK, A/B profile isolation, codes, late replies, individual logout, reload and web separation passed.");
   } finally { releaseSdk(); await context.close(); }
 } finally { await browser?.close(); clearInterval(worker); fixture?.close(); await new Promise(resolve => server.close(resolve)); }

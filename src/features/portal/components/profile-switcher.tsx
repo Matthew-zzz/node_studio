@@ -53,7 +53,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
 
   const list = (
     <div className={styles.list} role="group" aria-label="Переключение профилей">
-      <p className={styles.caption}>Профили</p>
+      <p className={styles.caption}>{inline ? "Сменить профиль" : "Профили"}</p>
       {controller.challenge && <button type="button" className={styles.add} onClick={() => { setRole(controller.challenge!.role); setOpen(true); }}>Продолжить подтверждение профиля</button>}
       {profileRoles.map(itemRole => {
         const accounts = profiles.filter(profile => profile.role === itemRole);
@@ -71,7 +71,7 @@ export function ProfileSwitcher({ controller, onChange, inline = false }: { cont
             <span className={styles.avatar}><Icon name={roleIcons[itemRole]} /></span>
             <span className={styles.identity}>
               <strong>{ROLE_LABELS[itemRole]}</strong>
-              <small>Войти в профиль</small>
+              <small>Войти по коду</small>
             </span>
             <Icon name="plus" className={styles.plus} />
           </button>

@@ -1,4 +1,4 @@
-import { portalApi } from "./helpers/http.mjs";
+import { portalApi, emailCode } from "./helpers/http.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,6 +8,32 @@ import { PortalStore } from "../server/store.ts";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 
 const api = fixture => portalApi(fixture, true).request;
+
+test("developer and administrator switch from one device only after confirming each existing account", async () => {
+  const f = portalFixture(); const { request, login } = portalApi(f);
+  try {
+    const developer = await login("developer"); const count = f.store.db.prepare("SELECT count(*) n FROM users").get().n;
+    const expiry = f.store.sessionDeadline(f.service.auth.session(developer.cookie.match(/nodo_session=([a-f0-9]+)/)[1]));
+    const pending = await request("profiles/add", { email: f.users.admin.email, role: "admin" }, developer);
+    assert.equal(pending.body.kind, "verification");
+    assert.equal((await request("admin/staff", undefined, developer)).statusCode, 403);
+    assert.equal((await request("profiles/switch", { userId: f.users.admin.id }, developer)).statusCode, 404);
+    assert.equal((await request("auth/verify", { code: "invalid" }, pending)).statusCode, 400);
+    const administrator = await request("auth/verify", { code: await emailCode(f, f.users.admin.email) }, pending);
+    assert.equal(administrator.body.viewer.role, "admin"); assert.equal((await request("admin/staff", undefined, administrator)).statusCode, 200);
+    assert.deepEqual(new Set(administrator.body.profiles.map(profile => profile.role)), new Set(["developer", "admin"]));
+    assert.equal(f.store.db.prepare("SELECT min(expires) n FROM sessions").get().n, expiry);
+    const sent = f.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length;
+    const back = await request("profiles/switch", { userId: f.users.developer.id }, administrator);
+    assert.equal(back.body.viewer.role, "developer"); assert.notEqual(back.body.csrf, administrator.body.csrf);
+    assert.equal((await request("profiles/switch", { userId: f.users.admin.id }, back)).body.viewer.role, "admin");
+    assert.equal(f.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length, sent, "confirmed roles switch without another code");
+    const unknown = await request("profiles/add", { email: "missing-admin@example.test", role: "admin" }, back);
+    assert.equal(unknown.body.kind, "verification");
+    assert.equal((await request("auth/verify", { code: "123456" }, unknown)).statusCode, 400);
+    assert.equal(f.store.db.prepare("SELECT count(*) n FROM users").get().n, count, "switching cannot create staff accounts");
+  } finally { f.close(); }
+});
 
 test("profiles require individual login, rotate authentication, isolate devices and preserve server permissions", async () => {
   const f = portalFixture(); const request = api(f);
