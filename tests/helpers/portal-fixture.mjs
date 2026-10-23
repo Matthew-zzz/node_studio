@@ -40,6 +40,7 @@ export function portalFixture(origin = "http://localhost:3000") {
       const updated = { ...existing, ...changes, updatedAt: new Date().toISOString() }; issues.set(repo, list.map(issue => issue.number === number ? updated : issue)); return updated;
     },
     async assistant(messages, kind) { return { reply: "Проверьте формулировку.", title: kind === "project" ? "Подготовленная задача" : "", body: kind === "project" ? messages.at(-1).text : "", handoff: false }; },
+    async brief() { return { name: "Проект клиента", goal: "Каталог с поиском", audience: "Покупатели", features: "Поиск товаров", design: "Мобильный интерфейс", integrations: "Не указано", constraints: "Не указано", acceptance: "Требует согласования", questions: "Уточнить состав каталога" }; },
     async embed(inputs) { return inputs.map(() => [1, 0, 0]); },
     async telegram(chatId, text, html) { sent.push({ chatId, text, html }); },
     async mail(email, content, deliveryId, subject) { sent.push({ email, content, deliveryId, subject }); },

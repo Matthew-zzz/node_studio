@@ -180,6 +180,8 @@
 .dialogTotal { font-size: 34px; letter-spacing: -1px; margin-top: 18px !important; }
 .inbox { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 23px; align-items: start; }
 .inboxList { padding: 10px; }
+.inboxCard { display: grid; gap: 8px; padding-bottom: 12px; min-width: 0; flex: 0 0 220px; }
+.inboxCard .inboxItem { width: 100%; min-width: 0; }
 .inboxHint { padding: 15px; color: var(--p-muted); font-size: 11px; }
 .inboxTools { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; }
 .filters { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }

@@ -9,6 +9,7 @@ import type {
 import type { AgentSettings, KnowledgeDocument, AgentRevision, AgentRun } from "../src/features/portal/model/agent.ts";
 import { errorContext } from "./error-context.ts";
 import { initializeAuthSchema } from "./auth-schema.ts";
+import type { ClientBrief, BriefDocument } from "../src/features/portal/model/client-brief.ts";
 
 export interface Records {
   projects: PortalProject;
@@ -17,6 +18,8 @@ export interface Records {
   stages: WorkItem;
   commits: PortalCommit & { id: string };
   conversations: Conversation;
+  clientBriefs: ClientBrief;
+  briefRequests: { id: string; threadId: string; actorId: string; sourceHash: string; model: string; inputs: string[]; results: BriefDocument[]; round: number; step: number };
   messages: ChatMessage;
   drafts: TaskDraft;
   quotes: PortalQuote;

@@ -9,6 +9,7 @@ import type { Conversation, PortalProject, PortalSnapshot, ProjectOrder, Project
 import { PROJECT_GREETING, projectRepositories, repositoryKey, sameWorkSource, workItemId } from "../src/features/portal/model/project-repositories.ts";
 import { ProjectRegistry, ProjectSyncError } from "./projects.ts";
 import { RepositoryProvisioner } from "./repository-provisioning.ts";
+import { ClientBriefs } from "./client-briefs.ts";
 import { visibleSnapshot } from "../src/features/portal/model/access.ts";
 import { createPaymentQuote } from "../src/features/payments/model/payment.ts";
 import { TelegramAgent } from "./agent/service.ts";
@@ -35,6 +36,7 @@ export class PortalService {
   readonly projects: ProjectRegistry;
   readonly repositories: RepositoryProvisioner;
   readonly auth: PortalAuth;
+  readonly briefs: ClientBriefs;
   private locks = new Map<string, Promise<unknown>>();
   private synced = new Map<string, SyncInfo>();
   private working = false;
@@ -43,6 +45,7 @@ export class PortalService {
     this.store = store; this.integrations = integrations; this.config = config;
     this.agent = new TelegramAgent(store, integrations, config);
     this.errors = new ErrorJournal(store, config.revision);
+    this.briefs = new ClientBriefs(store, integrations, this.errors);
     this.projects = new ProjectRegistry(store, integrations, config.githubOwner);
     this.repositories = new RepositoryProvisioner(store, this.projects);
     this.auth = new PortalAuth(store, integrations, config);
@@ -159,6 +162,7 @@ export class PortalService {
       tasks: this.store.all("tasks"), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       drafts: this.store.all("drafts"), quotes: this.store.all("quotes"), orders: this.store.all("orders"),
+      clientBriefs: viewer.role === "curator" && !viewer.mustChangePassword ? this.briefs.state() : [],
       hasMoreCommits: info?.more ?? false, syncedAt: info?.at || null, syncError: info?.error ?? null, integrations: this.integrations.ready,
       repositoryStatus: selected ? Object.fromEntries(projectRepositories(selected).map(part => { const state = this.synced.get(`${selected.id}:${part.id}`); return [part.id, { hasMore: state?.more ?? false, at: state?.at || null, error: state?.error ?? null }]; })) : {},
     };
@@ -201,6 +205,7 @@ export class PortalService {
     if (!viewer) throw new PortalError(401, "Войдите в кабинет.");
     this.role(viewer, ["client", "developer", "curator"]);
     const type = text(action.type, 40);
+    if (type === "brief.generate") { this.briefs.request(viewer, text(action.threadId, 100), this.agent.settings().model, action.refresh === true); return; }
     if (type === "project.request") { this.projects.request(viewer, action); return; }
     if (type === "project.create") { await this.projects.create(viewer, action); return; }
     if (type === "project.repository.create") {
@@ -451,12 +456,13 @@ export class PortalService {
 
   /** Durable outbox: webhook handlers acknowledge only after saving work to SQLite. */
   async workJobs(): Promise<void> {
-    if (this.working) return;
+    const briefWork = this.briefs.workNext().catch(error => { this.errors.capture(error, { operation: "brief.generate", source: "background" }); });
+    if (this.working) { await briefWork; return; }
     this.working = true;
     try {
       this.auth.cleanup();
       for (let count = 0; count < 20; count++) {
-        const job = this.store.db.prepare("SELECT id,kind,payload,attempts FROM jobs WHERE running=0 AND available<=? AND attempts<8 ORDER BY available LIMIT 1").get(Date.now()) as Job | undefined;
+        const job = this.store.db.prepare("SELECT id,kind,payload,attempts FROM jobs WHERE running=0 AND kind<>'brief.generate' AND available<=? AND attempts<8 ORDER BY available LIMIT 1").get(Date.now()) as Job | undefined;
         if (!job) break;
         this.store.db.prepare("UPDATE jobs SET running=1 WHERE id=?").run(job.id);
         const payload = JSON.parse(job.payload) as Record<string, string>;
@@ -510,6 +516,7 @@ export class PortalService {
         } });
       }
     } finally { this.working = false; }
+    await briefWork;
   }
 
   private jobContext(job: Job, payload: Record<string, string>): ErrorContext {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Chat } from "@/features/portal/components/chat";
 import { CuratorProject } from "@/features/portal/components/curator-project";
+import { ClientBriefButton } from "@/features/portal/components/client-brief";
 import { Empty, LongText } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { Conversation } from "@/features/portal/model/types";
@@ -60,15 +61,18 @@ export function TelegramInbox({ controller }: { controller: PortalController }) 
           <section className={`${styles.panel} ${styles.inboxList}`} aria-label="Очередь обращений">
             {threads.length === 0 && <p className={styles.inboxHint}>В этой очереди больше нет обращений. Открытый диалог остаётся у вас.</p>}
             {threads.map(item => (
-              <button type="button" className={styles.inboxItem} key={item.id} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => setSelected(item.id)}>
-                <strong>{item.name}</strong>
-                <span className={styles.small}>
-                  @
-                  {item.username.replace(/^@/, "")}
-                </span>
-                <p>{controller.snapshot.messages.filter(message => message.threadId === item.id).at(-1)?.text ?? "Новый диалог"}</p>
-                {item.handoffRequested && !item.ownerId ? <span className={styles.badge} data-status="pending">Ждёт человека</span> : item.ownerId ? <span className={styles.badge}>{item.ownerName}</span> : <span className={styles.badge}>С ИИ-помощником</span>}
-              </button>
+              <div className={styles.inboxCard} key={item.id}>
+                <button type="button" className={styles.inboxItem} aria-label={`Открыть диалог: ${item.name}`} aria-current={item.id === thread?.id ? "true" : undefined} onClick={() => setSelected(item.id)}>
+                  <strong>{item.name}</strong>
+                  <span className={styles.small}>
+                    @
+                    {item.username.replace(/^@/, "")}
+                  </span>
+                  <p>{controller.snapshot.messages.filter(message => message.threadId === item.id).at(-1)?.text ?? "Новый диалог"}</p>
+                  {item.handoffRequested && !item.ownerId ? <span className={styles.badge} data-status="pending">Ждёт человека</span> : item.ownerId ? <span className={styles.badge}>{item.ownerName}</span> : <span className={styles.badge}>С ИИ-помощником</span>}
+                </button>
+                <ClientBriefButton thread={item} controller={controller} />
+              </div>
             ))}
           </section>
           <Chat key={thread?.id} thread={thread} controller={controller} />

@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture, fixturePassword } from "./helpers/portal-fixture.mjs";
 import { completeEmailCode, preparePortalFixture } from "./browser/portal.mjs";
+import { checkClientBrief } from "./browser/client-briefs.mjs";
 
 const screenshots = resolve("test-results/screenshots/miniapp"); await mkdir(screenshots, { recursive: true });
 const server = createStaticServer(resolve(process.env.SITE_OUTPUT_DIR || "dist"));
@@ -120,6 +121,7 @@ try {
       await page.screenshot({ path: resolve(screenshots, `${width}-developer-tasks.png`) });
 
       await signIn(page, origin, "curator");
+      await checkClientBrief(page, origin, width, screenshots, true);
       await page.getByRole("button", { name: "Подключиться к диалогу", exact: true }).click();
       await page.getByRole("textbox", { name: "Сообщение", exact: true }).fill("Здравствуйте, я помогу с проектом");
       await page.getByRole("button", { name: "Отправить сообщение", exact: true }).click();

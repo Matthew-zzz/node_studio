@@ -102,7 +102,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     await fixture.service.workJobs();
     await login(page, origin, 'curator');
     await page.getByLabel('Поиск диалогов', { exact: true }).fill(`agent_fixture_${width}`);
-    await page.getByRole('region', { name: 'Очередь обращений', exact: true }).getByRole('button').click();
+    await page.getByRole('region', { name: 'Очередь обращений', exact: true }).getByRole('button', { name: /^Открыть диалог:/ }).click();
     await page.getByRole('region', { name: 'Telegram-диалог', exact: true }).locator('b').filter({ hasText: 'Консультация' }).waitFor();
     assert.equal(await page.getByRole('navigation', { name: 'Разделы кабинета', exact: true }).getByRole('button', { name: 'ИИ-агент', exact: true }).count(), 0);
     assert.deepEqual(errors, []);

@@ -18,7 +18,10 @@ export function useTelegramBack(visible: boolean, onBack: () => void) {
     if (!app?.isVersionAtLeast("6.1")) return;
     const back = () => handler.current();
     app.BackButton.onClick(back);
-    if (visible) app.BackButton.show(); else app.BackButton.hide();
-    return () => { app.BackButton.offClick(back); app.BackButton.hide(); };
+    const update = () => { if (visible || document.querySelector("dialog[open]")) app.BackButton.show(); else app.BackButton.hide(); };
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["open"] });
+    update();
+    return () => { observer.disconnect(); app.BackButton.offClick(back); app.BackButton.hide(); };
   }, [app, visible]);
 }

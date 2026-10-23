@@ -1,3 +1,4 @@
+import type { ClientBrief } from "./client-brief";
 export type Role = "client" | "developer" | "curator" | "admin";
 export type WorkStatus = "new" | "in_progress" | "done" | "canceled";
 
@@ -137,6 +138,7 @@ export interface PortalSnapshot {
   readonly drafts: readonly TaskDraft[];
   readonly quotes: readonly PortalQuote[];
   readonly orders: readonly ProjectOrder[];
+  readonly clientBriefs: readonly ClientBrief[];
   readonly hasMoreCommits: boolean;
   readonly syncedAt: string | null;
   readonly syncError: string | null;
@@ -161,11 +163,12 @@ export interface NewOrder {
 
 export const EMPTY_SNAPSHOT: PortalSnapshot = {
   viewer: null, profiles: [], csrf: "", selectedProjectId: "", projects: [], tasks: [], stages: [], commits: [],
-  conversations: [], messages: [], drafts: [], quotes: [], orders: [], hasMoreCommits: false, syncedAt: null,
+  conversations: [], messages: [], drafts: [], quotes: [], orders: [], clientBriefs: [], hasMoreCommits: false, syncedAt: null,
   syncError: null, integrations: { github: false, telegram: false, ai: false, mail: false, payments: "disabled" },
 };
 
 export type PortalAction =
+  | { type: "brief.generate"; threadId: string; refresh?: boolean }
   | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string }
   | { type: "project.create"; requestId: string; name: string; clientEmail: string; description: string; repositories: { name: string; repo: string }[] }
   | { type: "project.repository.create"; projectId: string }

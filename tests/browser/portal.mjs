@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { fixtureAt, fixturePassword } from "../helpers/portal-fixture.mjs";
+import { checkClientBrief } from "./client-briefs.mjs";
 
 export async function completeEmailCode(page, origin, email) {
   const fixture = fixtureAt(origin);
@@ -271,10 +272,11 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await openProject(page, width, "one", "Обзор проекта");
 
   await login(page, origin, "curator");
+  await checkClientBrief(page, origin, width, screenshots);
   assert.equal(await page.getByRole("region", { name: "Задачи проекта", exact: true }).count(), 0);
   const inbox = page.getByRole("region", { name: "Очередь обращений", exact: true });
   await page.getByLabel("Поиск диалогов", { exact: true }).fill("@KATE_STUDIO");
-  assert.equal(await inbox.getByRole("button").count(), 1);
+  assert.equal(await inbox.getByRole("button", { name: /^Открыть диалог:/ }).count(), 1);
   await page.getByLabel("Поиск диалогов", { exact: true }).fill("dmitry@example.test");
   await inbox.getByText("Дмитрий", { exact: true }).waitFor();
   await page.getByLabel("Поиск диалогов", { exact: true }).fill("");
@@ -284,7 +286,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await telegram.getByRole("button", { name: "Подключиться к диалогу", exact: true }).click();
   await telegram.getByRole("button", { name: "Покинуть диалог", exact: true }).waitFor();
   await filters.getByRole("button", { name: "Мои диалоги", exact: true }).click();
-  assert.equal(await inbox.getByRole("button").count(), 1);
+  assert.equal(await inbox.getByRole("button", { name: /^Открыть диалог:/ }).count(), 1);
   await telegram.getByLabel("Сообщение", { exact: true }).fill("Здравствуйте! Помогу с проектом.");
   await telegram.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
   await telegram.getByText("Здравствуйте! Помогу с проектом.", { exact: true }).waitFor();

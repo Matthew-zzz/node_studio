@@ -1,0 +1,12 @@
+.trigger { display: inline-flex; justify-content: center; align-items: center; gap: 7px; min-height: 40px; width: 100%; font-size: 11px; }
+.trigger svg { width: 15px; height: 15px; flex-shrink: 0; }
+.dialog { width: min(720px, calc(100% - 32px)); }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.header h2 { margin-top: 0; }
+.header > button { flex-shrink: 0; }
+.document { display: grid; gap: 10px; margin-top: 22px; }
+.document details { border-bottom: 1px solid var(--p-line); padding-block: 5px; }
+.document details > p { color: var(--p-text); line-height: 1.75; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 22px; }
+:global([data-presentation="miniapp"]) .dialog { width: min(520px, calc(100% - 24px)); }
+@media (max-width: 650px) { .actions > button { width: 100%; } }
