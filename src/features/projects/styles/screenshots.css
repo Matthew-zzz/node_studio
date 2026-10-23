@@ -6,11 +6,11 @@
   gap: 11px;
   padding: 12px 15px;
   margin: -18px 0 28px;
-  border: 1px solid #344362;
-  border-left: 2px solid #8685ef;
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--brand-cyan);
   border-radius: 4px;
-  background: #192238;
-  color: #b1c0df;
+  background: var(--surface-blue);
+  color: var(--muted-strong);
   font-size: 12px;
   line-height: 1.7;
 }
@@ -18,13 +18,13 @@
 .case-access-note>.icon {
   height: 17px;
   width: 17px;
-  color: #a6adff;
+  color: var(--accent);
 }
 
 .work-image-link {
   height: clamp(280px,47vw,620px);
   aspect-ratio: auto;
-  background: #101827;
+  background: var(--surface);
 }
 
 .work-image-link>img {
@@ -57,7 +57,7 @@
   min-height: 0;
   max-height: none;
   aspect-ratio: 16/11;
-  background: #141b2b;
+  background: var(--surface);
 }
 
 .case-cover {
@@ -104,15 +104,15 @@
 .screen-story-note>p {
   font-size: 12px;
   line-height: 1.85;
-  color: #96a7c4;
+  color: var(--muted-strong);
   max-width: 260px;
 }
 
 .screen-frame {
-  border: 1px solid #394764;
+  border: 1px solid var(--line-strong);
   border-radius: 7px;
   overflow: hidden;
-  background: #111a29;
+  background: var(--surface);
   box-shadow: 0 15px 45px #00000018;
 }
 

@@ -35,9 +35,12 @@ export function TelegramHost({ children }: { children: ReactNode }) {
   }, [app]);
   useEffect(() => {
     if (!app?.isVersionAtLeast("6.1")) return;
-    const background = theme === "dark" ? "#14141b" : "#f6f6f9";
+    const colors = getComputedStyle(viewport.current ?? document.documentElement);
+    const background = colors.getPropertyValue(`--ui-${theme}-bg`).trim();
+    const panel = colors.getPropertyValue(`--ui-${theme}-panel`).trim();
+    if (!background || !panel) return;
     app.setHeaderColor(background); app.setBackgroundColor(background);
-    if (app.isVersionAtLeast("7.10")) app.setBottomBarColor(theme === "dark" ? "#1c1c26" : "#ffffff");
+    if (app.isVersionAtLeast("7.10")) app.setBottomBarColor(panel);
   }, [app, theme]);
   function openLink(event: ReactMouseEvent<HTMLDivElement>) {
     if (!app?.isVersionAtLeast("6.1") || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -49,7 +52,7 @@ export function TelegramHost({ children }: { children: ReactNode }) {
     if (url.protocol === "https:" && url.hostname === "t.me") app.openTelegramLink(url.href); else app.openLink(url.href);
   }
   return (
-    <div ref={viewport} className={styles.viewport} onClick={openLink}>
+    <div ref={viewport} className={styles.viewport} data-theme={theme} onClick={openLink}>
       <Script src="https://telegram.org/js/telegram-web-app.js?64" strategy="afterInteractive" onReady={() => { window.dispatchEvent(new Event(TELEGRAM_READY_EVENT)); }} />
       {children}
     </div>

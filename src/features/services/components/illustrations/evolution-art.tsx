@@ -15,8 +15,10 @@ export function EvolutionArt() {
             x2="100%"
             y2="0%"
           >
-            <stop stopColor="#5988ff" />
-            <stop offset="1" stopColor="#b18aff" />
+            <stop stopColor="var(--brand-cyan)" />
+            <stop offset=".35" stopColor="var(--brand-blue)" />
+            <stop offset=".7" stopColor="var(--brand-violet)" />
+            <stop offset="1" stopColor="var(--brand-pink)" />
           </linearGradient>
         </defs>
         <g data-beam-from="prototype" data-beam-to="release" data-beam-curvature="0">

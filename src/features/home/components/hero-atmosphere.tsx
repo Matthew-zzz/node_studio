@@ -23,10 +23,10 @@ export function HeroAtmosphere() {
               y2="520"
               gradientUnits="userSpaceOnUse"
             >
-              <stop stopColor="#5a87f6" stopOpacity=".04" />
-              <stop offset=".46" stopColor="#6489ed" stopOpacity=".3" />
-              <stop offset=".76" stopColor="#9c7cf0" stopOpacity=".5" />
-              <stop offset="1" stopColor="#7365d8" stopOpacity=".08" />
+              <stop stopColor="var(--brand-cyan)" stopOpacity=".04" />
+              <stop offset=".46" stopColor="var(--brand-blue)" stopOpacity=".3" />
+              <stop offset=".76" stopColor="var(--brand-violet)" stopOpacity=".5" />
+              <stop offset="1" stopColor="var(--brand-pink)" stopOpacity=".08" />
             </linearGradient>
             <linearGradient
               id="intro-flow-light"
@@ -36,9 +36,10 @@ export function HeroAtmosphere() {
               y2="400"
               gradientUnits="userSpaceOnUse"
             >
-              <stop stopColor="#517bf4" />
-              <stop offset=".5" stopColor="#83a8ff" />
-              <stop offset="1" stopColor="#ab8cf4" />
+              <stop stopColor="var(--brand-cyan)" />
+              <stop offset=".33" stopColor="var(--brand-blue)" />
+              <stop offset=".66" stopColor="var(--brand-violet)" />
+              <stop offset="1" stopColor="var(--brand-pink)" />
             </linearGradient>
             <pattern
               id="intro-flow-grid"
@@ -48,8 +49,8 @@ export function HeroAtmosphere() {
               height="64"
               patternUnits="userSpaceOnUse"
             >
-              <path d="M64 0H0V64" stroke="#8b9ad1" strokeOpacity=".055" />
-              <path d="M61 4H67M64 1V7" stroke="#8b9ad1" strokeOpacity=".13" />
+              <path d="M64 0H0V64" stroke="var(--brand-cyan)" strokeOpacity=".055" />
+              <path d="M61 4H67M64 1V7" stroke="var(--brand-cyan)" strokeOpacity=".13" />
             </pattern>
           </defs>
           <rect width="1600" height="680" fill="url(#intro-flow-grid)" />

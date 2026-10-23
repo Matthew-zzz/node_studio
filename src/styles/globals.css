@@ -8,7 +8,7 @@
 }
 
 .button-outline {
-  border-color: #3c3d4b;
+  border-color: var(--line);
   background: transparent;
 }
 

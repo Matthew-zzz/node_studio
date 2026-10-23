@@ -38,7 +38,7 @@
   height: 630px;
   top: -160px;
   right: -60px;
-  background: radial-gradient(ellipse,#385be02b 0%,#385be018 33%,#385be005 60%,transparent 73%);
+  background: radial-gradient(ellipse,color-mix(in srgb,var(--brand-cyan) 16.86%,transparent) 0%,color-mix(in srgb,var(--brand-cyan) 9.41%,transparent) 33%,color-mix(in srgb,var(--brand-cyan) 1.96%,transparent) 60%,transparent 73%);
 }
 
 .intro-aura-violet {
@@ -46,7 +46,7 @@
   height: 480px;
   top: 50px;
   right: 170px;
-  background: radial-gradient(ellipse,#8250d524 0%,#8250d513 37%,transparent 70%);
+  background: radial-gradient(ellipse,color-mix(in srgb,var(--brand-pink) 14.12%,transparent) 0%,color-mix(in srgb,var(--brand-pink) 7.45%,transparent) 37%,transparent 70%);
   animation-duration: 29s;
   animation-delay: -11s;
   animation-direction: alternate-reverse;
@@ -88,19 +88,19 @@
 }
 
 .intro-flow-node-ring {
-  fill: #626de408;
-  stroke: #8a8dea26;
+  fill: color-mix(in srgb,var(--brand-cyan) 3.14%,transparent);
+  stroke: color-mix(in srgb,var(--brand-cyan) 14.9%,transparent);
   stroke-width: .8;
 }
 
 .intro-flow-node-body {
-  fill: #161d32;
-  stroke: #9298e65c;
+  fill: var(--surface-blue);
+  stroke: color-mix(in srgb,var(--brand-cyan) 36.08%,transparent);
   stroke-width: 1;
 }
 
 .intro-flow-node-core {
-  fill: #a8acfc;
+  fill: var(--accent);
   opacity: .4;
   animation: integration-node 8s ease-in-out infinite;
   animation-delay: var(--node-delay);
@@ -110,7 +110,7 @@
 .intro-atmosphere-veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg,#10121bc7 0%,#10121b80 35%,#10121b18 76%,#10121b08),linear-gradient(0deg,#10121b 0%,#10121b38 24%,transparent 54%,#10121b20 100%);
+  background: linear-gradient(90deg,color-mix(in srgb,var(--bg) 78.04%,transparent) 0%,color-mix(in srgb,var(--bg) 50.2%,transparent) 35%,color-mix(in srgb,var(--bg) 9.41%,transparent) 76%,color-mix(in srgb,var(--bg) 3.14%,transparent)),linear-gradient(0deg,var(--bg) 0%,color-mix(in srgb,var(--bg) 21.96%,transparent) 24%,transparent 54%,color-mix(in srgb,var(--bg) 12.55%,transparent) 100%);
 }
 
 .intro-atmosphere[data-active="true"] :is(.intro-aura,.intro-flow-beam,.intro-flow-node-core) {
@@ -156,7 +156,7 @@
     width: 620px;
   }
   .intro-atmosphere-veil {
-    background: linear-gradient(90deg,#10121bc0,#10121b45 70%),linear-gradient(0deg,#10121b,transparent 62%);
+    background: linear-gradient(90deg,color-mix(in srgb,var(--bg) 75.29%,transparent),color-mix(in srgb,var(--bg) 27.06%,transparent) 70%),linear-gradient(0deg,var(--bg),transparent 62%);
   }
 }
 
@@ -184,7 +184,7 @@
     display: none;
   }
   .intro-atmosphere-veil {
-    background: linear-gradient(90deg,#10121bc4,#10121b70 65%,#10121b38),linear-gradient(0deg,#10121b 0%,#10121b55 30%,transparent 80%);
+    background: linear-gradient(90deg,color-mix(in srgb,var(--bg) 76.86%,transparent),color-mix(in srgb,var(--bg) 43.92%,transparent) 65%,color-mix(in srgb,var(--bg) 21.96%,transparent)),linear-gradient(0deg,var(--bg) 0%,color-mix(in srgb,var(--bg) 33.33%,transparent) 30%,transparent 80%);
   }
 }
 

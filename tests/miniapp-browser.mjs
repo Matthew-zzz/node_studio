@@ -17,7 +17,7 @@ async function installTelegram(context) {
   await context.route("https://telegram.org/js/telegram-web-app.js*", route => route.fulfill({ contentType: "application/javascript", body: "/* SDK transport fixture; browser tests provide the native client bridge. */" }));
   await context.addInitScript(() => {
     const events = new Map(); const back = new Set();
-    const state = { ready: 0, expanded: 0, backVisible: false, background: "", links: [], emit: event => events.get(event)?.forEach(handler => handler()), back: () => back.forEach(handler => handler()) };
+    const state = { ready: 0, expanded: 0, backVisible: false, background: "", bodyBackground: "", bottomBar: "", links: [], emit: event => events.get(event)?.forEach(handler => handler()), back: () => back.forEach(handler => handler()) };
     window.__telegram = state;
     window.Telegram = { WebApp: {
       platform: "ios", colorScheme: "dark", viewportStableHeight: innerHeight,
@@ -25,7 +25,7 @@ async function installTelegram(context) {
       ready: () => state.ready++, expand: () => state.expanded++, isVersionAtLeast: () => true,
       onEvent: (event, handler) => { if (!events.has(event)) events.set(event, new Set()); events.get(event).add(handler); },
       offEvent: (event, handler) => events.get(event)?.delete(handler),
-      setHeaderColor: color => { state.background = color; }, setBackgroundColor() {}, setBottomBarColor() {},
+      setHeaderColor: color => { state.background = color; }, setBackgroundColor: color => { state.bodyBackground = color; }, setBottomBarColor: color => { state.bottomBar = color; },
       openTelegramLink: url => state.links.push(url), openLink: url => state.links.push(url),
       BackButton: { show: () => { state.backVisible = true; }, hide: () => { state.backVisible = false; }, onClick: handler => back.add(handler), offClick: handler => back.delete(handler) },
     } };
@@ -53,6 +53,14 @@ async function signIn(page, origin, role) {
   fixture.store.db.exec("DELETE FROM auth_limits");
 }
 async function fits(page, width) {
+  await page.waitForFunction(() => {
+    const portal = document.querySelector('[data-testid="portal"]');
+    if (!portal) return false;
+    const colors = getComputedStyle(portal);
+    const background = colors.getPropertyValue("--p-bg").trim();
+    const panel = colors.getPropertyValue("--p-panel").trim();
+    return window.__telegram.background === background && window.__telegram.bodyBackground === background && window.__telegram.bottomBar === panel;
+  });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${width}px: no page overflow`);
   assert.ok(await page.evaluate(() => [...document.querySelectorAll('main, dialog[open], [role="log"]')].every(element => element.scrollWidth <= element.clientWidth + 1)), `${width}px: no horizontal scrolling inside screens or dialogs`);
   const navigation = page.getByRole("navigation", { name: "Навигация приложения", exact: true });
