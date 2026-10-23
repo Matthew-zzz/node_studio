@@ -32,7 +32,7 @@
 
 .studio-intro h1 {
   font-size: clamp(52px,6.6vw,94px);
-  font-weight: 500;
+  font-weight: var(--weight-semibold);
   letter-spacing: -4.7px;
   line-height: 1.07;
   margin: 31px 0 29px;

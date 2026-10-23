@@ -2,17 +2,17 @@
 .dialog::backdrop { background: rgb(5 9 24 / 52%); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .dialog[data-compact="true"] { width: min(360px, calc(100% - 32px)); }
 .header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; background: var(--p-panel); border-bottom: 1px solid var(--p-line); }
-.header h2 { min-width: 0; margin: 0; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+.header h2 { min-width: 0; margin: 0; font-size: 20px; font-weight: var(--weight-semibold); letter-spacing: -.025em; line-height: 1.35; overflow-wrap: anywhere; }
 .close { display: grid; place-items: center; flex: none; width: 38px; height: 38px; padding: 0; border: 1px solid var(--p-line); border-radius: 12px; background: transparent; color: var(--p-muted); }
 .close svg { width: 18px; height: 18px; }
 .body { min-width: 0; padding: 24px; }
 .body p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
 .body > :first-child { margin-top: 0; }
-.detail { padding: 7px 0; border: 0; background: transparent; color: var(--p-accent); font-size: 13px; text-align: left; overflow-wrap: anywhere; }
-.menuTrigger { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid var(--p-line); border-radius: 11px; background: transparent; color: var(--p-muted); font-size: 12px; }
+.detail { padding: 7px 0; border: 0; background: transparent; color: var(--p-accent); font-size: var(--type-control); text-align: left; overflow-wrap: anywhere; }
+.menuTrigger { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid var(--p-line); border-radius: 11px; background: transparent; color: var(--p-muted); font-size: var(--type-control); font-weight: var(--weight-medium); }
 .menuTrigger svg { width: 18px; height: 18px; }
 .menu { display: grid; gap: 5px; }
-.menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border: 0; border-radius: 12px; padding: 12px; text-align: left; background: transparent; color: var(--p-text); font-size: 14px; }
+.menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border: 0; border-radius: 12px; padding: 12px; text-align: left; background: transparent; color: var(--p-text); font-size: var(--type-body); font-weight: var(--weight-medium); }
 .menu button:hover, .menu button:focus-visible { background: var(--p-soft); }
 .menu svg { flex: none; width: 18px; height: 18px; color: var(--p-accent); }
 .menu span { min-width: 0; overflow-wrap: anywhere; }

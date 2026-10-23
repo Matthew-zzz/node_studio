@@ -23,7 +23,11 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     async function save(target = page) {
       if (await target.locator("dialog[data-focus-dialog][open]").count()) await closeDialog(target);
       await target.getByRole('button', { name: 'Сохранить настройки', exact: true }).click();
-      await target.locator('[data-sonner-toast]:not([data-removed="true"])').filter({ hasText: 'Настройки агента применены.' }).waitFor();
+      const confirmation = target.locator('[data-sonner-toast]:not([data-removed="true"])').filter({ hasText: 'Настройки агента применены.' });
+      await confirmation.waitFor();
+      // A hovered toast pauses dismissal and can cover the next toolbar action on phones.
+      await confirmation.getByRole('button', { name: 'Закрыть уведомление', exact: true }).click();
+      await confirmation.waitFor({ state: 'hidden' });
       await target.getByRole('button', { name: 'Сохранить настройки', exact: true }).waitFor();
     }
     await login(page, origin, 'admin');
@@ -83,6 +87,7 @@ export async function checkAgentAdmin(browser, origin, width, screenshots, fixtu
     const initial = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Версия 0', exact: true }) });
     await initial.getByRole('button', { name: 'Восстановить', exact: true }).click();
     await toast('Версия настроек восстановлена.').waitFor();
+    await toast('Версия настроек восстановлена.').getByRole('button', { name: 'Закрыть уведомление', exact: true }).click();
     await navigate('ИИ-агент');
     assert.equal(await page.getByLabel('Имя агента', { exact: true }).inputValue(), 'Node');
 

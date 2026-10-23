@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Notifications } from "@/components/ui/notifications";
 import { createMetadata, siteOrigin } from "@/lib/metadata";
+import "@/styles/fonts.css";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 import "@/features/home/styles/experience.css";
@@ -27,6 +28,10 @@ export const viewport: Viewport = { themeColor: "#060916", colorScheme: "dark", 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
+      <head>
+        <link rel="preload" href="/assets/fonts/manrope-v20/cyrillic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/assets/fonts/manrope-v20/latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body>
         {children}
         <Notifications />

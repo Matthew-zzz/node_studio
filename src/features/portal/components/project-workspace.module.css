@@ -9,8 +9,8 @@
 .pane { min-width: 0; }
 .paneHeader { display: flex; align-items: center; gap: 7px; padding-bottom: 12px; }
 .paneHeader > label { display: flex; align-items: center; flex: 1; gap: 9px; min-width: 0; }
-.paneHeader > label > span { color: var(--p-muted); font-size: 10px; }
-.paneHeader select { padding: 8px 9px; font-size: 12px; flex: 1; }
+.paneHeader > label > span { color: var(--p-muted); font-size: var(--type-caption); }
+.paneHeader select { padding: 8px 9px; font-size: var(--type-label); flex: 1; }
 .paneHeader > button { flex-shrink: 0; }
 :global([data-presentation="miniapp"]) .tools { gap: 10px; }
 :global([data-presentation="miniapp"]) .root { width: 100%; }

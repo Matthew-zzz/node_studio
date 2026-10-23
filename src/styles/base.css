@@ -12,6 +12,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  font-weight: var(--weight-body);
+  font-kerning: normal;
   -webkit-font-smoothing: antialiased;
   font-size: 16px;
   line-height: 1.6;
@@ -114,7 +116,7 @@ h1,h2,h3,p {
 }
 
 h1,h2,h3 {
-  font-weight: 500;
+  font-weight: var(--weight-semibold);
 }
 
 h2 {
@@ -598,7 +600,7 @@ h2 {
 
 .contact-body h2 {
   font-size: clamp(44px,5.7vw,78px);
-  font-weight: 500;
+  font-weight: var(--weight-semibold);
   letter-spacing: -3.5px;
   line-height: 1.05;
 }

@@ -1,0 +1,56 @@
+{
+  "family": "Manrope",
+  "version": "Google Fonts v20",
+  "weight": [
+    200,
+    800
+  ],
+  "source": "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap",
+  "license": "SIL Open Font License 1.1",
+  "licensePath": "public/assets/fonts/manrope-v20/OFL.txt",
+  "fontLogPath": "public/assets/fonts/manrope-v20/FONTLOG.txt",
+  "files": [
+    {
+      "subset": "cyrillic-ext",
+      "path": "public/assets/fonts/manrope-v20/cyrillic-ext.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggqxSuXd.woff2",
+      "bytes": 2552,
+      "sha256": "de37de877dc17e4577341fa68bb5cb526b53d54cb29721e674208546a3c7849d"
+    },
+    {
+      "subset": "cyrillic",
+      "path": "public/assets/fonts/manrope-v20/cyrillic.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggOxSuXd.woff2",
+      "bytes": 14500,
+      "sha256": "c268b459a9329e59fecf39a17618efd44c71735532048d60b12aab76a8c14914"
+    },
+    {
+      "subset": "greek",
+      "path": "public/assets/fonts/manrope-v20/greek.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggSxSuXd.woff2",
+      "bytes": 9444,
+      "sha256": "2fb2e8cbfd52ae46179a8b6024eb162f1f9c6de3d22d6e3a30d8f395de7220be"
+    },
+    {
+      "subset": "vietnamese",
+      "path": "public/assets/fonts/manrope-v20/vietnamese.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggixSuXd.woff2",
+      "bytes": 8520,
+      "sha256": "6bbb044ab420e07edb0a3042d2eb314b85e83a0182e945a15ab3b9092668dfd5"
+    },
+    {
+      "subset": "latin-ext",
+      "path": "public/assets/fonts/manrope-v20/latin-ext.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggmxSuXd.woff2",
+      "bytes": 15120,
+      "sha256": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb"
+    },
+    {
+      "subset": "latin",
+      "path": "public/assets/fonts/manrope-v20/latin.woff2",
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSg.woff2",
+      "bytes": 24836,
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    }
+  ]
+}
