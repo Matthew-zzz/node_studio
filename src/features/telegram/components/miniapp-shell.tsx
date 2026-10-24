@@ -109,11 +109,11 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               <span>{ROLE_LABELS[viewer.role]}</span>
             </div>
           )}
-          {visibleThread ? <ChatActions key={visibleThread.id} thread={visibleThread} controller={controller} /> : <button className={styles.moreButton} type="button" aria-label="Открыть раздел Ещё" aria-pressed={showMore} disabled={controller.busy} onClick={openMore}><Icon name="menu" /></button>}
+          {visibleThread && <ChatActions key={visibleThread.id} thread={visibleThread} controller={controller} />}
         </header>
         <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={!showMore && (Boolean(telegramThread) || projectVisible && activeView === "chat")}>
           {!visibleThread && (
-          <div className={styles.heading} data-project={compactProjectHeading || compactSectionHeading}>
+          <div className={styles.heading} data-project={compactProjectHeading || compactSectionHeading} data-tools={!showMore && !viewer.mustChangePassword}>
             {compactProjectHeading || compactSectionHeading ? (
               <>
                 <h1 tabIndex={-1}>
@@ -135,6 +135,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                 <h1 tabIndex={-1}>{title}</h1>
               </>
             )}
+            {!showMore && !viewer.mustChangePassword && <button className={styles.moreButton} type="button" aria-label="Открыть раздел Ещё" aria-pressed={showMore} disabled={controller.busy} onClick={openMore}><Icon name="menu" /></button>}
           </div>
           )}
           <div className={styles.content} hidden={showMore} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
@@ -160,7 +161,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
           {showMore && (
             <section className={styles.moreScreen} aria-label="Ещё">
               <section className={portal.panel} aria-label="Аккаунт">
-                <h2>Аккаунт</h2>
                 <p className={styles.identity}>{viewer.email}</p>
                 {!viewer.mustChangePassword && <ProfileSwitcher controller={controller} inline onChange={() => { setShowMore(false); onProfileChange(); }} />}
               </section>
@@ -168,12 +168,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                 <section className={portal.panel} aria-label="Разделы приложения">
                   <h2>Разделы</h2>
                   <div className={styles.menuLinks}>
-                    {hasProjects && (
-                    <button type="button" disabled={controller.busy} onClick={openProjects}>
-                      <Icon name="site" />
-                      Мои проекты
-                    </button>
-)}
                     {ROLE_VIEWS[viewer.role].filter(view => !isProjectView(view) && !navigationTabs.includes(view)).map(view => (
                       <button type="button" key={view} disabled={controller.busy} onClick={() => navigate(view)}>
                         <Icon name={PORTAL_VIEWS[view].icon} />

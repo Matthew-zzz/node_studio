@@ -32,6 +32,10 @@
 .heading[data-project="true"] { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .heading[data-project="true"] h1 { flex: 1; min-width: 0; font-size: 21px; }
 .heading[data-project="true"] > button { flex-shrink: 0; min-height: 44px; white-space: nowrap; }
+.heading[data-tools="true"] { display: flex; align-items: center; gap: 8px; }
+.heading[data-tools="true"] h1 { flex: 1; min-width: 0; }
+.heading[data-tools="true"] h1 .projectBack { font-size: 21px; }
+.heading[data-tools="true"] > .moreButton { border-radius: 10px; }
 .projectBack { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--p-text); font: inherit; text-align: left; }
 .projectBack svg { width: 18px; height: 18px; flex-shrink: 0; transform: rotate(180deg); color: var(--p-accent); }
 .projectBack span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
