@@ -13,7 +13,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     const before = fixture.repositories.length; const sent = fixture.sent.filter(item => item.email && !item.subject).length;
     await login(page, origin, "developer");
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
-    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
+    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Проекты и оплаты", exact: true }).click();
     await chooseAction(page, "Создать проект", "Создать для существующего клиента");
     const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
     await form.getByLabel("Название проекта", { exact: true }).fill(name);

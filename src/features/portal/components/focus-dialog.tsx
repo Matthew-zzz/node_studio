@@ -60,24 +60,25 @@ export function FocusDialog({ open, title, children, onClose, busy = false, retu
 
 interface DetailDialogProps {
   label: string;
+  triggerLabel?: ReactNode;
   title?: string;
   children: ReactNode;
   className?: string | undefined;
-  buttonClassName?: string;
+  buttonClassName?: string | undefined;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   busy?: boolean;
   renderTrigger?: (show: () => void) => ReactNode;
 }
 
-export function DetailDialog({ label, title = label, children, className, buttonClassName, open, onOpenChange, busy = false, renderTrigger }: DetailDialogProps) {
+export function DetailDialog({ label, triggerLabel, title = label, children, className, buttonClassName, open, onOpenChange, busy = false, renderTrigger }: DetailDialogProps) {
   const [localOpen, setLocalOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const visible = open ?? localOpen;
   const change = (next: boolean) => { setLocalOpen(next); onOpenChange?.(next); };
   return (
     <div className={className}>
-      {renderTrigger ? renderTrigger(() => change(true)) : <button ref={trigger} type="button" className={buttonClassName ?? styles.detail} aria-haspopup="dialog" aria-expanded={visible} onClick={() => change(true)}>{label}</button>}
+      {renderTrigger ? renderTrigger(() => change(true)) : <button ref={trigger} type="button" className={buttonClassName ?? styles.detail} aria-label={triggerLabel ? label : undefined} aria-haspopup="dialog" aria-expanded={visible} disabled={busy} onClick={() => change(true)}>{triggerLabel ?? label}</button>}
       <FocusDialog open={visible} title={title} busy={busy} returnFocus={trigger} onClose={() => change(false)}>{children}</FocusDialog>
     </div>
   );
@@ -114,6 +115,12 @@ export function ActionsDialog({ label, triggerLabel, actions, busy = false }: { 
   const [selected, setSelected] = useState<string | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const action = actions.find(action => action.label === selected);
+  if (actions.length === 1) return (
+    <>
+      <button ref={trigger} type="button" className={styles.menuTrigger} aria-label={label} aria-haspopup="dialog" aria-expanded={Boolean(action)} disabled={busy} onClick={() => setSelected(actions[0]!.label)}>{triggerLabel ?? "Подробнее"}</button>
+      <FocusDialog open={Boolean(action)} title={actions[0]!.label} busy={busy} returnFocus={trigger} onClose={() => setSelected(null)}>{typeof action?.content === "function" ? action.content(() => setSelected(null)) : action?.content}</FocusDialog>
+    </>
+  );
   return (
     <>
       <ActionsMenu label={label} {...(triggerLabel ? { triggerLabel } : {})} buttonRef={trigger} disabled={busy} actions={actions.map(action => ({ label: action.label, ...(action.icon ? { icon: action.icon } : {}), ...(action.danger ? { danger: true } : {}), onSelect: () => setSelected(action.label) }))} />

@@ -15,7 +15,6 @@ export function WorkspaceBrand() {
     <Link className={styles.logo} href="/" aria-label="Node Studio — на главную">
       <BrandMark className={styles.logoMark} size={29} />
       Node
-      <small>workspace</small>
     </Link>
   );
 }

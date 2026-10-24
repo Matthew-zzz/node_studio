@@ -116,7 +116,6 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
       <WorkspaceBrand />
       {!viewer.mustChangePassword && (
       <div>
-        <p className={styles.sideCaption}>Рабочее пространство</p>
         <nav className={styles.nav} aria-label="Разделы кабинета">
           {globalViews.map(key => (
             <button type="button" key={key} disabled={busy} aria-current={activeView === key ? "page" : undefined} onClick={() => navigate(key)}>
@@ -196,7 +195,6 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
           {navigation}
           <div className={styles.sidebarBottom}>{support}</div>
         </dialog>
-        <div className={styles.mobileProfiles}><ProfileSwitcher controller={controller} onChange={() => setView(null)} /></div>
         <div className={styles.workspace}>
           <header className={styles.topbar}>
             <button type="button" className={`${styles.iconButton} ${styles.openMenu}`} aria-label="Открыть меню кабинета" aria-haspopup="dialog" onClick={() => mobileMenu.current?.showModal()}><Icon name="menu" /></button>
@@ -206,6 +204,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
               <span title={ROLE_LABELS[viewer.role]}>{ROLE_LABELS[viewer.role]}</span>
             </div>
             <div className={styles.topActions}>
+              <div className={styles.mobileProfiles}><ProfileSwitcher controller={controller} onChange={() => setView(null)} /></div>
               <ThemeSwitch theme={theme} onChange={setTheme} />
               <button type="button" className={styles.textButton} title="Выйти из всех профилей на этом устройстве" disabled={busy} onClick={() => void controller.logout().then(done => { if (done) setView(null); })}>Выйти</button>
             </div>

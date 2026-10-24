@@ -10,7 +10,7 @@ export const PORTAL_VIEWS: Record<PortalView, { label: string; icon: IconName }>
   staff: { label: "Разработчики", icon: "people" },
   agent: { label: "ИИ-агент", icon: "bot" }, "agent-prompts": { label: "Промпты", icon: "document" }, "agent-knowledge": { label: "База знаний", icon: "database" }, "agent-playground": { label: "Проверка агента", icon: "spark" }, "agent-history": { label: "История настроек", icon: "clock" },
   overview: { label: PROJECT_VIEW_LABELS.overview, icon: "service" }, tasks: { label: PROJECT_VIEW_LABELS.tasks, icon: "document" }, history: { label: PROJECT_VIEW_LABELS.history, icon: "code" }, chat: { label: PROJECT_VIEW_LABELS.chat, icon: "bot" },
-  queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Создание проектов", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
+  queue: { label: "Общая очередь", icon: "flow" }, inbox: { label: "Диалоги", icon: "telegram" }, orders: { label: "Проекты и оплаты", icon: "plus" }, settings: { label: "Настройки", icon: "people" },
 };
 export const ROLE_VIEWS: Record<Role, readonly PortalView[]> = {
   client: ["overview", "tasks", "history", "chat", "settings"],

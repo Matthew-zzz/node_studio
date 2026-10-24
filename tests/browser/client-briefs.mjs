@@ -7,12 +7,9 @@ import { browserTelegramHeaders } from "../helpers/telegram.mjs";
 export async function checkClientBrief(page, origin, width, screenshots, miniapp = false) {
   const headers = miniapp ? await browserTelegramHeaders(page) : {};
   if (miniapp) await page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Открыть диалог:/ }).first().click();
-  const button = page.getByRole("region", { name: "Очередь обращений", exact: true }).getByRole("button", { name: /^Итоговый бриф:/ }).first();
   const show = async () => {
-    if (miniapp) {
-      await page.locator("header").getByRole("button", { name: "Открыть действия диалога", exact: true }).click();
+      await page.getByRole("button", { name: "Открыть действия диалога", exact: true }).click();
       await page.getByRole("dialog", { name: "Действия диалога", exact: true }).getByRole("button", { name: "Итоговый бриф", exact: true }).click();
-    } else await button.click();
   };
   if (miniapp) {
     const before = fixtureAt(origin).store.all("clientBriefs").length;

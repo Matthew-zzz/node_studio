@@ -5,6 +5,7 @@ import { createStaticServer } from "../scripts/lib/static-server.mjs";
 import { portalFixture } from "./helpers/portal-fixture.mjs";
 import { telegramLaunch } from "./helpers/telegram.mjs";
 import { completeEmailCode, selectLoginRole } from "./browser/portal.mjs";
+import { chooseAction } from "./browser/focus-dialogs.mjs";
 
 const server = createStaticServer(resolve(process.env.SITE_OUTPUT_DIR || "dist")); const frontend = server.listeners("request")[0]; server.removeAllListeners("request");
 let fixture; let browser; let worker; const vault = new Map(); const errors = [];
@@ -83,8 +84,7 @@ try {
     current = await open(202); await role(current.page, "client");
     await current.page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
     await current.page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click(); await current.page.getByRole("button", { name: "Настройки", exact: true }).click();
-    await current.page.getByRole("button", { name: "Безопасность аккаунта", exact: true }).click();
-    await current.page.getByRole("button", { name: "Завершить все сеансы", exact: true }).click();
+    await chooseAction(current.page, "Безопасность аккаунта", "Завершить все сеансы");
     await current.page.getByRole("button", { name: "Подтвердить завершение сеансов", exact: true }).click(); await current.page.getByLabel("Почта", { exact: true }).waitFor();
     assert.equal(vault.has(bKey), false); await current.context.close(); current = await open(202); await current.page.getByLabel("Почта", { exact: true }).waitFor();
     assert.deepEqual(errors, []); console.log("Persistent Mini App login 320px: secure storage, fresh WebViews without cookies, 30-day fixed expiry, last role, separate Telegram accounts, storage failure, logout and global revocation passed.");

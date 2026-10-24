@@ -30,6 +30,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
   if (!thread || !viewer) return <section className={`${styles.panel} ${styles.chat}`}><Empty title="Диалог появится здесь" text="Выберите проект или обращение из очереди." icon="bot" /></section>;
   const human = viewer.role === "developer";
   const canWrite = viewer.role === "client" || thread.ownerId === viewer.id;
+  const connection = human && <button className={styles.secondary} type="button" aria-label={thread.ownerId === viewer.id ? "Покинуть диалог" : "Подключиться к диалогу"} disabled={busy || Boolean(thread.ownerId && thread.ownerId !== viewer.id)} onClick={() => void run({ type: thread.ownerId === viewer.id ? "leave" : "takeover", threadId: thread.id })}>{thread.ownerId === viewer.id ? "Передать ИИ" : "Ответить"}</button>;
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (thread && text.trim() && await run({ type: "message", threadId: thread.id, text })) setText("");
@@ -41,13 +42,17 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
         <div className={styles.chatIdentity}>
           <span className={styles.chatSymbol}><Icon name={thread.kind === "telegram" ? "telegram" : thread.ownerId ? "people" : "spark"} /></span>
           <div>
-            <h2>{thread.kind === "telegram" ? thread.name : "Диалог по проекту"}</h2>
-            {thread.ownerName && <small>{`${thread.ownerName} · на связи`}</small>}
+            <h2>{thread.kind === "telegram" ? thread.name : "Чат"}</h2>
+            {thread.ownerName && <small>{thread.ownerName}</small>}
           </div>
         </div>
-        <ChatActions key={thread.id} thread={thread} controller={controller} />
+        <div className={styles.chatActions}>
+          {connection}
+          <ChatActions key={thread.id} thread={thread} controller={controller} />
+        </div>
       </div>
 )}
+      {!showHeader && human && <div className={styles.takeover}>{connection}</div>}
       {thread.handoffRequested && !thread.ownerId && (
       <p className={styles.handoff}>
         Ожидаем подключения
@@ -56,7 +61,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
 )}
 
       <div ref={log} className={styles.chatLog} role="log" aria-label="Сообщения" aria-live="polite" aria-relevant="additions">
-        {messages.length === 0 && <p className={styles.small}>Начните разговор. Здесь сохраняется переписка этого проекта.</p>}
+        {messages.length === 0 && <p className={styles.small}>Напишите сообщение.</p>}
         {messages.map(message => message.role === "system" ? <div key={message.id} className={styles.systemMessage}>{message.html ? <TelegramText html={message.html} /> : message.text}</div> : (
           <article key={message.id} className={styles.message} data-own={message.role === viewer.role && message.author === viewer.name}>
             <div className={styles.messageMeta}>
@@ -69,7 +74,6 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
         <TaskProposals controller={controller} threadId={thread.id} compact />
         {quotes.map(quote => (
           <article key={quote.id} className={styles.quote}>
-            <span className={styles.small}>{quote.status === "paid" ? "Тестовая оплата подтверждена" : "Оценка разработчика"}</span>
             <h3>{quote.title}</h3>
             <div className={styles.quoteTotal}>
               <span className={styles.small}>
@@ -94,11 +98,6 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
           </article>
         ))}
       </div>
-      {human && (
-        <div className={styles.takeover}>
-          <button className={styles.secondary} type="button" disabled={busy || Boolean(thread.ownerId && thread.ownerId !== viewer.id)} onClick={() => void run({ type: thread.ownerId === viewer.id ? "leave" : "takeover", threadId: thread.id })}>{thread.ownerId === viewer.id ? "Покинуть диалог" : "Подключиться к диалогу"}</button>
-        </div>
-      )}
       <form className={styles.compose} onSubmit={event => void submit(event)}>
         <div className={styles.composeField}>
           <textarea aria-label="Сообщение" placeholder={canWrite ? "Напишите сообщение…" : "Подключитесь, чтобы ответить"} maxLength={thread.kind === "telegram" ? 4000 : 8000} rows={2} disabled={!canWrite || busy} value={text} onChange={event => setText(event.target.value)} />

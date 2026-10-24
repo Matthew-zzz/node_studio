@@ -44,7 +44,7 @@
 .queue small { display: block; color: var(--p-muted); font-size: var(--type-meta); margin-top: 4px; }
 .tabs { display: flex; align-items: stretch; flex: none; min-width: 0; padding: 7px 5px calc(7px + var(--miniapp-bottom)); background: var(--p-panel); border-top: 1px solid var(--p-line); }
 .tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; min-height: 54px; border: 0; border-radius: 12px; padding: 7px 2px; color: var(--p-muted); background: transparent; }
-.tabs button span { font-size: var(--type-caption); font-weight: var(--weight-medium); line-height: 1.3; overflow-wrap: anywhere; }
+.tabs button span { font-size: var(--type-caption); font-weight: var(--weight-medium); line-height: 1.3; white-space: nowrap; }
 .tabs button svg { width: 20px; height: 20px; flex-shrink: 0; }
 .tabs button[aria-current="page"] { color: var(--p-accent); background: var(--p-soft); }
 .sheet { inset: auto 0 0; width: min(560px, 100%); max-width: 100%; max-height: calc(var(--node-viewport-height, 100dvh) - var(--miniapp-top) - 12px); margin: 0 auto; border-radius: 22px 22px 0 0; padding: 20px 20px calc(20px + var(--miniapp-bottom)); overscroll-behavior: contain; }

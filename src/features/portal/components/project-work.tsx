@@ -13,6 +13,7 @@ import styles from "./portal.module.css";
 import { ActionsDialog, DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ProjectBriefContent } from "@/features/portal/components/client-brief";
 import { TaskProposals } from "./task-proposals";
+import { proposalStatus } from "@/features/portal/model/task-planning";
 import { DeleteProject } from "@/features/portal/components/delete-confirmation";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
@@ -91,7 +92,7 @@ export function Stages({ project, controller, subprojectId }: { project: PortalP
           ))}
           </div>
         </>
-      ) : <Empty title="Всё начинается здесь" text="Разработчик добавит этапы, и вы увидите, как движется работа." />}
+      ) : <p className={styles.small}>{developer ? "Добавьте первый этап." : "Этапы пока не добавлены."}</p>}
       {developer && Boolean(project.repo) && <StageEditor key={subprojectId ?? "all"} project={project} controller={controller} {...(subprojectId ? { sourceId: subprojectId } : {})} />}
     </section>
   );
@@ -121,55 +122,75 @@ function TaskControls({ task, controller, onSaved }: { task: WorkItem; controlle
             <button className={styles.primary} type="submit" disabled={controller.busy || !kopecks}>Выставить оценку</button>
           </form>
           <p className={styles.small} style={{ marginTop: 10 }}>{kopecks ? `Клиенту с наценкой 30%: ${formatRubles(kopecks + Math.round(kopecks * .3))}` : "К вашей стоимости добавится 30%."}</p>
-          <button className={styles.textButton} type="button" disabled={controller.busy} onClick={() => void controller.run({ type: "task.include", projectId: task.projectId, number: task.number, ...scope }).then(done => { if (done) onSaved(); })}>Эта задача входит в оплаченное ТЗ</button>
+          <button className={styles.textButton} type="button" aria-label="Эта задача входит в оплаченное ТЗ" disabled={controller.busy} onClick={() => void controller.run({ type: "task.include", projectId: task.projectId, number: task.number, ...scope }).then(done => { if (done) onSaved(); })}>Включить в ТЗ</button>
         </>
       )}
     </div>
   );
 }
 
-export function Tasks({ project, controller, compact = false }: { project: PortalProject; controller: PortalController; compact?: boolean }) {
-  const tasks = controller.snapshot.tasks.filter(task => task.projectId === project.id).sort((a, b) => b.number - a.number);
+function TaskCard({ task, project, controller }: { task: WorkItem; project: PortalProject; controller: PortalController }) {
+  const [open, setOpen] = useState(false);
+  const developer = controller.snapshot.viewer?.role === "developer";
+  const quote = controller.snapshot.quotes.find(quote => quote.projectId === project.id && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
+  return (
+    <article className={styles.task}>
+      <div className={styles.taskTop}>
+        <div>
+          <h3>
+            {developer && <span className={styles.taskNumber}>{`#${task.number}`}</span>}
+            {task.title}
+          </h3>
+          <div className={styles.meta}>
+            {developer && (project.subprojects?.length ?? 0) > 1 && <span>{project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name}</span>}
+            {task.kind === "initial" ? <span>Первоначальное ТЗ</span> : task.included && <span>Входит в ТЗ</span>}
+            {task.paid || quote?.status === "paid" ? <span>Оплачено · тест</span> : quote && <span>{formatRubles(quote.totalKopecks)}</span>}
+          </div>
+        </div>
+        <WorkBadge status={task.status} />
+      </div>
+      <DetailDialog label={`Действия задачи: ${task.title}`} triggerLabel={developer ? "Управление" : "Подробнее"} title={developer ? "Управление задачей" : "Описание задачи"} open={open} onOpenChange={setOpen} busy={controller.busy}>
+        <div className={styles.stack}>
+          <h3>{task.title}</h3>
+          <p>{task.body || "Описание пока не добавлено."}</p>
+          {developer && <TaskControls key={`${task.id}:${task.status}:${task.included}`} task={task} controller={controller} onSaved={() => setOpen(false)} />}
+        </div>
+      </DetailDialog>
+    </article>
+  );
+}
+
+export function Tasks({ project, controller, compact = false, onOpenTasks }: { project: PortalProject; controller: PortalController; compact?: boolean; onOpenTasks?: () => void }) {
+  const [filter, setFilter] = useState<"active" | "closed" | "all">("active");
+  const [search, setSearch] = useState("");
+  const tasks = controller.snapshot.tasks.filter(task => task.projectId === project.id).sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || b.number - a.number);
+  const active = tasks.filter(task => task.status === "new" || task.status === "in_progress");
+  const closed = tasks.filter(task => task.status === "done" || task.status === "canceled");
+  const query = search.trim().toLocaleLowerCase("ru");
+  const pendingMatches = controller.snapshot.drafts.some(draft => draft.projectId === project.id && proposalStatus(draft) === "pending" && (!query || `${draft.title} ${draft.body}`.toLocaleLowerCase("ru").includes(query)));
+  const visible = (compact || filter === "active" ? active : filter === "closed" ? closed : tasks).filter(task => !query || `${task.title} ${task.body}`.toLocaleLowerCase("ru").includes(query));
   return (
     <section className={styles.panel} aria-label="Задачи проекта">
       <div className={styles.panelHeader}>
-        <h2>{compact ? "Сейчас в работе" : "Задачи"}</h2>
+        <h2>Задачи</h2>
+        {compact && onOpenTasks && <button className={styles.textButton} type="button" onClick={onOpenTasks}>Все задачи</button>}
       </div>
-      <TaskProposals controller={controller} projectId={project.id} compact={compact} />
-      {tasks.length === 0 && <Empty title="Задач пока нет" text="Опишите пожелание в чате. После подтверждения оно появится здесь." icon="document" />}
-      {tasks.slice(0, compact ? 3 : undefined).map(task => {
-        const quote = controller.snapshot.quotes.find(quote => quote.projectId === project.id && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
-        return (
-          <article key={task.id} className={styles.task}>
-            <div className={styles.taskTop}>
-              <div>
-                <h3>
-                  {controller.snapshot.viewer?.role === "developer" && (
-                  <span className={styles.taskNumber}>
-                    #
-                    {task.number}
-                  </span>
-)}
-                  {task.title}
-                </h3>
-                <div className={styles.meta}>
-                  {controller.snapshot.viewer?.role === "developer" && (project.subprojects?.length ?? 0) > 1 && <span>{project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name}</span>}
-                  <span>{task.kind === "initial" ? "Первоначальное ТЗ" : task.included ? "Входит в ТЗ" : "Пожелание"}</span>
-                  {task.paid || quote?.status === "paid" ? <span>Оплачено · тест</span> : quote && <span>{`${formatRubles(quote.totalKopecks)} · в чате`}</span>}
-                </div>
-              </div>
-              <WorkBadge status={task.status} />
-            </div>
-            <ActionsDialog
-              label={`Действия задачи: ${task.title}`}
-              actions={[
-              { label: "Описание задачи", icon: "document", content: <p>{task.body || "Описание пока не добавлено."}</p> },
-              ...(controller.snapshot.viewer?.role === "developer" ? [{ label: "Управление задачей", icon: "service" as const, content: (close: () => void) => <TaskControls key={`${task.id}:${task.status}:${task.included}`} task={task} controller={controller} onSaved={close} /> }] : []),
-            ]}
-            />
-          </article>
-        );
-      })}
+      {!compact && tasks.length > 0 && (
+        <div className={styles.listTools}>
+          <div className={styles.filters} role="group" aria-label="Фильтр задач">
+            {([["active", "Текущие", active.length], ["closed", "Завершённые", closed.length], ["all", "Все", tasks.length]] as const).map(([value, label, count]) => (
+              <button key={value} type="button" aria-label={label} aria-pressed={filter === value} onClick={() => setFilter(value)}>
+                {label}
+                <span className={styles.filterCount}>{count}</span>
+              </button>
+))}
+          </div>
+          <input type="search" aria-label="Поиск задач" placeholder="Найти задачу" value={search} onChange={event => setSearch(event.target.value)} />
+        </div>
+      )}
+      {(compact || filter !== "closed") && <TaskProposals controller={query ? { ...controller, snapshot: { ...controller.snapshot, drafts: controller.snapshot.drafts.filter(draft => `${draft.title} ${draft.body}`.toLocaleLowerCase("ru").includes(query)) } } : controller} projectId={project.id} compact={compact} summary={compact} {...(onOpenTasks ? { onOpenTasks } : {})} />}
+      {visible.slice(0, compact ? 3 : undefined).map(task => <TaskCard key={task.id} task={task} project={project} controller={controller} />)}
+      {!visible.length && ((filter === "closed" && !compact) || !pendingMatches) && <p className={styles.small}>{query ? "Задачи не найдены." : filter === "closed" && !compact ? "Завершённых задач пока нет." : tasks.length ? "Текущих задач нет." : "Новых задач пока нет. Напишите пожелание в чате."}</p>}
     </section>
   );
 }
@@ -182,7 +203,7 @@ export function ProjectInfo({ project, controller }: { project: PortalProject; c
       busy={controller.busy}
       actions={[
       { label: "Открыть описание проекта", icon: "document", content: <p>{project.brief || project.description || "Описание пока не добавлено."}</p> },
-      { label: "Итоговый бриф", icon: "document", content: <ProjectBriefContent brief={controller.snapshot.projectBriefs.find(brief => brief.projectId === project.id)} /> },
+      ...(controller.snapshot.projectBriefs.some(brief => brief.projectId === project.id) ? [{ label: "Итоговый бриф", icon: "document" as const, content: <ProjectBriefContent brief={controller.snapshot.projectBriefs.find(brief => brief.projectId === project.id)} /> }] : []),
       ...(controller.snapshot.viewer?.role === "developer" && (!project.developerId || project.developerId === controller.snapshot.viewer.id) ? [{ label: "Удалить проект", icon: "trash" as const, danger: true, content: (close: () => void) => <DeleteProject project={project} controller={controller} onClose={close} /> }] : []),
     ]}
     />
@@ -195,7 +216,7 @@ export function CommitHistory({ controller }: { controller: PortalController }) 
       <div className={styles.panelHeader}>
         <h2>История изменений</h2>
       </div>
-      {controller.snapshot.commits.length === 0 && <Empty title="Первый шаг впереди" text="Когда разработчик добавит код, здесь появится история с первого коммита." icon="code" />}
+      {controller.snapshot.commits.length === 0 && <Empty title="Первый шаг впереди" text="Здесь появятся изменения проекта." icon="code" />}
       {controller.snapshot.commits.map(commit => (
         <article className={styles.commit} key={`${repositoryKey(commit.subprojectId)}:${commit.sha}`}>
           <Icon name="code" />
@@ -205,7 +226,7 @@ export function CommitHistory({ controller }: { controller: PortalController }) 
               {controller.snapshot.viewer?.role === "developer" && <span>{controller.snapshot.projects.find(project => project.id === commit.projectId)?.subprojects?.find(part => part.id === repositoryKey(commit.subprojectId))?.name}</span>}
               <time dateTime={commit.createdAt}>{shortDate(commit.createdAt)}</time>
             </div>
-            <DetailDialog label="Подробности коммита" title={commit.title}>
+            <DetailDialog label="Подробности коммита" triggerLabel="Подробнее" title={commit.title}>
               <p>{`${commit.author}\n${new Date(commit.createdAt).toLocaleString("ru-RU")}\n\n${commit.sha}`}</p>
             </DetailDialog>
           </div>

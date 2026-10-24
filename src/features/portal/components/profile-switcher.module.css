@@ -18,12 +18,12 @@
 .add:hover { color: var(--p-accent); background: var(--p-inset); }
 .add svg { width: 13px; height: 13px; }
 .mobileTrigger { display: none; }
-.mobilePopover { color: var(--p-text); background: var(--p-panel); border: 1px solid var(--p-line); border-radius: 16px; padding: 12px; inset: auto auto 72px 16px; margin: 0; width: min(270px, calc(100vw - 32px)); max-height: calc(100svh - 100px); overflow-y: auto; box-shadow: 0 12px 45px #0002; }
+.mobilePopover { color: var(--p-text); background: var(--p-panel); border: 1px solid var(--p-line); border-radius: 16px; padding: 12px; inset: 64px 12px auto auto; margin: 0; width: min(270px, calc(100vw - 32px)); max-height: calc(100svh - 100px); overflow-y: auto; box-shadow: 0 12px 45px #0002; }
 @media (min-width: 651px) { .mobilePopover:popover-open { display: none; } }
 @media (max-width: 650px) {
   .root { border: 0; padding: 0; }
   .desktop { display: none; }
-  .mobileTrigger { display: flex; align-items: center; gap: 9px; min-height: 42px; border: 1px solid var(--p-line); border-radius: 13px; padding: 9px 12px; color: var(--p-text); background: var(--p-panel); box-shadow: 0 5px 24px #0001; font-size: var(--type-meta) !important; }
+  .mobileTrigger { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--p-line); border-radius: 9px; padding: 7px; color: var(--p-text); background: var(--p-panel); }
   .mobileTrigger svg { width: 16px; height: 16px; color: var(--p-accent); }
-  .mobileTrigger svg:last-child { width: 14px; color: var(--p-muted); }
+  .mobileTrigger span, .mobileTrigger svg:last-child { display: none; }
 }

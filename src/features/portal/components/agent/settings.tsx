@@ -30,7 +30,6 @@ export function GeneralSettings({ value, onChange, busy }: AgentEditorProps) {
             <input value={value.model} maxLength={120} disabled={busy} onChange={event => onChange({ ...value, model: event.target.value })} />
           </label>
         </div>
-        <p className={portalStyles.small}>Настройки применяются после сохранения. Доступность выбранной модели можно проверить в разделе «Проверка агента».</p>
       </section>
       <ActionsDialog
         label="Настройки агента"
@@ -46,7 +45,6 @@ export function GeneralSettings({ value, onChange, busy }: AgentEditorProps) {
             <span>{label}</span>
           </label>
         ))}
-          <p className={portalStyles.small}>Разработчик может подключиться к диалогу вручную. Пока он ведёт переписку, ИИ не отвечает.</p>
         </div> },
         { label: "Лимиты и контекст", icon: "service", content: <div className={styles.form}>
           <div className={styles.fields}>

@@ -25,12 +25,10 @@ export function ClientProjectForm({ controller, onCreated }: { controller: Porta
         Название проекта
         <input required maxLength={160} value={name} onChange={event => setName(event.target.value)} />
       </label>
-      <RepositoryChoice mode={repositoryMode} onModeChange={setRepositoryMode} name={repositoryName} onNameChange={setRepositoryName} repo={repository} onRepoChange={setRepository} disabled={controller.busy} />
       <label>
         Почта клиента
         <input type="email" required maxLength={254} value={clientEmail} onChange={event => setClientEmail(event.target.value)} />
       </label>
-      <p className={styles.small}>Используйте почту существующего аккаунта клиента.</p>
       <label>
         Краткое описание
         <textarea maxLength={1000} rows={2} value={description} onChange={event => setDescription(event.target.value)} />
@@ -39,6 +37,7 @@ export function ClientProjectForm({ controller, onCreated }: { controller: Porta
         ТЗ проекта
         <textarea required maxLength={16000} rows={5} value={brief} onChange={event => setBrief(event.target.value)} />
       </label>
+      <RepositoryChoice mode={repositoryMode} onModeChange={setRepositoryMode} name={repositoryName} onNameChange={setRepositoryName} repo={repository} onRepoChange={setRepository} disabled={controller.busy} />
       <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>Создать проект</button></div>
     </form>
   );

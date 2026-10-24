@@ -24,7 +24,7 @@ export function RepositoryNameField({ value, onChange, disabled = false, automat
           aria-describedby={help}
         />
       </label>
-      <p id={help} className={styles.small}>{`${automatic ? "Можно оставить пустым — выберем имя автоматически. " : ""}${REPOSITORY_NAME_HELP}`}</p>
+      <p id={help} className={styles.small}>{automatic ? "Пустое поле — автоматическое имя." : "Латиница, цифры, точка, дефис и подчёркивание."}</p>
     </>
   );
 }

@@ -27,12 +27,13 @@ interface ProjectWorkspaceProps {
   onSelectSubproject: (id: string | null) => void;
 }
 
-function ProjectSection({ project, controller, view, companion, subprojectId }: {
+function ProjectSection({ project, controller, view, companion, subprojectId, onOpenTasks }: {
   project: PortalProject;
   controller: PortalController;
   view: ProjectView;
   companion: ProjectView | null;
   subprojectId: string | null;
+  onOpenTasks: () => void;
 }) {
   if (view === "chat") {
     const thread = controller.snapshot.conversations.find(thread => thread.kind === "project" && thread.projectId === project.id);
@@ -42,9 +43,8 @@ function ProjectSection({ project, controller, view, companion, subprojectId }: 
   if (view === "tasks") return <Tasks project={project} controller={controller} />;
   return (
     <div className={portalStyles.stack}>
-      <ProjectInfo project={project} controller={controller} />
       <Stages project={project} controller={controller} {...(subprojectId ? { subprojectId } : {})} />
-      {companion !== "tasks" && <Tasks project={project} controller={controller} compact />}
+      {companion !== "tasks" && <Tasks project={project} controller={controller} compact onOpenTasks={onOpenTasks} />}
     </div>
   );
 }
@@ -62,9 +62,9 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
     <section className={styles.root} data-split={Boolean(secondary)} aria-label="Рабочая область проекта">
       <div className={styles.tools}>
         <div className={management.selector}>
-          {developer && Boolean(project.subprojects?.length) && (
+          {developer && (project.subprojects?.length ?? 0) > 1 && (
             <label>
-              Область
+              Подпроект
               <select aria-label="Подпроект" value={subprojectId ?? "all"} disabled={busy} onChange={event => onSelectSubproject(event.target.value === "all" ? null : event.target.value)}>
                 <option value="all">Весь проект</option>
                 {project.subprojects?.map(part => (
@@ -77,8 +77,10 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
             </label>
           )}
         </div>
-        {allowSplit && (
-          <div className={styles.actions}>
+        <div className={styles.actions}>
+          <ProjectInfo project={project} controller={controller} />
+          {allowSplit && (
+          <>
             {secondary ? (
               <>
                 <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Поменять разделы местами" title="Поменять разделы местами" onClick={() => onSelectPrimary(secondary)}><Icon name="swap" /></button>
@@ -90,8 +92,9 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
                 Открыть рядом
               </button>
             )}
-          </div>
-        )}
+          </>
+          )}
+        </div>
       </div>
       {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>
@@ -116,7 +119,7 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
                 {index === 1 && <button type="button" className={portalStyles.iconButton} disabled={busy} aria-label="Закрыть правый раздел" title="Закрыть раздел" onClick={onCloseSecondary}><Icon name="close" /></button>}
               </div>
             )}
-            <ProjectSection project={project} controller={view === "chat" ? controller : scoped} view={view} companion={secondary ? index === 0 ? secondary : primary : null} subprojectId={subprojectId} />
+            <ProjectSection project={project} controller={view === "chat" ? controller : scoped} view={view} companion={secondary ? index === 0 ? secondary : primary : null} subprojectId={subprojectId} onOpenTasks={() => onSelectPrimary("tasks")} />
           </section>
         ))}
       </div>

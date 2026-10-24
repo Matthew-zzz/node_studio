@@ -60,7 +60,6 @@ export function KnowledgeManager({ state, api, command, ...editor }: AgentEditor
               Текст материала
               <textarea aria-label="Текст материала" required rows={12} maxLength={50000} value={draft.content} disabled={busy} onChange={event => setDraft({ ...draft, content: event.target.value })} />
             </label>
-            <p className={portalStyles.small}>До 50 000 символов. Материал используется ботом в ответах пользователям Telegram.</p>
             <label className={styles.check}>
               <input type="checkbox" checked={draft.enabled} disabled={busy} onChange={event => setDraft({ ...draft, enabled: event.target.checked })} />
               <span>Использовать в ответах</span>

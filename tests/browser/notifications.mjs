@@ -68,7 +68,8 @@ export async function checkNotifications(browser, origin, fixture, screenshots) 
         const order = fixture.store.all("orders").find(order => order.projectName === name);
         fixture.service.payOrder(order.checkoutToken, "succeeded");
         await login(page, origin, "developer");
-        await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Создание проектов", exact: true }).click();
+        await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Проекты и оплаты", exact: true }).click();
+        await page.getByRole("group", { name: "Проекты и оплаты", exact: true }).getByRole("button", { name: "Оплаты", exact: true }).click();
         fixture.config.mockProvisioning = false;
         try {
           await page.getByRole("button", { name: "Создать проект и выдать доступ", exact: true }).click();

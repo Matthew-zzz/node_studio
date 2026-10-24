@@ -212,7 +212,6 @@ export function AdminErrors({ controller }: { controller: PortalController }) {
       )}
         </section>
 )}
-      <p className={`${portal.small} ${styles.note}`}>Обновляется автоматически. Журнал хранит до 2 000 записей. При полной потере связи сообщения браузера передаются после её восстановления.</p>
     </div>
   );
 }

@@ -22,9 +22,11 @@ try {
     const mini = presentation === "miniapp";
     async function navigate(name) {
       if (mini) {
-        const navigation = page.getByRole("navigation", { name: "Навигация приложения", exact: true }); const label = name === "Создание проектов" ? "Создать" : name;
-        if (!await navigation.getByRole("button", { name: label, exact: true }).count()) await navigation.getByRole("button", { name: "Проекты", exact: true }).click();
-        await navigation.getByRole("button", { name: label, exact: true }).click();
+        const navigation = page.getByRole("navigation", { name: "Навигация приложения", exact: true }); const label = name === "Проекты и оплаты" ? "Создать" : name;
+        if (!await navigation.getByRole("button", { name: label, exact: true }).count()) {
+          await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+          await page.getByRole("dialog", { name: "Меню приложения", exact: true }).getByRole("button", { name, exact: true }).click();
+        } else await navigation.getByRole("button", { name: label, exact: true }).click();
       }
       else {
         if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
@@ -32,7 +34,7 @@ try {
       }
     }
     async function create(name, repo = "") {
-      await navigate("Создание проектов"); await chooseAction(page, "Создать проект", "Создать для существующего клиента");
+      await navigate("Проекты и оплаты"); await chooseAction(page, "Создать проект", "Создать для существующего клиента");
       const form = page.getByRole("form", { name: "Создание проекта разработчиком", exact: true });
       await form.getByLabel("Название проекта", { exact: true }).fill(name); await form.getByLabel("Почта клиента", { exact: true }).fill("client@example.test");
       await form.getByLabel("ТЗ проекта", { exact: true }).fill("Подключить существующий проект и сохранить его историю.");
@@ -80,7 +82,8 @@ try {
       await manager.getByRole("button", { name: "Изменить название подпроекта Интерфейс", exact: true }).waitFor();
       const originalCreate = fixture.integrations.createRepository;
       fixture.integrations.createRepository = async () => { throw new Error("Temporary subproject outage"); };
-      const extra = manager.getByRole("form", { name: "Добавление подпроекта", exact: true });
+      await manager.getByRole("button", { name: "Добавить подпроект", exact: true }).click();
+      const extra = page.getByRole("form", { name: "Добавление подпроекта", exact: true });
       await extra.getByLabel("Название нового подпроекта", { exact: true }).fill("Backend");
       await extra.getByLabel("Способ подключения подпроекта", { exact: true }).selectOption("new");
       const backendName = `browser-${presentation}-${width}-backend`;
@@ -98,6 +101,7 @@ try {
       await manager.getByRole("button", { name: "Повторить создание подпроекта", exact: true }).click();
       await manager.getByRole("link", { name: `Matthew-zzz/${backendName}`, exact: true }).waitFor();
       assert.equal(fixture.repositories.length, 1);
+      await manager.getByRole("button", { name: "Добавить подпроект", exact: true }).click();
       await extra.getByLabel("Способ подключения подпроекта", { exact: true }).selectOption("existing");
       await extra.getByLabel("Название нового подпроекта", { exact: true }).fill("Worker");
       await extra.getByLabel("Репозиторий нового подпроекта", { exact: true }).fill("https://github.com/Matthew-zzz/Existing-worker.git");

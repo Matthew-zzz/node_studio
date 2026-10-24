@@ -44,7 +44,7 @@ try {
     const page = await context.newPage(); page.setDefaultTimeout(15000); const errors = []; page.on("pageerror", error => errors.push(error.message));
     const miniapp = presentation === "miniapp";
     async function navigate(label) {
-      if (miniapp) await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: label === "Создание проектов" ? "Создать" : label, exact: true }).click();
+      if (miniapp) await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: label === "Проекты и оплаты" ? "Создать" : label, exact: true }).click();
       else {
         if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
         await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: label, exact: true }).click();
@@ -68,7 +68,7 @@ try {
         await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
         await completeEmailCode(page, origin, "developer@example.test"); await page.getByTestId("portal").waitFor();
       }
-      await documentFonts(page); await navigate("Создание проектов");
+      await documentFonts(page); await navigate("Проекты и оплаты"); await page.getByRole("group", {name:"Проекты и оплаты",exact:true}).getByRole("button",{name:"Оплаты",exact:true}).click();
       for (const name of ["Неоплаченный заказ", "Оплаченный заказ"]) {
         const card = page.locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
         if (name === "Неоплаченный заказ") {

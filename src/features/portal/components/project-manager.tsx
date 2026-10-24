@@ -9,6 +9,7 @@ import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
 import { DetailDialog } from "@/features/portal/components/focus-dialog";
 import { LongText } from "@/features/portal/components/ui";
+import { Icon } from "@/components/ui/icon";
 import { RepositoryChoice } from "@/features/portal/components/repository-choice";
 import type { RepositoryMode } from "@/features/portal/components/repository-choice";
 
@@ -39,7 +40,6 @@ export function CreateProject({ controller, onCreated, embedded = false }: { con
         Почта клиента
         <input aria-label="Почта клиента проекта" type="email" required maxLength={254} value={clientEmail} onChange={event => setClientEmail(event.target.value)} />
       </label>
-      <p className={styles.small}>Клиент должен иметь аккаунт в студии. Проект появится в его существующем кабинете.</p>
       <label>
         Описание
         <textarea aria-label="Описание клиентского проекта" maxLength={1000} value={description} onChange={event => setDescription(event.target.value)} />
@@ -86,7 +86,7 @@ function RepositorySetup({ project, controller }: { project: PortalProject; cont
     <section className={styles.panel} aria-label="Репозиторий проекта">
       <div role="status" aria-live="polite">
         <h2>{content.title}</h2>
-        <LongText text={content.description} label="Подробнее о подготовке" />
+        {creation && <p className={styles.small}>{content.description}</p>}
         {creation?.nextAttemptAt && <p className={styles.small}>{`Следующая попытка после ${new Date(creation.nextAttemptAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}</p>}
       </div>
       {creation && project.repositoryName && <p className={styles.small}>{project.repositoryName}</p>}
@@ -110,7 +110,7 @@ function RenameRepository({ project, part, controller }: { project: PortalProjec
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(part.name);
   return (
-    <DetailDialog label={`Изменить название подпроекта ${part.name}`} open={open} onOpenChange={value => { if (value) setName(part.name); setOpen(value); }} busy={controller.busy}>
+    <DetailDialog label={`Изменить название подпроекта ${part.name}`} title="Название подпроекта" triggerLabel={<Icon name="edit" />} buttonClassName={management.rename} open={open} onOpenChange={value => { if (value) setName(part.name); setOpen(value); }} busy={controller.busy}>
       <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run({ type: "project.repository.rename", projectId: project.id, subprojectId: part.id, name: name.trim() }).then(saved => { if (saved) setOpen(false); }); }}>
         <label>
           Название подпроекта
@@ -123,6 +123,7 @@ function RenameRepository({ project, part, controller }: { project: PortalProjec
 }
 
 export function RepositoryManager({ project, controller }: { project: PortalProject; controller: PortalController }) {
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState(""); const [repo, setRepo] = useState("");
   const [mode, setMode] = useState<RepositoryMode>("existing");
   const [repositoryName, setRepositoryName] = useState("");
@@ -132,18 +133,17 @@ export function RepositoryManager({ project, controller }: { project: PortalProj
     const saved = await controller.run(mode === "existing"
       ? { type: "project.repository.add", projectId: project.id, name: name.trim(), repo: repo.trim() }
       : { type: "project.repository.create", projectId: project.id, subprojectId: sourceId, name: name.trim(), repositoryName: repositoryName.trim() });
-    if (saved) { setName(""); setRepo(""); setRepositoryName(""); setSourceId(crypto.randomUUID()); }
+    if (saved) { setName(""); setRepo(""); setRepositoryName(""); setSourceId(crypto.randomUUID()); setAdding(false); }
   }
   if (project.developerId !== controller.snapshot.viewer?.id) return null;
   if (!project.repo) return <RepositorySetup project={project} controller={controller} />;
   const parts = project.subprojects ?? projectRepositories(project);
   const content = (
     <div className={styles.stack}>
-      <p className={styles.small}>Каждый репозиторий — отдельный подпроект со своим названием, задачами и историей. Можно подключить до восьми репозиториев.</p>
       {parts.map(part => (
-        <fieldset className={management.repository} key={part.id}>
-          <legend>{part.name}</legend>
+        <div className={management.repositoryRow} key={part.id}>
           <div className={management.source}>
+            <strong>{part.name}</strong>
             {part.repo ? <a href={`https://github.com/${part.repo}`} target="_blank" rel="noreferrer">{part.repo}</a> : (
               <>
                 <p className={styles.small}>{part.repositoryName}</p>
@@ -157,26 +157,28 @@ export function RepositoryManager({ project, controller }: { project: PortalProj
 )}
           </div>
           <RenameRepository project={project} part={part} controller={controller} />
-        </fieldset>
+        </div>
       ))}
       {parts.length < 8 && (
-        <form className={styles.form} onSubmit={event => void submit(event)} aria-label="Добавление подпроекта">
-          <fieldset className={management.repository} disabled={controller.busy}>
-            <legend>Новый подпроект</legend>
+        <DetailDialog label="Добавить подпроект" open={adding} onOpenChange={setAdding} busy={controller.busy} buttonClassName={styles.secondary}>
+          <form className={styles.form} onSubmit={event => void submit(event)} aria-label="Добавление подпроекта">
             <label>
               Название нового подпроекта
               <input aria-label="Название нового подпроекта" required maxLength={80} value={name} onChange={event => setName(event.target.value)} placeholder="Например, Backend" />
             </label>
             <RepositoryChoice mode={mode} onModeChange={setMode} name={repositoryName} onNameChange={setRepositoryName} repo={repo} onRepoChange={setRepo} disabled={controller.busy} modeLabel="Способ подключения подпроекта" existingLabel="Репозиторий нового подпроекта" />
             <button className={styles.primary} type="submit" disabled={controller.busy}>{mode === "existing" ? "Подключить подпроект" : "Создать репозиторий подпроекта"}</button>
-          </fieldset>
-        </form>
+          </form>
+        </DetailDialog>
       )}
     </div>
   );
   return (
     <section className={styles.panel} aria-label="Подготовить разработку">
-      <h2>Подготовить разработку</h2>
+      <div className={styles.panelHeader}>
+        <h2>Подпроекты</h2>
+        <span className={styles.small}>{`${parts.length} / 8`}</span>
+      </div>
       {content}
     </section>
   );

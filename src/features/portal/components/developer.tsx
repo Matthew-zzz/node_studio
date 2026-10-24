@@ -33,7 +33,6 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
               <div className={styles.queueItem} key={thread.id}>
                 <div>
                   <h3>{thread.name}</h3>
-                  <p className={styles.small}>Запрошено подключение разработчика</p>
                 </div>
                 <button className={styles.secondary} type="button" disabled={busy} onClick={() => accepted ? onOpenChat(thread.projectId) : onAcceptProject(thread.projectId, "chat")}>
                   {accepted ? "Открыть диалог" : "Взять проект и открыть чат"}
@@ -50,7 +49,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
             <input type="search" aria-label="Поиск проектов" value={search} onChange={event => setSearch(event.target.value)} placeholder="Проект или клиент" />
           </div>
         </div>
-        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Создайте клиентский проект в разделе «Создание проектов». Взятые в работу доступны в боковом меню."} icon={projects.length ? "search" : "check"} />}
+        {visible.length === 0 && <Empty title={projects.length ? "Ничего не найдено" : "Очередь свободна"} text={projects.length ? "Попробуйте другой запрос." : "Новых проектов пока нет."} icon={projects.length ? "search" : "check"} />}
         {visible.length === 0 && projects.length > 0 && <button className={styles.secondary} type="button" onClick={() => setSearch("")}>Сбросить поиск</button>}
         {visible.map(project => (
           <article className={styles.queueItem} key={project.id}>
@@ -60,7 +59,6 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
               <p className={styles.projectDescription}>{project.description}</p>
               <p className={styles.small}>{project.clientEmail}</p>
               <ProjectInfo project={project} controller={controller} />
-              {!project.repo && <p className={styles.small}>После принятия проекта вы сможете создать его GitHub-репозиторий.</p>}
             </div>
             <button type="button" className={styles.primary} disabled={busy} onClick={() => onAcceptProject(project.id, "overview")}>Взять в работу</button>
           </article>

@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 
 export async function chooseAction(page, trigger, action, opensDialog = true) {
   await (typeof trigger === "string" ? page.getByRole("button", { name: trigger, exact: true }) : trigger).click();
-  const heading = await page.locator("dialog[open]").last().getAttribute("aria-labelledby");
-  const menu = page.locator(`dialog[aria-labelledby=${JSON.stringify(heading)}]`);
-  await menu.getByRole("button", { name: action, exact: true }).click();
-  await menu.waitFor({ state: "hidden" });
+  const menu = page.locator("dialog[open]").last();
+  await menu.waitFor();
+  const menuId = await menu.getAttribute("aria-labelledby");
+  if (await menu.getByRole("heading", { name: action, exact: true, level: 2 }).count() === 0) {
+    await menu.getByRole("button", { name: action, exact: true }).click();
+    if (menuId) await page.locator(`dialog[aria-labelledby=${JSON.stringify(menuId)}]`).waitFor({ state: "hidden" });
+  }
   if (opensDialog) {
     await page.waitForFunction(() => document.querySelectorAll("dialog[open]").length === 1);
     const dialog = page.locator("dialog[open]");

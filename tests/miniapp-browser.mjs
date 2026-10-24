@@ -121,7 +121,7 @@ try {
       await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
       const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });
       await queue.locator("article").filter({ has: page.getByRole("heading", { name: "one", exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
-      await tab(page, "Проекты");
+      await page.getByRole("button", { name: "Все проекты", exact: true }).click();
       await page.getByRole("heading", { name: "В работе", exact: true }).waitFor();
       assert.equal(await page.getByRole("navigation", { name: "Навигация приложения", exact: true }).getByRole("button", { name: "Проекты", exact: true }).getAttribute("aria-current"), "page");
       await fits(page, width);

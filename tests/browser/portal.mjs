@@ -208,7 +208,7 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   assert.equal(await chat.count(), 0, "developer chat has its own project section");
   if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
   const globalMenu = page.getByRole("navigation", { name: "Разделы кабинета", exact: true });
-  assert.deepEqual(await globalMenu.getByRole("button").allTextContents(), ["Диалоги", "Общая очередь", "Создание проектов", "Настройки"]);
+  assert.deepEqual(await globalMenu.getByRole("button").allTextContents(), ["Диалоги", "Общая очередь", "Проекты и оплаты", "Настройки"]);
   const sections = page.getByRole("group", { name: "Разделы проекта one", exact: true });
   assert.deepEqual(await sections.getByRole("button").allTextContents(), ["Обзор проекта", "Задачи", "История", "Чат"]);
   await page.screenshot({ path: resolve(screenshots, `${width}-developer-project-menu-light.png`), fullPage: true });
@@ -309,7 +309,8 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.screenshot({ path: resolve(screenshots, `${width}-cabinet-intake.png`), fullPage: true });
 
   const projectName = `Новый проект ${width}`;
-  await navigate(page, width, "Создание проектов");
+  await navigate(page, width, "Проекты и оплаты");
+  await page.getByRole("group", { name: "Проекты и оплаты", exact: true }).getByRole("button", { name: "Оплаты", exact: true }).click();
   await chooseAction(page, "Создать проект", "Подготовить ссылку на оплату");
   const paidProject = page.getByRole("dialog", { name: "Оплата и выдача доступа", exact: true });
   await paidProject.getByLabel("Название проекта", { exact: true }).fill(projectName);
@@ -328,11 +329,13 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await page.reload();
   await page.getByText("Тестовая оплата подтверждена. Студия подготовит доступ к проекту.", { exact: true }).waitFor();
   await page.goto(origin + "/cabinet/"); await root.waitFor();
-  await navigate(page, width, "Создание проектов");
+  await navigate(page, width, "Проекты и оплаты");
+  await page.getByRole("group", { name: "Проекты и оплаты", exact: true }).getByRole("button", { name: "Оплаты", exact: true }).click();
   await page.getByRole("button", { name: "Создать проект и выдать доступ", exact: true }).click();
   await portal.service.workJobs();
   await page.reload(); await root.waitFor();
-  await navigate(page, width, "Создание проектов");
+  await navigate(page, width, "Проекты и оплаты");
+  await page.getByRole("group", { name: "Проекты и оплаты", exact: true }).getByRole("button", { name: "Оплаты", exact: true }).click();
   await page.getByText("Доступ выдан", { exact: true }).waitFor();
   await login(page, origin, "client");
   await openProject(page, width, projectName);

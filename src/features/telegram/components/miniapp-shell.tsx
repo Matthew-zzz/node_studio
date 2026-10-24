@@ -97,7 +97,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
             </button>
 )}
             <h1>{title}</h1>
-            {showProjects && <p>{viewer.role === "client" ? "Всё по вашим проектам в одном месте" : "Выберите проект или откройте общую очередь"}</p>}
           </div>
           )}
           {!viewer.mustChangePassword && showProjects ? (
@@ -107,7 +106,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                 <Icon name="flow" />
                 <span>
                   Общая очередь
-                  <small>Новые проекты студии</small>
                 </span>
                 <Icon name="arrow" />
               </button>
@@ -119,7 +117,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                     <span className={styles.status}>{item.developerId ? "В работе" : "В очереди"}</span>
                   </span>
                   <strong>{item.name}</strong>
-                  <span className={styles.description}>{item.description || "Этапы, задачи и переписка"}</span>
+                  {item.description && <span className={styles.description}>{item.description}</span>}
                   <span className={styles.projectLink}>
                     Открыть проект
                     <Icon name="arrow" />
@@ -131,7 +129,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
         </main>
         {!viewer.mustChangePassword && !telegramThread && (
           <nav className={styles.tabs} aria-label="Навигация приложения">
-            {viewer.role === "developer" && (
+            {viewer.role === "developer" && !projectVisible && (
               <button type="button" disabled={controller.busy} aria-current={showProjects ? "page" : undefined} onClick={openProjects}>
                 <Icon name="site" />
                 <span>Проекты</span>
@@ -164,7 +162,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               Мои проекты
             </button>
 )}
-            {!viewer.mustChangePassword && ROLE_VIEWS[viewer.role].filter(view => !isProjectView(view) && !tabs[viewer.role].includes(view)).map(view => (
+            {!viewer.mustChangePassword && ROLE_VIEWS[viewer.role].filter(view => !isProjectView(view) && !navigationTabs.includes(view)).map(view => (
               <button type="button" key={view} disabled={controller.busy} onClick={() => navigate(view)}>
                 <Icon name={PORTAL_VIEWS[view].icon} />
                 {PORTAL_VIEWS[view].label}

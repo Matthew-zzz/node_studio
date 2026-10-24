@@ -46,7 +46,7 @@ function EditProposal({ draft, controller }: { draft: TaskDraft; controller: Por
           Описание задачи
           <textarea aria-label="Описание задачи" required rows={8} maxLength={8000} value={body} onChange={event => setBody(event.target.value)} />
         </label>
-        <p className={portal.small}>После сохранения проверьте формулировку и одобрите её отдельно.</p>
+        <p className={portal.small}>После сохранения одобрите задачу отдельно.</p>
         <button className={portal.primary} type="submit" disabled={controller.busy || !title.trim() || !body.trim()}>Сохранить формулировку</button>
       </form>
     </DetailDialog>
@@ -64,13 +64,9 @@ function ProposalCard({ draft, controller, analyzing }: { draft: TaskDraft; cont
     <article className={styles.card} data-status={status} aria-label={`${kinds[draft.kind ?? "create"]}: ${draft.title}`}>
       <div className={styles.meta}>
         <span>{kinds[draft.kind ?? "create"]}</span>
-        <span>
-          {labels[status]}
-          {draft.revision ? ` · версия ${draft.revision}` : ""}
-        </span>
+        {!pending && <span>{labels[status]}</span>}
       </div>
       <h3>{draft.title}</h3>
-      {draft.reason && <p className={styles.reason}>{draft.reason}</p>}
       <ProposalText text={draft.body} label="Показать формулировку" />
       {draft.kind === "update" && (
       <details className={styles.details}>
@@ -79,20 +75,14 @@ function ProposalCard({ draft, controller, analyzing }: { draft: TaskDraft; cont
           <div>
             <strong>Было</strong>
             <p>{draft.baseTitle}</p>
-            <LongText text={draft.baseBody ?? ""} label="Прежнее описание" />
+            <ProposalText text={draft.baseBody ?? ""} label="Прежнее описание" />
           </div>
           <div>
             <strong>Станет</strong>
             <p>{draft.title}</p>
-            <LongText text={draft.body} label="Новое описание" />
+            <ProposalText text={draft.body} label="Новое описание" />
           </div>
         </div>
-      </details>
-)}
-      {draft.sourceText && (
-      <details className={styles.details}>
-        <summary>Из переписки</summary>
-        <p className={styles.source}>{draft.sourceText}</p>
       </details>
 )}
       {pending && (client ? (
@@ -102,13 +92,14 @@ function ProposalCard({ draft, controller, analyzing }: { draft: TaskDraft; cont
             <button type="button" className={portal.secondary} disabled={controller.busy} onClick={() => void controller.run({ type: "draft.reject", draftId: draft.id, revision: draft.revision ?? 0 })}>Отклонить</button>
           </div>
           {draft.kind !== "cancel" && <EditProposal draft={draft} controller={controller} />}
-          {!ready && <p className={portal.small}>Предложение сохранено. Одобрить его можно после подготовки проекта разработчиком.</p>}
-          {analyzing && <p className={portal.small}>ИИ учитывает последние сообщения. Дождитесь обновления формулировки.</p>}
+          {!ready && <p className={portal.small}>Одобрение станет доступно после подготовки проекта.</p>}
         </>
 ) : <p className={portal.small}>Ожидает решения клиента</p>)}
-      {Boolean(draft.history?.length) && (
+      {(Boolean(draft.sourceText) || (draft.history?.length ?? 0) > 1) && (
       <details className={styles.details}>
         <summary>История изменений</summary>
+        {draft.reason && <p className={styles.reason}>{draft.reason}</p>}
+        {draft.sourceText && <p className={styles.source}>{draft.sourceText}</p>}
         <ol className={styles.history}>
           {draft.history?.map(version => (
             <li key={version.id}>
@@ -134,7 +125,7 @@ function ProposalCard({ draft, controller, analyzing }: { draft: TaskDraft; cont
   );
 }
 
-export function TaskProposals({ controller, projectId, threadId, compact = false }: { controller: PortalController; projectId?: string; threadId?: string; compact?: boolean }) {
+export function TaskProposals({ controller, projectId, threadId, compact = false, summary = false, onOpenTasks }: { controller: PortalController; projectId?: string; threadId?: string; compact?: boolean; summary?: boolean; onOpenTasks?: () => void }) {
   const drafts = controller.snapshot.drafts.filter(draft => (projectId ? draft.projectId === projectId : draft.threadId === threadId));
   const pending = drafts.filter(draft => proposalStatus(draft) === "pending");
   const history = drafts.filter(draft => proposalStatus(draft) !== "pending").sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt));
@@ -142,20 +133,24 @@ export function TaskProposals({ controller, projectId, threadId, compact = false
   const analyzing = states.some(state => ["queued", "analyzing", "retrying"].includes(state.status));
   const failed = states.some(state => state.status === "failed");
   const targetId = projectId ?? states[0]?.projectId ?? drafts[0]?.projectId;
-  if (!drafts.length && !states.length && !controller.snapshot.integrations.ai) return null;
+  if (!pending.length && !analyzing && !failed && (compact || !history.length)) return null;
+  if (summary && onOpenTasks) return (
+    <div className={styles.summary}>
+      <span>{analyzing ? "Обновляем задачи…" : failed ? "Не удалось обновить задачи" : `На согласовании: ${pending.length}`}</span>
+      <button type="button" className={portal.textButton} onClick={onOpenTasks}>Проверить задачи</button>
+    </div>
+  );
   return (
     <section className={styles.root} aria-label="Согласование задач">
       <div className={styles.heading}>
         <div>
-          <h3>Задачи из переписки</h3>
-          <p className={portal.small}>ИИ собирает пожелания и уточняет их по сообщениям. Решение по каждой версии принимает клиент.</p>
+          <h3>{pending.length ? "На согласовании" : "Решения по задачам"}</h3>
         </div>
         {pending.length > 0 && <span className={styles.count}>{pending.length}</span>}
       </div>
-      {analyzing && <p className={styles.notice} role="status">{states.some(state => state.status === "retrying") ? "Анализ временно недоступен. Повторим автоматически; предложения сохранены." : "Анализируем переписку и обновляем задачи…"}</p>}
-      {failed && <p className={styles.notice} role="status">Не удалось завершить анализ. Предложения сохранены — можно повторить попытку.</p>}
+      {analyzing && <p className={styles.notice} role="status">{states.some(state => state.status === "retrying") ? "Не удалось обновить задачи. Повторим автоматически." : "Учитываем последние сообщения…"}</p>}
+      {failed && <p className={styles.notice} role="status">Не удалось обновить задачи. Попробуйте ещё раз.</p>}
       {pending.map(draft => <ProposalCard key={draft.id} draft={draft} controller={controller} analyzing={analyzing} />)}
-      {!pending.length && !analyzing && !compact && <p className={portal.small}>Новых предложений на согласование пока нет. Опишите пожелание в чате проекта.</p>}
       {!compact && history.length > 0 && (
       <details className={styles.details}>
         <summary>
@@ -165,7 +160,7 @@ export function TaskProposals({ controller, projectId, threadId, compact = false
         <div className={styles.historyCards}>{history.map(draft => <ProposalCard key={draft.id} draft={draft} controller={controller} analyzing={false} />)}</div>
       </details>
 )}
-      {targetId && controller.snapshot.integrations.ai && !analyzing && !compact && <button className={portal.textButton} type="button" disabled={controller.busy} onClick={() => void controller.run({ type: "tasks.analyze", projectId: targetId })}>{failed ? "Повторить анализ" : "Обновить задачи из переписки"}</button>}
+      {targetId && controller.snapshot.integrations.ai && !analyzing && !compact && <button className={portal.textButton} type="button" aria-label={failed ? "Повторить анализ" : "Обновить задачи из переписки"} disabled={controller.busy} onClick={() => void controller.run({ type: "tasks.analyze", projectId: targetId })}>{failed ? "Повторить анализ" : "Обновить"}</button>}
     </section>
   );
 }

@@ -39,7 +39,6 @@ export function Login({ controller, theme, setTheme }: { controller: PortalContr
               </label>
               <button className={styles.primary} type="submit" disabled={controller.busy || controller.loading}>{controller.busy ? "Подождите…" : "Получить код"}</button>
             </form>
-            {staff && <p className={styles.small}>Доступ сотрудника выдаёт администратор.</p>}
             <button type="button" className={styles.textButton} disabled={controller.busy} onClick={() => setRole(staff ? "client" : "developer")}>{staff ? "Вход для клиентов" : "Вход для сотрудников"}</button>
           </>
         )}
@@ -57,7 +56,6 @@ export function AccountSettings({ controller }: { controller: PortalController }
     <section className={`${styles.panel} ${styles.settings}`}>
       <h2>Аккаунт</h2>
       <p>{controller.snapshot.viewer?.email}</p>
-      <p className={styles.small}>Вход по коду из письма. Подтверждение действует до завершения сессии.</p>
       <ActionsDialog
         label="Безопасность аккаунта"
         triggerLabel="Безопасность"

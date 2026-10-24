@@ -57,7 +57,6 @@ export function CheckoutPage({ presentation = "web" }: { presentation?: "web" | 
           {checkout && (
           <>
             <p className={styles.dialogTotal}>{formatRubles(checkout.totalKopecks)}</p>
-            <p className={styles.subtitle}>Согласованная стоимость проекта</p>
             {checkout.status !== "pending" ? <p className={styles.subtitle} role="status">Тестовая оплата подтверждена. Студия подготовит доступ к проекту.</p> : checkout.provider === "mock" ? <div style={{ marginTop: 25 }}><PaymentButton total={checkout.totalKopecks} busy={busy} onPay={pay} /></div> : <p className={styles.subtitle} role="status">Оплата временно недоступна. Напишите в поддержку студии.</p>}
           </>
 )}
