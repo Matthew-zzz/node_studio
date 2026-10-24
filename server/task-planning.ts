@@ -30,8 +30,8 @@ export class TaskPlanning {
     if (this.working) return;
     const job = this.store.db.prepare("SELECT id,payload,attempts FROM jobs WHERE kind='tasks.analyze' AND running=0 AND attempts<8 AND available<=? ORDER BY available LIMIT 1").get(Date.now()) as { id: string; payload: string; attempts: number } | undefined;
     if (!job) return;
-    this.working = true;
     const payload = JSON.parse(job.payload) as { projectId: string; threadId: string; messageId: string };
+    this.working = true;
     const project = this.store.get("projects", payload.projectId);
     const client = project && this.store.user(project.clientId);
     const context: ErrorContext = { operation: "tasks.analyze", source: "background", projectId: payload.projectId, projectName: project?.name ?? "", actor: client ?? null };
@@ -66,10 +66,16 @@ export class TaskPlanning {
     const last = this.messages(thread.id).filter(message => message.role === "client").at(-1);
     if (!last) return;
     const previous = this.store.get("taskAnalysis", thread.id);
-    if (previous?.projectId === project.id && previous.targetMessageId === last.id && (!force || ["queued", "analyzing", "retrying"].includes(previous.status))) return;
-    this.store.db.prepare("DELETE FROM jobs WHERE kind='tasks.analyze' AND running=0 AND json_extract(payload,'$.threadId')=?").run(thread.id);
-    this.store.put("taskAnalysis", { id: thread.id, threadId: thread.id, projectId: project.id, targetMessageId: last.id, ...(previous?.analyzedMessageId ? { analyzedMessageId: previous.analyzedMessageId } : {}), status: "queued", attempts: 0, updatedAt: now() });
-    this.store.enqueue("tasks.analyze", { projectId: project.id, threadId: thread.id, messageId: last.id }, `tasks:${thread.id}:${last.id}${force ? `:${id()}` : ""}`);
+    if (previous?.projectId === project.id && previous.targetMessageId === last.id && (!force || ["queued", "analyzing", "retrying"].includes(previous.status))) {
+      const job = this.store.db.prepare("SELECT 1 FROM jobs WHERE kind='tasks.analyze' AND json_extract(payload,'$.threadId')=? AND json_extract(payload,'$.messageId')=? AND attempts<8 LIMIT 1").get(thread.id, last.id);
+      if (previous.status === "ready" || previous.status === "failed" || job) return;
+    }
+    const enqueue = () => {
+      this.store.db.prepare("DELETE FROM jobs WHERE kind='tasks.analyze' AND running=0 AND json_extract(payload,'$.threadId')=?").run(thread.id);
+      this.store.put("taskAnalysis", { id: thread.id, threadId: thread.id, projectId: project.id, targetMessageId: last.id, ...(previous?.analyzedMessageId ? { analyzedMessageId: previous.analyzedMessageId } : {}), status: "queued", attempts: 0, updatedAt: now() });
+      this.store.enqueue("tasks.analyze", { projectId: project.id, threadId: thread.id, messageId: last.id }, `tasks:${thread.id}:${last.id}${force ? `:${id()}` : ""}`);
+    };
+    if (this.store.db.isTransaction) enqueue(); else this.store.transaction(enqueue);
   }
 
   ensure(projectId: string, force = false) {
@@ -163,10 +169,9 @@ export class TaskPlanning {
     if (target && ["rejected", "withdrawn"].includes(proposalStatus(target))) return;
     if (target && proposalStatus(target) === "pending") {
       if (change.operation !== "update") throw new PortalError(502, "ИИ неверно изменил предложение.");
-      if (target.kind === "cancel") return;
       if (target.editedAt && !this.messages(threadId).some(message => sources.some(source => source.id === message.id) && message.createdAt > target.editedAt!)) return;
-      if (normalized(target.title) === normalized(title) && target.body === body) return;
-      this.save({ ...target, ...provenance, title, body }, "ИИ по переписке");
+      if (target.kind !== "cancel" && normalized(target.title) === normalized(title) && target.body === body) return;
+      this.save({ ...target, ...provenance, title, body, ...(target.kind === "cancel" ? { kind: "update" } : {}) }, "ИИ по переписке");
       return;
     }
     const drafts = this.store.all("drafts", project.id);
@@ -185,7 +190,7 @@ export class TaskPlanning {
     if (!task || !["update", "cancel"].includes(change.operation)) throw new PortalError(502, "ИИ не связал изменение с существующей задачей.");
     if (task.kind !== "wish") throw new PortalError(502, "Изменение общего ТЗ нужно оформить отдельной задачей.");
     const kind = change.operation;
-    if (kind === "update" && task.title === title && task.body === body || kind === "cancel" && task.status === "canceled") return;
+    if (kind === "update" && task.title === title && task.body === body && task.status !== "canceled" || kind === "cancel" && task.status === "canceled") return;
     const pending = drafts.find(draft => proposalStatus(draft) === "pending" && draft.taskNumber === task!.number && repositoryKey(draft.subprojectId) === repositoryKey(task!.subprojectId));
     if (pending) {
       this.save({ ...pending, kind, title: kind === "cancel" ? task.title : title, body: kind === "cancel" ? task.body : body, ...provenance }, "ИИ по переписке");
@@ -221,6 +226,7 @@ export class TaskPlanning {
     let issue: WorkItem;
     if (!draft.kind || draft.kind === "create") {
       issue = await this.integrations.createIssue(part.repo, draft.title, draft.body, "wish", `draft:${draft.id}`);
+      if (issue.title !== draft.title || issue.body !== draft.body) issue = await this.integrations.updateIssue(part.repo, issue.number, { title: draft.title, body: draft.body });
     } else {
       const issues = await this.integrations.issues(part.repo);
       const current = issues.find(item => item.number === draft.taskNumber && item.kind === "wish");

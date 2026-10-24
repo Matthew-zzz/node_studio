@@ -329,3 +329,61 @@ test('manual wording is not overwritten by reanalysis of earlier messages',async
     assert.equal(f.pending()[0].body,'Точная ручная формулировка клиента.');assert.equal(f.pending()[0].revision,2);
   }finally{f.close();}
 });
+
+test('queue status and its durable job commit atomically',async()=>{
+  const f=setup();try{
+    const enqueue=f.store.enqueue.bind(f.store);
+    f.store.enqueue=()=>{throw new Error('Simulated queue write failure');};
+    assert.throws(()=>f.service.taskPlanning.queue(f.store.get('conversations','chat-one')));
+    assert.equal(f.store.get('taskAnalysis','chat-one'),undefined);
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='tasks.analyze'").get().n,0);
+    f.store.enqueue=enqueue;f.service.taskPlanning.queue(f.store.get('conversations','chat-one'));await f.flush();
+    assert.equal(f.pending().length,1);
+  }finally{f.close();}
+});
+
+test('opening a project repairs a queued analysis state whose job was lost',async()=>{
+  const f=setup();try{
+    const thread=f.store.get('conversations','chat-one');f.service.taskPlanning.queue(thread);
+    f.store.db.prepare("DELETE FROM jobs WHERE kind='tasks.analyze'").run();
+    f.service.taskPlanning.ensure('one');
+    assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='tasks.analyze'").get().n,1);
+    await f.flush();assert.equal(f.pending().length,1);assert.equal(f.store.get('taskAnalysis','chat-one').status,'ready');
+  }finally{f.close();}
+});
+
+test('a client can reinstate a cancelled task through a new approval without duplicating the Issue',async()=>{
+  const f=setup();try{
+    await f.send('Добавь поиск');await f.decide(f.pending()[0]);const task=f.issues.get(repo).at(-1);
+    f.integrations.planTasks=async input=>[plan(input,{operation:'cancel',taskId:`one:${task.number}`})];
+    await f.send('Отменяем поиск');await f.decide(f.pending()[0]);assert.equal(f.issues.get(repo).at(-1).status,'canceled');
+    f.integrations.planTasks=async input=>[plan(input,{operation:'update',taskId:`one:${task.number}`,title:task.title,body:task.body,reason:'Клиент хочет возобновить отменённую задачу.'})];
+    await f.send('Передумал, верни поиск');const proposal=f.pending()[0];assert.ok(proposal);assert.equal(proposal.kind,'update');
+    assert.equal(f.issues.get(repo).at(-1).status,'canceled');await f.decide(proposal);
+    assert.equal(f.issues.get(repo).length,3);assert.equal(f.issues.get(repo).at(-1).status,'new');
+  }finally{f.close();}
+});
+
+test('a pending cancellation can become an update through its own proposal ID',async()=>{
+  const f=setup();try{
+    await f.send('Добавь поиск');await f.decide(f.pending()[0]);const task=f.issues.get(repo).at(-1);
+    f.integrations.planTasks=async input=>[plan(input,{operation:'cancel',taskId:`one:${task.number}`})];
+    await f.send('Отменяем поиск');const cancellation=f.pending()[0];
+    f.integrations.planTasks=async input=>[plan(input,{operation:'update',draftId:cancellation.id,body:'Поиск по артикулу.'})];
+    await f.send('Не отменяем, меняем на поиск по артикулу');const change=f.pending()[0];
+    assert.equal(change.id,cancellation.id);assert.equal(change.kind,'update');assert.equal(change.body,'Поиск по артикулу.');
+    await f.decide(change);assert.equal(f.issues.get(repo).at(-1).body,'Поиск по артикулу.');
+  }finally{f.close();}
+});
+
+test('an edited proposal after a lost creation response updates the recovered Issue to the approved wording',async()=>{
+  const f=setup();try{
+    await f.send('Добавь поиск');const first=f.pending()[0];const create=f.integrations.createIssue;let once=true;
+    f.integrations.createIssue=async(...args)=>{const result=await create(...args);if(once){once=false;throw new Error('Lost creation response');}return result;};
+    await assert.rejects(f.decide(first));
+    await f.decide(first,'draft.edit',{title:'Поиск по артикулу',body:'Поиск только по точному артикулу.'});
+    const edited=f.pending()[0];await f.decide(edited);
+    assert.equal(f.issues.get(repo).length,3);assert.equal(f.issues.get(repo).at(-1).title,edited.title);assert.equal(f.issues.get(repo).at(-1).body,edited.body);
+    assert.equal(f.store.get('drafts',edited.id).status,'approved');
+  }finally{f.close();}
+});

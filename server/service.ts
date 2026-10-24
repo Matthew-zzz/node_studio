@@ -539,7 +539,7 @@ export class PortalService {
   /** Durable outbox: webhook handlers acknowledge only after saving work to SQLite. */
   async workJobs(): Promise<void> {
     const briefWork = this.briefs.workNext().catch(error => { this.errors.capture(error, { operation: "brief.generate", source: "background" }); });
-    const taskWork = this.taskPlanning.workNext(this.agent.settings().model, (error, context) => this.errors.capture(error, context));
+    const taskWork = this.taskPlanning.workNext(this.agent.settings().model, (error, context) => this.errors.capture(error, context)).catch(error => { this.errors.capture(error, { operation: "tasks.analyze", source: "background" }); });
     if (this.working) { await Promise.all([briefWork, taskWork]); return; }
     this.working = true;
     try {
