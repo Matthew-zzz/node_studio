@@ -1,5 +1,6 @@
 import type { ClientBrief, ProjectClientBrief } from "./client-brief";
 import type { PaymentDelivery, ResendPaymentAction } from "./payment-delivery";
+import type { TaskAnalysis, TaskProposalKind, TaskProposalStatus, TaskRevision } from "./task-planning";
 export type Role = "client" | "developer" | "admin";
 export type WorkStatus = "new" | "in_progress" | "done" | "canceled";
 
@@ -62,6 +63,7 @@ export interface WorkItem {
   readonly included: boolean;
   /** Derived by the server from payment history, including removed payment cards. */
   readonly paid?: boolean;
+  readonly scopeRevision?: number;
   readonly updatedAt: string;
 }
 
@@ -108,6 +110,19 @@ export interface TaskDraft {
   readonly body: string;
   readonly confirmed: boolean;
   readonly createdAt: string;
+  readonly kind?: TaskProposalKind;
+  readonly status?: TaskProposalStatus;
+  readonly revision?: number;
+  readonly updatedAt?: string;
+  readonly subprojectId?: string;
+  readonly taskNumber?: number;
+  readonly baseTitle?: string;
+  readonly baseBody?: string;
+  readonly reason?: string;
+  readonly sourceMessageIds?: readonly string[];
+  readonly sourceText?: string;
+  readonly editedAt?: string;
+  readonly history?: readonly TaskRevision[];
 }
 
 export interface PortalQuote {
@@ -115,6 +130,7 @@ export interface PortalQuote {
   readonly projectId: string;
   readonly taskNumber: number;
   readonly subprojectId?: string;
+  readonly scopeRevision?: number;
   readonly title: string;
   readonly baseKopecks: number;
   readonly markupKopecks: number;
@@ -153,6 +169,7 @@ export interface PortalSnapshot {
   readonly conversations: readonly Conversation[];
   readonly messages: readonly ChatMessage[];
   readonly drafts: readonly TaskDraft[];
+  readonly taskAnalysis?: readonly TaskAnalysis[];
   readonly quotes: readonly PortalQuote[];
   readonly orders: readonly ProjectOrder[];
   readonly paymentDeliveries: readonly PaymentDelivery[];
@@ -201,7 +218,10 @@ export type PortalAction =
   | { type: "project.delete"; projectId: string; confirmation: string }
   | { type: "message"; threadId: string; text: string }
   | { type: "takeover" | "leave"; threadId: string }
-  | { type: "draft.confirm"; draftId: string }
+  | { type: "draft.confirm"; draftId: string; revision?: number }
+  | { type: "draft.reject"; draftId: string; revision: number }
+  | { type: "draft.edit"; draftId: string; revision: number; title: string; body: string }
+  | { type: "tasks.analyze"; projectId: string }
   | { type: "stage.save"; projectId: string; number: number; title: string; body: string; status: WorkStatus; subprojectId?: string }
   | { type: "task.status"; projectId: string; number: number; status: WorkStatus; subprojectId?: string }
   | { type: "task.include"; projectId: string; number: number; subprojectId?: string }

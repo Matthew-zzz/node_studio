@@ -10,4 +10,5 @@ export function workItemId(projectId: string, subprojectId: string | undefined, 
   return repositoryKey(subprojectId) === PRIMARY_REPOSITORY ? `${projectId}:${number}` : `${projectId}:${subprojectId}:${number}`;
 }
 export function sameWorkSource(left: { subprojectId?: string }, right: { subprojectId?: string }) { return repositoryKey(left.subprojectId) === repositoryKey(right.subprojectId); }
+export function sameTaskScope(left: { subprojectId?: string; scopeRevision?: number }, right: { subprojectId?: string; scopeRevision?: number }) { return sameWorkSource(left, right) && (left.scopeRevision ?? 0) === (right.scopeRevision ?? 0); }
 export const PROJECT_GREETING = "Я помогу разобраться по проекту и сформулировать задачу. Если захотите поговорить с разработчиком, просто попросите — я его позову.";

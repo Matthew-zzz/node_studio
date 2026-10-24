@@ -54,7 +54,7 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
   const secondary = allowSplit ? requestedSecondary : null;
   const panes = secondary ? [primary, secondary] : [primary];
   const developer = controller.snapshot.viewer?.role === "developer";
-  const scoped = developer && subprojectId ? { ...controller, snapshot: { ...controller.snapshot, tasks: controller.snapshot.tasks.filter(item => repositoryKey(item.subprojectId) === subprojectId), stages: controller.snapshot.stages.filter(item => repositoryKey(item.subprojectId) === subprojectId), commits: controller.snapshot.commits.filter(item => repositoryKey(item.subprojectId) === subprojectId), hasMoreCommits: controller.snapshot.repositoryStatus?.[subprojectId]?.hasMore ?? false } } : controller;
+  const scoped = developer && subprojectId ? { ...controller, snapshot: { ...controller.snapshot, tasks: controller.snapshot.tasks.filter(item => repositoryKey(item.subprojectId) === subprojectId), drafts: controller.snapshot.drafts.filter(item => repositoryKey(item.subprojectId) === subprojectId), stages: controller.snapshot.stages.filter(item => repositoryKey(item.subprojectId) === subprojectId), commits: controller.snapshot.commits.filter(item => repositoryKey(item.subprojectId) === subprojectId), hasMoreCommits: controller.snapshot.repositoryStatus?.[subprojectId]?.hasMore ?? false } } : controller;
   const expandSecondary = () => {
     if (secondary) { onSelectPrimary(secondary); onCloseSecondary(); }
   };

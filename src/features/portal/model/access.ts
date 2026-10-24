@@ -3,7 +3,7 @@ import type { PortalSnapshot, Viewer } from "./types";
 /** The API applies this projection before serializing; hidden data never reaches a client. */
 export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selectedId = ""): PortalSnapshot {
   source = { ...source, projects: source.projects.filter(project => project.status !== "archived") };
-  const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], quotes: [], orders: [], paymentDeliveries: [], clientBriefs: [], projectBriefs: [], briefProjects: [], selectedProjectId: "", repositoryStatus: {} };
+  const blank = { ...source, viewer, projects: [], tasks: [], stages: [], commits: [], conversations: [], messages: [], drafts: [], taskAnalysis: [], quotes: [], orders: [], paymentDeliveries: [], clientBriefs: [], projectBriefs: [], briefProjects: [], selectedProjectId: "", repositoryStatus: {} };
   if (viewer.mustChangePassword || viewer.role === "admin") return blank;
   const projects = source.projects.filter(project => viewer.role === "developer" ? !project.developerId || project.developerId === viewer.id : project.clientId === viewer.id).map(project => {
     if (viewer.role !== "client") return project;
@@ -33,6 +33,7 @@ export function visibleSnapshot(source: PortalSnapshot, viewer: Viewer, selected
     commits: source.commits.filter(commit => commit.projectId === selectedProjectId),
     messages: source.messages.filter(message => threads.has(message.threadId)),
     drafts: source.drafts.filter(draft => ids.has(draft.projectId)),
+    taskAnalysis: (source.taskAnalysis ?? []).filter(state => ids.has(state.projectId)),
     quotes: quotes.map(quote => viewer.role === "client" ? { ...quote, baseKopecks: 0, markupKopecks: 0 } : quote),
   };
 }

@@ -13,6 +13,7 @@ import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 import { ActionsDialog } from "@/features/portal/components/focus-dialog";
 import { DeletePayment } from "@/features/portal/components/delete-confirmation";
+import { TaskProposals } from "./task-proposals";
 import { ResendPayment } from "@/features/portal/components/resend-payment";
 
 export function Chat({ thread, controller, draft, onDraftChange, showHeader = true }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void; showHeader?: boolean }) {
@@ -65,19 +66,7 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
             <div className={styles.bubble}>{message.html ? <TelegramText html={message.html} collapsible /> : message.text.length > 480 ? <LongText text={message.text} label={`${message.text.slice(0, 90)}… Читать`} /> : message.text}</div>
           </article>
         ))}
-        {drafts.map(draft => (
-          <article key={draft.id} className={styles.draft}>
-            <span className={styles.small}>Черновик задачи · проверьте перед отправкой</span>
-            <h3>{draft.title}</h3>
-            <LongText text={draft.body} label="Показать формулировку" />
-            {viewer.role === "client" ? (
-              <>
-                <button className={styles.primary} type="button" disabled={busy || snapshot.projects.find(project => project.id === draft.projectId)?.repositoryReady === false} onClick={() => void run({ type: "draft.confirm", draftId: draft.id })}>Подтвердить и отправить задачу</button>
-                {snapshot.projects.find(project => project.id === draft.projectId)?.repositoryReady === false && <p className={styles.small}>Пожелание сохранено. Отправить его можно будет, когда разработчик подготовит проект.</p>}
-              </>
-) : <p className={styles.small}>Ожидает подтверждения клиента</p>}
-          </article>
-        ))}
+        <TaskProposals controller={controller} threadId={thread.id} compact />
         {quotes.map(quote => (
           <article key={quote.id} className={styles.quote}>
             <span className={styles.small}>{quote.status === "paid" ? "Тестовая оплата подтверждена" : "Оценка разработчика"}</span>

@@ -7,11 +7,12 @@ import { Empty, shortDate, WorkBadge } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import { STATUS_LABELS } from "@/features/portal/model/types";
 import type { PortalProject, WorkItem, WorkStatus } from "@/features/portal/model/types";
-import { repositoryKey, sameWorkSource } from "@/features/portal/model/project-repositories";
+import { repositoryKey, sameTaskScope } from "@/features/portal/model/project-repositories";
 import { formatRubles, parseRubles } from "@/features/payments/model/payment";
 import styles from "./portal.module.css";
 import { ActionsDialog, DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ProjectBriefContent } from "@/features/portal/components/client-brief";
+import { TaskProposals } from "./task-proposals";
 import { DeleteProject } from "@/features/portal/components/delete-confirmation";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
@@ -100,7 +101,7 @@ function TaskControls({ task, controller, onSaved }: { task: WorkItem; controlle
   const [status, setStatus] = useState(task.status); const [price, setPrice] = useState("");
   const kopecks = parseRubles(price);
   const scope = task.subprojectId ? { subprojectId: task.subprojectId } : {};
-  const quote = controller.snapshot.quotes.find(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameWorkSource(quote, task) && quote.status !== "superseded");
+  const quote = controller.snapshot.quotes.find(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
   return (
     <div className={styles.stack}>
       <form className={styles.inlineForm} onSubmit={event => { event.preventDefault(); void controller.run({ type: "task.status", projectId: task.projectId, number: task.number, status, ...scope }).then(done => { if (done) onSaved(); }); }}>
@@ -134,9 +135,10 @@ export function Tasks({ project, controller, compact = false }: { project: Porta
       <div className={styles.panelHeader}>
         <h2>{compact ? "Сейчас в работе" : "Задачи"}</h2>
       </div>
+      <TaskProposals controller={controller} projectId={project.id} compact={compact} />
       {tasks.length === 0 && <Empty title="Задач пока нет" text="Опишите пожелание в чате. После подтверждения оно появится здесь." icon="document" />}
       {tasks.slice(0, compact ? 3 : undefined).map(task => {
-        const quote = controller.snapshot.quotes.find(quote => quote.projectId === project.id && quote.taskNumber === task.number && sameWorkSource(quote, task) && quote.status !== "superseded");
+        const quote = controller.snapshot.quotes.find(quote => quote.projectId === project.id && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
         return (
           <article key={task.id} className={styles.task}>
             <div className={styles.taskTop}>
