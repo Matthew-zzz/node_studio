@@ -5,7 +5,13 @@ import type { Project } from "@/features/projects/model/types";
 
 export function ProjectPresentation({ project, mode = "card" }: { project: Project; mode?: "card" | "cover" }) {
   if (project.slug === "autoparts" && mode === "card") {
-    return <div className="project-stage project-stage-autoparts-empty stage-card stage-adaptive" aria-hidden="true" />;
+    return (
+      <div className="project-stage project-stage-autoparts-empty stage-card stage-adaptive" aria-hidden="true">
+        <video autoPlay loop muted playsInline preload="metadata">
+          <source src="/assets/animelove-presentation.mp4" type="video/mp4" />
+        </video>
+      </div>
+    );
   }
 
   const paths = project.mobileOnly ? (project.showcase ?? [project.cover]).slice(0, mode === "cover" ? 3 : 2) : [project.cover];

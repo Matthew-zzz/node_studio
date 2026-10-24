@@ -1016,6 +1016,13 @@
   background: #f3f4f6;
 }
 
+.project-stage-autoparts-empty video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .project-featured .project-stage.stage-card {
   aspect-ratio: 1.95;
 }
