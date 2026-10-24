@@ -203,10 +203,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                 <span>{shortLabels[view] ?? PORTAL_VIEWS[view].label}</span>
               </button>
             ))}
-            <button type="button" aria-label="Ещё" aria-current={showMore ? "page" : undefined} disabled={controller.busy} onClick={openMore}>
-              <Icon name="menu" />
-              <span>Ещё</span>
-            </button>
           </nav>
         )}
 
