@@ -19,6 +19,7 @@ interface ProjectWorkspaceProps {
   primary: ProjectView;
   secondary: ProjectView | null;
   allowSplit?: boolean;
+  showProjectInfo?: boolean;
   onSelectPrimary: (view: ProjectView) => void;
   onSelectSecondary: (view: ProjectView) => void;
   onOpenSecondary: () => void;
@@ -49,20 +50,22 @@ function ProjectSection({ project, controller, view, companion, subprojectId, on
   );
 }
 
-export function ProjectWorkspace({ project, controller, primary, secondary: requestedSecondary, allowSplit = true, onSelectPrimary, onSelectSecondary, onOpenSecondary, onCloseSecondary, subprojectId, onSelectSubproject }: ProjectWorkspaceProps) {
+export function ProjectWorkspace({ project, controller, primary, secondary: requestedSecondary, allowSplit = true, showProjectInfo = true, onSelectPrimary, onSelectSecondary, onOpenSecondary, onCloseSecondary, subprojectId, onSelectSubproject }: ProjectWorkspaceProps) {
   const { busy } = controller;
   const secondary = allowSplit ? requestedSecondary : null;
   const panes = secondary ? [primary, secondary] : [primary];
   const developer = controller.snapshot.viewer?.role === "developer";
+  const hasSubprojects = developer && (project.subprojects?.length ?? 0) > 1;
   const scoped = developer && subprojectId ? { ...controller, snapshot: { ...controller.snapshot, tasks: controller.snapshot.tasks.filter(item => repositoryKey(item.subprojectId) === subprojectId), drafts: controller.snapshot.drafts.filter(item => repositoryKey(item.subprojectId) === subprojectId), stages: controller.snapshot.stages.filter(item => repositoryKey(item.subprojectId) === subprojectId), commits: controller.snapshot.commits.filter(item => repositoryKey(item.subprojectId) === subprojectId), hasMoreCommits: controller.snapshot.repositoryStatus?.[subprojectId]?.hasMore ?? false } } : controller;
   const expandSecondary = () => {
     if (secondary) { onSelectPrimary(secondary); onCloseSecondary(); }
   };
   return (
     <section className={styles.root} data-split={Boolean(secondary)} aria-label="Рабочая область проекта">
+      {(showProjectInfo || allowSplit || hasSubprojects) && (
       <div className={styles.tools}>
         <div className={management.selector}>
-          {developer && (project.subprojects?.length ?? 0) > 1 && (
+          {hasSubprojects && (
             <label>
               Подпроект
               <select aria-label="Подпроект" value={subprojectId ?? "all"} disabled={busy} onChange={event => onSelectSubproject(event.target.value === "all" ? null : event.target.value)}>
@@ -77,8 +80,9 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
             </label>
           )}
         </div>
+        {(showProjectInfo || allowSplit) && (
         <div className={styles.actions}>
-          <ProjectInfo project={project} controller={controller} />
+          {showProjectInfo && <ProjectInfo project={project} controller={controller} />}
           {allowSplit && (
           <>
             {secondary ? (
@@ -95,7 +99,9 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
           </>
           )}
         </div>
+        )}
       </div>
+      )}
       {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>
         {panes.map((view, index) => (

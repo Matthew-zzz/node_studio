@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/ui/brand";
 import { Empty, ThemeSwitch } from "@/features/portal/components/ui";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
 import { ChatActions } from "@/features/portal/components/chat-actions";
+import { ProjectInfo } from "@/features/portal/components/project-work";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import type { PortalTheme } from "@/features/portal/lib/use-portal-theme";
 import { PORTAL_VIEWS, ROLE_VIEWS } from "@/features/portal/model/navigation";
@@ -113,12 +114,15 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
           {!visibleThread && (
           <div className={styles.heading} data-project={compactProjectHeading}>
             {compactProjectHeading ? (
-              <h1 tabIndex={-1}>
-                <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
-                  <Icon name="arrow" />
-                  <span>{title}</span>
-                </button>
-              </h1>
+              <>
+                <h1 tabIndex={-1}>
+                  <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
+                    <Icon name="arrow" />
+                    <span>{title}</span>
+                  </button>
+                </h1>
+                {project && <ProjectInfo key={project.id} project={project} controller={controller} />}
+              </>
             ) : (
               <>
                 {(showMore || hasProjects && !showProjects) && !viewer.mustChangePassword && (
