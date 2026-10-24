@@ -6,8 +6,8 @@ const scenes = [
     eyebrow: "Магазин и каталог",
     title: "Нужная деталь находится быстрее.",
     description: "Каталог, полки магазина и рабочее место продавца объединены в одну понятную историю.",
-    image: "/assets/motorika/store-interior.webp",
-    alt: "Светлый современный автомагазин с каталогом запчастей и стойкой обслуживания",
+    image: null,
+    alt: "",
     className: "motorika-scene-wide",
   },
   {
@@ -43,7 +43,11 @@ export function AutopartsBrandStory() {
       {scenes.map((scene) => (
         <article className={`motorika-scene ${scene.className} reveal`} key={scene.number}>
           <div className="motorika-scene-image">
-            <Image src={scene.image} alt={scene.alt} width={1672} height={941} sizes="(max-width: 760px) 100vw, 1200px" />
+            {scene.image ? (
+              <Image src={scene.image} alt={scene.alt} width={1672} height={941} sizes="(max-width: 760px) 100vw, 1200px" />
+            ) : (
+              <div className="motorika-empty-window" aria-hidden="true" />
+            )}
           </div>
           <div className="motorika-scene-copy">
             <span>

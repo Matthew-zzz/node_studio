@@ -254,6 +254,12 @@
   object-fit: cover;
 }
 
+.motorika-empty-window {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #f3f4f6;
+}
+
 .motorika-scene-copy h2 {
   max-width: 13ch;
   margin: 0 0 16px;
