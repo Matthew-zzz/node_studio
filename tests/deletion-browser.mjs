@@ -53,7 +53,7 @@ try {
     }
     async function project(id, section = "Обзор проекта") {
       if (!miniapp) return openProject(page, width, id, section);
-      await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       await page.getByRole("button", { name: "Мои проекты", exact: true }).click();
       await page.getByRole("button", { name: `Открыть проект ${id}`, exact: true }).click();
       if (section !== "Обзор проекта") await navigate(section);

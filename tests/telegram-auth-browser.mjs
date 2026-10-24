@@ -43,7 +43,7 @@ try {
     await page.getByRole("button", { name: "Получить код", exact: true }).click(); await page.getByLabel("Код из письма", { exact: true }).waitFor();
     await completeEmailCode(page, origin, fixture.users.developer.email); await role("developer");
 
-    await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     await page.screenshot({ path: resolve(screenshots, "320-staff-switch-menu.png") });
     await page.getByRole("button", { name: "Добавить профиль: Администратор", exact: true }).click();
     const add = page.getByRole("dialog", { name: "Добавить профиль", exact: true });
@@ -54,9 +54,9 @@ try {
     await completeEmailCode(page, origin, fixture.users.admin.email); await role("admin");
     const staffCodes = fixture.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length;
     for (const [expected, label] of [["developer", "Разработчик"], ["admin", "Администратор"], ["developer", "Разработчик"]]) {
-      await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       await page.getByRole("button", { name: `Переключиться: ${label}, ${expected}`, exact: true }).click(); await role(expected);
-      await page.getByRole("dialog", { name: "Меню приложения", exact: true }).waitFor({ state: "hidden" });
+      await page.getByRole("region", { name: "Ещё", exact: true }).waitFor({ state: "hidden" });
     }
     assert.equal(fixture.sent.filter(mail => mail.subject === "Код для входа — Node Studio").length, staffCodes);
 
@@ -80,7 +80,7 @@ try {
     await page.waitForTimeout(200); assert.equal(await page.getByTestId("portal").getAttribute("data-role"), "client", "a late snapshot for A cannot replace B's account");
     await page.unroute("**/api/portal/snapshot?**");
 
-    await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     assert.equal(await page.getByRole("button", { name: /Переключиться: (Разработчик|Администратор)/ }).count(), 0);
     await page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click(); await page.getByLabel("Почта", { exact: true }).waitFor();
     await switchTo(a); await role("developer"); await page.reload(); await role("developer");

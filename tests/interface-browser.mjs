@@ -29,7 +29,7 @@ try{
       if(!mini)return login(page,origin,role);
       await page.goto(origin+'/miniapp/');
       await page.waitForFunction(()=>document.querySelector('[data-testid="portal"]')||document.querySelector('input[type="email"]'));
-      if(await page.getByTestId('portal').count()){await page.getByRole('button',{name:'Открыть меню приложения',exact:true}).click();await page.getByRole('button',{name:'Выйти из аккаунтов',exact:true}).click();}
+      if(await page.getByTestId('portal').count()){await page.getByRole('button',{name:'Открыть раздел Ещё',exact:true}).click();await page.getByRole('button',{name:'Выйти из аккаунтов',exact:true}).click();}
       await page.getByLabel('Почта',{exact:true}).waitFor();await selectLoginRole(page,role);
       await page.getByLabel('Почта',{exact:true}).fill(`${role}@example.test`);await page.getByRole('button',{name:'Получить код',exact:true}).click();await page.getByLabel('Код из письма',{exact:true}).waitFor();await completeEmailCode(page,origin,`${role}@example.test`);
       await page.getByTestId('portal').waitFor();
@@ -40,7 +40,7 @@ try{
     }
     async function openOne(){
       if(!mini)return openProject(page,width,'one');
-      if(!await page.getByRole('button',{name:'Открыть проект one',exact:true}).count()){await page.getByRole('button',{name:'Открыть меню приложения',exact:true}).click();await page.getByRole('button',{name:'Мои проекты',exact:true}).click();}
+      if(!await page.getByRole('button',{name:'Открыть проект one',exact:true}).count()){await page.getByRole('button',{name:'Открыть раздел Ещё',exact:true}).click();await page.getByRole('button',{name:'Мои проекты',exact:true}).click();}
       await page.getByRole('button',{name:'Открыть проект one',exact:true}).click();
     }
     async function fits(){assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));assert.ok(await page.evaluate(()=>[...document.querySelectorAll('main,dialog[open]')].every(el=>el.scrollWidth<=el.clientWidth+1)));}
@@ -70,7 +70,7 @@ try{
       await manager.getByRole('link',{name:'Matthew-zzz/interface-backend',exact:true}).waitFor();await fits();await page.screenshot({path:resolve(screenshots,`${presentation}-${width}-developer-overview.png`),fullPage:true});
       await section('Задачи');await page.getByRole('button',{name:'Действия задачи: Поиск по артикулу',exact:true}).click();const edit=page.getByRole('dialog',{name:'Управление задачей',exact:true});await edit.getByLabel('Статус',{exact:true}).waitFor();await page.keyboard.press('Escape');
       await section('Чат');const chat=page.getByRole('region',{name:'Чат проекта',exact:true});const connect=chat.getByRole('button',{name:'Подключиться к диалогу',exact:true});const log=chat.getByRole('log',{name:'Сообщения',exact:true});assert.ok((await connect.boundingBox()).y<(await log.boundingBox()).y);await connect.click();await page.waitForFunction(()=>document.querySelector('textarea[aria-label="Сообщение"]')?.disabled===false);assert.ok(await chat.getByLabel('Сообщение',{exact:true}).isEnabled());
-      if(mini){await page.getByRole('button',{name:'Открыть меню приложения',exact:true}).click();await page.getByRole('button',{name:'Проекты и оплаты',exact:true}).click();}
+      if(mini){await page.getByRole('button',{name:'Открыть раздел Ещё',exact:true}).click();await page.getByRole('button',{name:'Проекты и оплаты',exact:true}).click();}
       else{if(width<=650)await page.getByRole('button',{name:'Открыть меню кабинета',exact:true}).click();await page.getByRole('navigation',{name:'Разделы кабинета',exact:true}).getByRole('button',{name:'Проекты и оплаты',exact:true}).click();}
       const hub=page.getByRole('region',{name:'Проекты клиентов',exact:true});assert.equal(await hub.getByRole('heading',{name:'Оплата каталога',exact:true}).count(),0);
       await hub.getByRole('group',{name:'Проекты и оплаты',exact:true}).getByRole('button',{name:'Оплаты',exact:true}).click();await hub.getByRole('heading',{name:'Оплата каталога',exact:true}).waitFor();await fits();await page.screenshot({path:resolve(screenshots,`${presentation}-${width}-payments.png`),fullPage:true});

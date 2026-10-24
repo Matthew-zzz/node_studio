@@ -24,8 +24,8 @@ try {
       if (mini) {
         const navigation = page.getByRole("navigation", { name: "Навигация приложения", exact: true }); const label = name === "Проекты и оплаты" ? "Создать" : name;
         if (!await navigation.getByRole("button", { name: label, exact: true }).count()) {
-          await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
-          await page.getByRole("dialog", { name: "Меню приложения", exact: true }).getByRole("button", { name, exact: true }).click();
+          await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
+          await page.getByRole("region", { name: "Ещё", exact: true }).getByRole("button", { name, exact: true }).click();
         } else await navigation.getByRole("button", { name: label, exact: true }).click();
       }
       else {

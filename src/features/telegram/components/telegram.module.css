@@ -47,16 +47,18 @@
 .tabs button span { font-size: var(--type-caption); font-weight: var(--weight-medium); line-height: 1.3; white-space: nowrap; }
 .tabs button svg { width: 20px; height: 20px; flex-shrink: 0; }
 .tabs button[aria-current="page"] { color: var(--p-accent); background: var(--p-soft); }
-.sheet { inset: auto 0 0; width: min(560px, 100%); max-width: 100%; max-height: calc(var(--node-viewport-height, 100dvh) - var(--miniapp-top) - 12px); margin: 0 auto; border-radius: 22px 22px 0 0; padding: 20px 20px calc(20px + var(--miniapp-bottom)); overscroll-behavior: contain; }
-.sheetTitle { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.sheetTitle h2 { font-size: 18px; margin: 0; }
 .identity { color: var(--p-muted); font-size: var(--type-label); margin: 8px 0 18px; }
 .menuLinks { display: grid; gap: 4px; padding-block: 8px; }
 .menuLinks > :is(button, a) { display: flex; align-items: center; gap: 10px; min-height: 46px; min-width: 0; padding: 11px; border: 0; border-radius: 10px; background: transparent; color: var(--p-text); text-align: left; font-size: var(--type-control); }
 .menuLinks > :is(button, a):hover { background: var(--p-inset); }
 .menuLinks svg { width: 18px; height: 18px; color: var(--p-muted); flex-shrink: 0; }
-.appearance { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 18px 0; border-top: 1px solid var(--p-line); }
+.appearance { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .appearance > span { font-size: var(--type-label); color: var(--p-muted); }
+.content { display: contents; }
+.content[data-chat="true"] { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.content[hidden] { display: none; }
+.moreScreen { display: grid; gap: 16px; min-width: 0; }
+.moreScreen > section { min-width: 0; }
 .main[data-chat="true"] { display: flex; flex-direction: column; }
 .main[data-chat="true"] > .heading { flex: none; margin-bottom: 12px; }
 .main[data-chat="true"] > .heading h1 { font-size: 21px; }

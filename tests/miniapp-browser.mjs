@@ -43,7 +43,7 @@ async function signIn(page, origin, role) {
   await page.goto(`${origin}/miniapp/`);
   await page.waitForFunction(() => document.querySelector('[data-testid="portal"]') || document.querySelector('input[type="email"]'));
   if (await page.getByTestId("portal").count()) {
-    await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     await page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click();
   }
   await selectLoginRole(page, role);
@@ -111,7 +111,7 @@ try {
       await tab(page, "История"); await page.getByText("init: первоначальная версия проекта", { exact: true }).waitFor();
       await page.evaluate(() => window.__telegram.back());
       await page.getByRole("heading", { name: "Мои проекты", exact: true }).waitFor();
-      await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       await page.getByRole("button", { name: "Включить светлую тему", exact: true }).click();
       await page.evaluate(() => { window.Telegram.WebApp.colorScheme = "dark"; window.__telegram.emit("themeChanged"); });
       assert.equal(await page.getByTestId("portal").getAttribute("data-theme"), "light");
@@ -228,7 +228,7 @@ try {
       await page.screenshot({ path: resolve(screenshots, `${width}-admin.png`) });
       await tab(page, "Знания"); await fits(page, width);
       await tab(page, "Ошибки"); await fits(page, width);
-      await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       for (const label of ["Промпты", "Проверка агента", "История настроек"]) assert.ok(await page.getByRole("button", { name: label, exact: true }).isVisible());
       await page.getByRole("link", { name: "Поддержка студии", exact: true }).click();
       assert.ok((await page.evaluate(() => window.__telegram.links)).includes("https://t.me/node_studio_bot"));

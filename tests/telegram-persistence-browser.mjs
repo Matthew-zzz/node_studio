@@ -56,7 +56,7 @@ try {
   try {
     current = await open(101); await login(current.page, "developer");
     let credential = JSON.parse(vault.get(aKey)); assert.match(credential.token, /^[a-f0-9]{64}$/); assert.ok(credential.expiresAt > Date.now() + 29 * 86_400_000);
-    await current.page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await current.page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     await current.page.getByRole("button", { name: "Добавить профиль: Администратор", exact: true }).click();
     await current.page.getByLabel("Почта профиля", { exact: true }).fill(fixture.users.admin.email);
     await current.page.getByRole("button", { name: "Получить код и добавить", exact: true }).click(); await current.page.getByLabel("Код из письма", { exact: true }).waitFor();
@@ -67,7 +67,7 @@ try {
     assert.ok((await current.context.cookies()).some(cookie => cookie.name.startsWith("node_miniapp_session_v2_")), "native restoration repairs the HttpOnly cookie");
     const publicStorage = await current.page.evaluate(() => JSON.stringify({ ...localStorage })); assert.ok(!publicStorage.includes(credential.token));
     await current.context.clearCookies(); await current.page.evaluate(() => window.dispatchEvent(new Event("focus"))); await role(current.page, "admin");
-    await current.page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await current.page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     await current.page.getByRole("button", { name: "Переключиться: Разработчик, developer", exact: true }).click(); await role(current.page, "developer");
     assert.equal(codes(), before); assert.equal(JSON.parse(vault.get(aKey)).expiresAt, expiry); await current.context.close();
     current = await open(101); await role(current.page, "developer"); const aCookies = await current.context.cookies(); await current.context.close();
@@ -78,12 +78,12 @@ try {
 
     current = await open(101, { storageError: true, cookies: aCookies }); await role(current.page, "developer"); await current.context.close();
     current = await open(101); await role(current.page, "developer");
-    await current.page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+    await current.page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
     await current.page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click(); await current.page.getByLabel("Почта", { exact: true }).waitFor();
     assert.equal(vault.has(aKey), false); await current.context.close(); current = await open(101); await current.page.getByLabel("Почта", { exact: true }).waitFor(); await current.context.close();
     current = await open(202); await role(current.page, "client");
     await current.page.getByRole("button", { name: "Открыть проект one", exact: true }).click();
-    await current.page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click(); await current.page.getByRole("button", { name: "Настройки", exact: true }).click();
+    await current.page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click(); await current.page.getByRole("button", { name: "Настройки", exact: true }).click();
     await chooseAction(current.page, "Безопасность аккаунта", "Завершить все сеансы");
     await current.page.getByRole("button", { name: "Подтвердить завершение сеансов", exact: true }).click(); await current.page.getByLabel("Почта", { exact: true }).waitFor();
     assert.equal(vault.has(bKey), false); await current.context.close(); current = await open(202); await current.page.getByLabel("Почта", { exact: true }).waitFor();

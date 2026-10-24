@@ -28,13 +28,13 @@ try {
       await completeEmailCode(page, origin, email); await page.getByTestId("portal").waitFor(); fixture.store.db.exec("DELETE FROM auth_limits");
     }
     async function signOut() {
-      if (mini) { await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click(); await page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click(); }
+      if (mini) { await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click(); await page.getByRole("button", { name: "Выйти из аккаунтов", exact: true }).click(); }
       else await page.getByRole("button", { name: "Выйти", exact: true }).click();
       await page.getByLabel("Почта", { exact: true }).waitFor();
     }
     try {
       await signIn("admin");
-      if (mini) await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      if (mini) await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       else if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
       await page.getByRole("button", { name: "Разработчики", exact: true }).click();
       const staff = page.getByRole("region", { name: "Аккаунты разработчиков", exact: true });
@@ -50,7 +50,7 @@ try {
       await fits(); await page.screenshot({ path: resolve(screenshots, `${presentation}-${width}-admin.png`), fullPage: true });
       await signOut(); await signIn("developer", "new-developer@example.test"); assert.equal(await page.getByTestId("portal").getAttribute("data-role"), "developer");
       await signOut(); await signIn("client");
-      if (mini) await page.getByRole("button", { name: "Открыть меню приложения", exact: true }).click();
+      if (mini) await page.getByRole("button", { name: "Открыть раздел Ещё", exact: true }).click();
       else if (width <= 650) await page.getByRole("button", { name: "Открыть профили", exact: true }).click();
       assert.equal(await page.getByRole("button", { name: /Добавить профиль: (Разработчик|Администратор)/ }).count(), 0);
       assert.equal(await page.getByRole("button", { name: "Разработчики", exact: true }).count(), 0);
