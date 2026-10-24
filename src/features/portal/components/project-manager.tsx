@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { PortalController } from "@/features/portal/lib/use-portal";
-import type { PortalProject } from "@/features/portal/model/types";
+import type { PortalProject, ProjectRepository } from "@/features/portal/model/types";
 import { projectRepositories } from "@/features/portal/model/project-repositories";
 import styles from "./portal.module.css";
 import management from "./project-manager.module.css";
@@ -77,6 +77,7 @@ const repositoryMessages = {
 
 function RepositorySetup({ project, controller }: { project: PortalProject; controller: PortalController }) {
   const [repositoryName, setRepositoryName] = useState(project.repositoryName ?? "");
+  const [name, setName] = useState(project.subprojects?.find(part => part.id === "main")?.name ?? "Основной");
   const [repositoryMode, setRepositoryMode] = useState<RepositoryMode>("new"); const [repo, setRepo] = useState("");
   const creation = project.repositoryCreation;
   const pending = creation && creation.status !== "failed";
@@ -90,7 +91,13 @@ function RepositorySetup({ project, controller }: { project: PortalProject; cont
       </div>
       {creation && project.repositoryName && <p className={styles.small}>{project.repositoryName}</p>}
       {!pending && (
-      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run(!creation && repositoryMode === "existing" ? { type: "project.repository.attach", projectId: project.id, repo: repo.trim() } : { type: "project.repository.create", projectId: project.id, ...(!creation ? { repositoryName: repositoryName.trim() } : {}) }); }}>
+      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run(!creation && repositoryMode === "existing" ? { type: "project.repository.attach", projectId: project.id, repo: repo.trim(), name: name.trim() } : { type: "project.repository.create", projectId: project.id, ...(!creation ? { repositoryName: repositoryName.trim(), name: name.trim() } : {}) }); }}>
+        {!creation && (
+        <label>
+          Название подпроекта
+          <input aria-label="Название подпроекта" required maxLength={80} value={name} onChange={event => setName(event.target.value)} disabled={controller.busy} />
+        </label>
+)}
         {!creation && <RepositoryChoice mode={repositoryMode} onModeChange={setRepositoryMode} name={repositoryName} onNameChange={setRepositoryName} repo={repo} onRepoChange={setRepo} disabled={controller.busy} />}
         <div className={styles.formActions}><button type="submit" className={styles.primary} disabled={controller.busy}>{creation ? "Повторить создание" : repositoryMode === "existing" ? "Подключить репозиторий" : "Создать GitHub-репозиторий"}</button></div>
       </form>
@@ -99,36 +106,78 @@ function RepositorySetup({ project, controller }: { project: PortalProject; cont
   );
 }
 
-export function RepositoryManager({ project, controller, embedded = false, onSaved }: { project: PortalProject; controller: PortalController; embedded?: boolean; onSaved?: () => void }) {
+function RenameRepository({ project, part, controller }: { project: PortalProject; part: ProjectRepository; controller: PortalController }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(part.name);
+  return (
+    <DetailDialog label={`Изменить название подпроекта ${part.name}`} open={open} onOpenChange={value => { if (value) setName(part.name); setOpen(value); }} busy={controller.busy}>
+      <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run({ type: "project.repository.rename", projectId: project.id, subprojectId: part.id, name: name.trim() }).then(saved => { if (saved) setOpen(false); }); }}>
+        <label>
+          Название подпроекта
+          <input aria-label="Новое название подпроекта" value={name} onChange={event => setName(event.target.value)} required maxLength={80} disabled={controller.busy} />
+        </label>
+        <button type="submit" className={styles.primary} disabled={controller.busy}>Сохранить название</button>
+      </form>
+    </DetailDialog>
+  );
+}
+
+export function RepositoryManager({ project, controller }: { project: PortalProject; controller: PortalController }) {
   const [name, setName] = useState(""); const [repo, setRepo] = useState("");
+  const [mode, setMode] = useState<RepositoryMode>("existing");
+  const [repositoryName, setRepositoryName] = useState("");
+  const [sourceId, setSourceId] = useState(() => crypto.randomUUID());
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await controller.run({ type: "project.repository.add", projectId: project.id, name, repo })) { setName(""); setRepo(""); onSaved?.(); }
+    const saved = await controller.run(mode === "existing"
+      ? { type: "project.repository.add", projectId: project.id, name: name.trim(), repo: repo.trim() }
+      : { type: "project.repository.create", projectId: project.id, subprojectId: sourceId, name: name.trim(), repositoryName: repositoryName.trim() });
+    if (saved) { setName(""); setRepo(""); setRepositoryName(""); setSourceId(crypto.randomUUID()); }
   }
   if (project.developerId !== controller.snapshot.viewer?.id) return null;
-  if (!projectRepositories(project).length) return <RepositorySetup project={project} controller={controller} />;
+  if (!project.repo) return <RepositorySetup project={project} controller={controller} />;
+  const parts = project.subprojects ?? projectRepositories(project);
   const content = (
     <div className={styles.stack}>
-      {projectRepositories(project).map(part => (
-        <div className={management.source} key={part.id}>
-          <strong>{part.name}</strong>
-          <a href={`https://github.com/${part.repo}`} target="_blank" rel="noreferrer">{part.repo}</a>
-        </div>
-        ))}
-      {(project.subprojects?.length ?? 1) < 8 && (
-      <form className={styles.form} onSubmit={event => void submit(event)} aria-label="Добавление подпроекта">
-        <label>
-          Название нового подпроекта
-          <input aria-label="Название нового подпроекта" required maxLength={80} value={name} onChange={event => setName(event.target.value)} />
-        </label>
-        <label>
-          Репозиторий GitHub
-          <input aria-label="Репозиторий нового подпроекта" required maxLength={200} placeholder="owner/repository" value={repo} onChange={event => setRepo(event.target.value)} />
-        </label>
-        <button className={styles.secondary} type="submit" disabled={controller.busy}>Подключить подпроект</button>
-      </form>
-        )}
+      <p className={styles.small}>Каждый репозиторий — отдельный подпроект со своим названием, задачами и историей. Можно подключить до восьми репозиториев.</p>
+      {parts.map(part => (
+        <fieldset className={management.repository} key={part.id}>
+          <legend>{part.name}</legend>
+          <div className={management.source}>
+            {part.repo ? <a href={`https://github.com/${part.repo}`} target="_blank" rel="noreferrer">{part.repo}</a> : (
+              <>
+                <p className={styles.small}>{part.repositoryName}</p>
+                <div role="status" aria-live="polite">
+                  <h3>{repositoryMessages[part.repositoryCreation?.status ?? "queued"].title}</h3>
+                  <LongText text={repositoryMessages[part.repositoryCreation?.status ?? "queued"].description} label="Подробнее о создании подпроекта" />
+                </div>
+                {part.repositoryCreation?.nextAttemptAt && <p className={styles.small}>{`Следующая попытка после ${new Date(part.repositoryCreation.nextAttemptAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`}</p>}
+                {part.repositoryCreation?.status === "failed" && <button type="button" disabled={controller.busy} className={styles.secondary} onClick={() => void controller.run({ type: "project.repository.create", projectId: project.id, subprojectId: part.id })}>Повторить создание подпроекта</button>}
+              </>
+)}
+          </div>
+          <RenameRepository project={project} part={part} controller={controller} />
+        </fieldset>
+      ))}
+      {parts.length < 8 && (
+        <form className={styles.form} onSubmit={event => void submit(event)} aria-label="Добавление подпроекта">
+          <fieldset className={management.repository} disabled={controller.busy}>
+            <legend>Новый подпроект</legend>
+            <label>
+              Название нового подпроекта
+              <input aria-label="Название нового подпроекта" required maxLength={80} value={name} onChange={event => setName(event.target.value)} placeholder="Например, Backend" />
+            </label>
+            <RepositoryChoice mode={mode} onModeChange={setMode} name={repositoryName} onNameChange={setRepositoryName} repo={repo} onRepoChange={setRepo} disabled={controller.busy} modeLabel="Способ подключения подпроекта" existingLabel="Репозиторий нового подпроекта" />
+            <button className={styles.primary} type="submit" disabled={controller.busy}>{mode === "existing" ? "Подключить подпроект" : "Создать репозиторий подпроекта"}</button>
+          </fieldset>
+        </form>
+      )}
     </div>
   );
-  return embedded ? content : <DetailDialog label="Управление подпроектами">{content}</DetailDialog>;
+  return (
+    <section className={styles.panel} aria-label="Подготовить разработку">
+      <h2>Подготовить разработку</h2>
+      {content}
+    </section>
+  );
 }

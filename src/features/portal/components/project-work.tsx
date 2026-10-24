@@ -12,7 +12,6 @@ import { formatRubles, parseRubles } from "@/features/payments/model/payment";
 import styles from "./portal.module.css";
 import { ActionsDialog, DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ProjectBriefContent } from "@/features/portal/components/client-brief";
-import { RepositoryManager } from "@/features/portal/components/project-manager";
 import { DeleteProject } from "@/features/portal/components/delete-confirmation";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
@@ -35,7 +34,7 @@ function StageEditor({ project, stage, controller, sourceId, embedded = false, o
       {!stage && (project.subprojects?.length ?? 0) > 1 && (
       <label>
         Подпроект
-        <select aria-label="Подпроект этапа" value={subprojectId} onChange={event => setSubprojectId(event.target.value)}>{project.subprojects?.map(part => <option key={part.id} value={part.id}>{part.name}</option>)}</select>
+        <select aria-label="Подпроект этапа" value={subprojectId} onChange={event => setSubprojectId(event.target.value)}>{project.subprojects?.filter(part => part.repo).map(part => <option key={part.id} value={part.id}>{part.name}</option>)}</select>
       </label>
         )}
       <label>
@@ -182,7 +181,6 @@ export function ProjectInfo({ project, controller }: { project: PortalProject; c
       actions={[
       { label: "Открыть описание проекта", icon: "document", content: <p>{project.brief || project.description || "Описание пока не добавлено."}</p> },
       { label: "Итоговый бриф", icon: "document", content: <ProjectBriefContent brief={controller.snapshot.projectBriefs.find(brief => brief.projectId === project.id)} /> },
-      ...(controller.snapshot.viewer?.role === "developer" && project.developerId === controller.snapshot.viewer.id && Boolean(project.repo) ? [{ label: "Управление подпроектами", icon: "code" as const, content: (close: () => void) => <RepositoryManager project={project} controller={controller} embedded onSaved={close} /> }] : []),
       ...(controller.snapshot.viewer?.role === "developer" && (!project.developerId || project.developerId === controller.snapshot.viewer.id) ? [{ label: "Удалить проект", icon: "trash" as const, danger: true, content: (close: () => void) => <DeleteProject project={project} controller={controller} onClose={close} /> }] : []),
     ]}
     />

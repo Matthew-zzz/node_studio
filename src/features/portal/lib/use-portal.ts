@@ -15,6 +15,7 @@ const successMessages: Partial<Record<PortalAction["type"], string>> = {
   "project.create": "Клиентский проект создан.", "project.repository.add": "Подпроект подключён.",
   "project.accept": "Проект добавлен в работу.",
   "project.repository.attach": "Репозиторий подключён к проекту.",
+  "project.repository.rename": "Название подпроекта сохранено.",
   "project.delete": "Проект удалён из кабинетов.",
   "order.delete": "Оплата удалена. Ссылка больше недоступна.", "quote.delete": "Оплата удалена.",
   takeover: "Вы подключились к диалогу.", leave: "Диалог снова передан ИИ-помощнику.",

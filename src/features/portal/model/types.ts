@@ -34,7 +34,14 @@ export interface PortalProject {
   readonly createdAt: string;
 }
 
-export interface ProjectRepository { readonly id: string; readonly name: string; readonly repo: string; readonly createdAt: string }
+export interface ProjectRepository {
+  readonly id: string;
+  readonly name: string;
+  readonly repo: string;
+  readonly createdAt: string;
+  readonly repositoryName?: string;
+  readonly repositoryCreation?: RepositoryCreation;
+}
 
 export interface RepositoryCreation {
   readonly status: "queued" | "creating" | "retrying" | "failed";
@@ -186,9 +193,10 @@ export type PortalAction =
   | { type: "brief.link"; threadId: string; projectId: string }
   | { type: "project.request"; requestId: string; name: string; clientEmail: string; description: string; brief: string; repositoryName?: string; repository?: string }
   | { type: "project.create"; requestId: string; name: string; clientEmail: string; description: string; repositories: { name: string; repo: string }[] }
-  | { type: "project.repository.create"; projectId: string; repositoryName?: string }
-  | { type: "project.repository.attach"; projectId: string; repo: string }
+  | { type: "project.repository.create"; projectId: string; repositoryName?: string; subprojectId?: string; name?: string }
+  | { type: "project.repository.attach"; projectId: string; repo: string; name?: string }
   | { type: "project.repository.add"; projectId: string; name: string; repo: string }
+  | { type: "project.repository.rename"; projectId: string; subprojectId: string; name: string }
   | { type: "project.accept"; projectId: string }
   | { type: "project.delete"; projectId: string; confirmation: string }
   | { type: "message"; threadId: string; text: string }

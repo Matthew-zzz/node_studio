@@ -67,7 +67,12 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
               Область
               <select aria-label="Подпроект" value={subprojectId ?? "all"} disabled={busy} onChange={event => onSelectSubproject(event.target.value === "all" ? null : event.target.value)}>
                 <option value="all">Весь проект</option>
-                {project.subprojects?.map(part => <option key={part.id} value={part.id}>{part.name}</option>)}
+                {project.subprojects?.map(part => (
+                  <option key={part.id} value={part.id} disabled={!part.repo}>
+                    {part.name}
+                    {!part.repo ? " · подготовка" : ""}
+                  </option>
+))}
               </select>
             </label>
           )}
@@ -88,7 +93,7 @@ export function ProjectWorkspace({ project, controller, primary, secondary: requ
           </div>
         )}
       </div>
-      {developer && primary === "overview" && !project.repo && <RepositoryManager key={project.id} project={project} controller={controller} />}
+      {developer && primary === "overview" && <RepositoryManager key={project.id} project={project} controller={controller} />}
       <div className={styles.grid}>
         {panes.map((view, index) => (
           <section key={view} className={styles.pane} aria-label={secondary ? index === 0 ? "Левая область проекта" : "Правая область проекта" : "Основная область проекта"}>

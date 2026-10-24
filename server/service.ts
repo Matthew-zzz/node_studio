@@ -168,7 +168,10 @@ export class PortalService {
       ...EMPTY_SNAPSHOT, viewer, profiles: this.auth.profiles(session), csrf: session.csrf, projects: projects.map(project => {
         const current = this.store.get("projects", project.id)!;
         const creation = this.repositories.state(current);
-        return creation ? { ...current, repositoryCreation: creation } : current;
+        return { ...current, ...(creation ? { repositoryCreation: creation } : {}), ...(current.subprojects ? { subprojects: current.subprojects.map(part => {
+          const state = this.repositories.state(current, part.id);
+          return state ? { ...part, repositoryCreation: state } : part;
+        }) } : {}) };
       }),
       tasks: this.store.all("tasks").map(task => ({ ...task, paid: quotes.some(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameWorkSource(quote, task) && quote.status === "paid") })), stages: this.store.all("stages"), commits: this.store.all("commits").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       conversations: this.store.all("conversations"), messages: this.store.all("messages").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -251,7 +254,7 @@ export class PortalService {
     if (type === "project.repository.create") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
-      this.repositories.request(viewer, project.id, action.repositoryName); return;
+      this.repositories.request(viewer, project.id, action.repositoryName, action.subprojectId, action.name); return;
     }
     if (type === "project.repository.add") {
       this.role(viewer, ["developer"]);
@@ -262,8 +265,13 @@ export class PortalService {
     if (type === "project.repository.attach") {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
-      await this.exclusive(`write:${project.id}`, () => this.projects.attach(viewer, project.id, action.repo));
+      await this.exclusive(`write:${project.id}`, () => this.projects.attach(viewer, project.id, action.repo, action.name));
       this.synced.delete(project.id); return;
+    }
+    if (type === "project.repository.rename") {
+      this.role(viewer, ["developer"]);
+      const project = this.project(viewer, text(action.projectId, 100));
+      this.projects.rename(viewer, project.id, action.subprojectId, action.name); return;
     }
     if (type === "project.accept") {
       this.role(viewer, ["developer"]);
@@ -542,7 +550,7 @@ export class PortalService {
             const project = this.store.get("projects", payload.projectId!); if (project) await this.sync(project, 1, true, payload.subprojectId);
           }
           if (job.kind === "github.repository.create") {
-            await this.exclusive(`write:${payload.projectId!}`, () => this.repositories.run(payload.projectId!, payload.developerId!, job.attempts + 1));
+            await this.exclusive(`write:${payload.projectId!}`, () => this.repositories.run(payload.projectId!, payload.developerId!, job.attempts + 1, payload.subprojectId));
             this.synced.delete(payload.projectId!);
           }
           if (job.kind === "provision") {
@@ -560,7 +568,7 @@ export class PortalService {
           const nextAttemptAt = Date.now() + Math.min(3_600_000, 5000 * 2 ** job.attempts);
           this.store.transaction(() => {
             this.store.db.prepare("UPDATE jobs SET running=0,attempts=attempts+1,available=? WHERE id=?").run(nextAttemptAt, job.id);
-            if (job.kind === "github.repository.create") this.repositories.failed(payload.projectId!, job.attempts + 1, nextAttemptAt);
+            if (job.kind === "github.repository.create") this.repositories.failed(payload.projectId!, job.attempts + 1, nextAttemptAt, payload.subprojectId);
           });
           if (job.attempts >= 7 && ["provision", "mail"].includes(job.kind)) {
             const order = this.store.get("orders", payload.orderId!);
@@ -585,7 +593,8 @@ export class PortalService {
     const order = payload.orderId ? this.store.get("orders", payload.orderId) : undefined;
     const project = this.store.get("projects", payload.projectId ?? thread?.projectId ?? order?.projectId ?? "");
     const actor = (payload._actorId ? this.store.user(payload._actorId) : undefined) ?? (project ? this.store.user(project.clientId) : undefined) ?? (order ? this.store.findUser(order.email, "client") : undefined);
-    return { actor: actor ?? (thread?.kind === "telegram" ? { id: `telegram:${thread.telegramId}`, name: thread.name, email: thread.email, role: "telegram" } : null), projectId: project?.id ?? "", projectName: project?.name ?? order?.projectName ?? "", requestId: payload._requestId ?? id(), method: "JOB", operation: job.kind, path: "", source: "background", report: (error, extra) => this.errors.capture(error, extra) };
+    const part = project?.subprojects?.find(part => part.id === (payload.subprojectId ?? "main"));
+    return { actor: actor ?? (thread?.kind === "telegram" ? { id: `telegram:${thread.telegramId}`, name: thread.name, email: thread.email, role: "telegram" } : null), projectId: project?.id ?? "", projectName: project?.name ?? order?.projectName ?? "", ...(part ? { subprojectId: part.id, subprojectName: part.name } : {}), requestId: payload._requestId ?? id(), method: "JOB", operation: job.kind, path: "", source: "background", report: (error, extra) => this.errors.capture(error, extra) };
   }
 
   private async answer(threadId: string, messageId: string) {

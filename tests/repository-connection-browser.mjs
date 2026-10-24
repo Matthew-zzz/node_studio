@@ -65,13 +65,49 @@ try {
 
       await create("Подключить к готовому проекту"); await accept("Подключить к готовому проекту");
       const setup = page.getByRole("region", { name: "Репозиторий проекта", exact: true }); await setup.getByLabel("Репозиторий", { exact: true }).selectOption("existing");
+      await setup.getByLabel("Название подпроекта", { exact: true }).fill("Frontend");
       await setup.getByLabel("Существующий репозиторий GitHub", { exact: true }).fill("Matthew-zzz/Existing-second");
       await setup.getByRole("button", { name: "Подключить репозиторий", exact: true }).click();
       await page.locator('[data-sonner-toast][data-type="success"]').filter({ hasText: "Репозиторий подключён к проекту." }).waitFor();
       assert.equal(fixture.store.all("projects").find(project => project.name === "Подключить к готовому проекту").repo, "Matthew-zzz/Existing-second");
       assert.equal(fixture.repositories.length, 0); assert.deepEqual(fixture.issues.get(repo), [task]);
+      const configured = fixture.store.all("projects").find(project => project.name === "Подключить к готовому проекту");
+      assert.equal(configured.subprojects[0].name, "Frontend");
+      const manager = page.getByRole("region", { name: "Подготовить разработку", exact: true }); await manager.waitFor();
+      await manager.getByRole("button", { name: "Изменить название подпроекта Frontend", exact: true }).click();
+      await page.getByLabel("Новое название подпроекта", { exact: true }).fill("Интерфейс");
+      await page.getByRole("button", { name: "Сохранить название", exact: true }).click();
+      await manager.getByRole("button", { name: "Изменить название подпроекта Интерфейс", exact: true }).waitFor();
+      const originalCreate = fixture.integrations.createRepository;
+      fixture.integrations.createRepository = async () => { throw new Error("Temporary subproject outage"); };
+      const extra = manager.getByRole("form", { name: "Добавление подпроекта", exact: true });
+      await extra.getByLabel("Название нового подпроекта", { exact: true }).fill("Backend");
+      await extra.getByLabel("Способ подключения подпроекта", { exact: true }).selectOption("new");
+      const backendName = `browser-${presentation}-${width}-backend`;
+      await extra.getByLabel("Название GitHub-репозитория", { exact: true }).fill(backendName);
+      await extra.getByRole("button", { name: "Создать репозиторий подпроекта", exact: true }).click();
+      await manager.getByRole("heading", { name: "Повторим создание автоматически", exact: true }).waitFor();
+      const pending = fixture.store.get("projects", configured.id).subprojects[1];
+      assert.equal(pending.name, "Backend"); assert.equal(pending.repo, "");
+      assert.equal(fixture.store.get("projects", configured.id).repo, "Matthew-zzz/Existing-second");
+      await page.screenshot({ path: resolve(screenshots, `${presentation}-${width}-subproject-retry.png`), fullPage: true });
+      fixture.store.db.prepare("UPDATE jobs SET attempts=7,available=0 WHERE kind='github.repository.create' AND json_extract(payload,'$.subprojectId')=?").run(pending.id);
+      await fixture.service.workJobs();
+      await manager.getByRole("heading", { name: "Создание приостановлено", exact: true }).waitFor();
+      fixture.integrations.createRepository = originalCreate;
+      await manager.getByRole("button", { name: "Повторить создание подпроекта", exact: true }).click();
+      await manager.getByRole("link", { name: `Matthew-zzz/${backendName}`, exact: true }).waitFor();
+      assert.equal(fixture.repositories.length, 1);
+      await extra.getByLabel("Способ подключения подпроекта", { exact: true }).selectOption("existing");
+      await extra.getByLabel("Название нового подпроекта", { exact: true }).fill("Worker");
+      await extra.getByLabel("Репозиторий нового подпроекта", { exact: true }).fill("https://github.com/Matthew-zzz/Existing-worker.git");
+      await extra.getByRole("button", { name: "Подключить подпроект", exact: true }).click();
+      await manager.getByRole("link", { name: "Matthew-zzz/Existing-worker", exact: true }).waitFor();
+      assert.equal(fixture.store.get("projects", configured.id).subprojects.length, 3);
+      assert.equal(fixture.repositories.length, 1);
+      await page.screenshot({ path: resolve(screenshots, `${presentation}-${width}-subprojects.png`), fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)); assert.deepEqual(errors, []);
-      console.log(`Existing repositories ${presentation} ${width}px: create from a GitHub URL, preserve tasks/history, attach to an accepted project, success notification and mobile layout passed.`);
+      console.log(`Existing repositories ${presentation} ${width}px: create from a GitHub URL, preserve tasks/history, attach to an accepted project, named subprojects, rename, independent repository creation/retry, existing subproject attachment and mobile layout passed.`);
     } finally { await context.close(); clearInterval(worker); fixture.close(); }
   }
 } finally { await browser?.close(); clearInterval(worker); await new Promise(resolve => server.close(resolve)); }

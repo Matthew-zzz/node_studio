@@ -150,7 +150,7 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
                     <p>Подпроекты</p>
                     {item.subprojects?.map(part => (
                       <div key={part.id}>
-                        <button type="button" disabled={busy} aria-expanded={item.id === project?.id && subprojectId === part.id} onClick={() => void openProject(item.id, "overview", part.id)}>
+                        <button type="button" disabled={busy || !part.repo} aria-expanded={item.id === project?.id && subprojectId === part.id} onClick={() => void openProject(item.id, "overview", part.id)}>
                           <Icon name="code" />
                           {part.name}
                         </button>

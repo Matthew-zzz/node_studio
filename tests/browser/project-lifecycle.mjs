@@ -70,7 +70,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     assert.equal(created.repo, `Matthew-zzz/${repositoryName}`);
     assert.equal(created.repo, fixture.repositories.at(-1)); assert.equal(created.subprojects.length, 1);
     assert.equal(fixture.issues.get(created.repo).length, 1);
-    await chooseAction(page, "О проекте", "Управление подпроектами");
+    await page.getByRole("region", { name: "Подготовить разработку", exact: true }).waitFor();
     await page.getByRole("link", { name: created.repo, exact: true }).waitFor();
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.screenshot({ path: resolve(screenshots, `${width}-project-repository.png`), fullPage: true });

@@ -59,7 +59,7 @@ try {
       if (failure !== "net::ERR_ABORTED") errors.push(`${request.url()}: ${failure}`);
     });
     for (const path of ["/", "/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/"]) {
-      const response = await page.goto(origin + path);
+      const response = await page.goto(origin + path, { waitUntil: "domcontentloaded" });
       assert.equal(response.status(), 200, path);
       await page.waitForFunction(() => [...document.querySelectorAll(".brand-symbol img")].some(image => image.complete && image.naturalWidth > 0));
       assert.equal(await page.locator("h1").count(), 1);
@@ -75,7 +75,7 @@ try {
       await page.screenshot({ path: resolve(screenshots, `${width}-${path.split("/").filter(Boolean).join("-") || "home"}.png`), fullPage: true });
     }
 
-    await page.goto(origin);
+    await page.goto(origin, { waitUntil: "domcontentloaded" });
     const faq = page.locator(".faq-item").first();
     await faq.locator("summary").focus();
     await page.keyboard.press("Enter");
@@ -142,7 +142,7 @@ try {
 
   const noJs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const fallbackPage = await noJs.newPage();
-  await fallbackPage.goto(origin);
+  await fallbackPage.goto(origin, { waitUntil: "domcontentloaded" });
   assert.equal(await fallbackPage.locator("h1").count(), 1);
   await fallbackPage.locator(".service-disclosure summary").first().click();
   assert.equal(await fallbackPage.locator(".service-disclosure[open]").count(), 1);
