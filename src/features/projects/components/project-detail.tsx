@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Contact } from "@/components/sections/contact";
+import { AutopartsBrandStory } from "@/features/projects/components/autoparts-brand-story";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { ProjectGallery } from "@/features/projects/components/project-gallery";
@@ -47,6 +48,7 @@ export function ProjectDetail({ project }: { project: Project }) {
         {project.presentationNote && <p className="case-presentation-note">{project.presentationNote}</p>}
         <div className="case-cover portfolio-cover reveal"><ProjectPresentation project={project} mode="cover" /></div>
       </section>
+      {project.slug === "autoparts" && <AutopartsBrandStory />}
       <section className="case-story case-summary section container" aria-labelledby="case-summary-title">
         <h2 id="case-summary-title" className="sr-only">Задача, решение и результат</h2>
         <div className="case-summary-grid">

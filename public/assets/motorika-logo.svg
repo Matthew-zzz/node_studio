@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="144" viewBox="0 0 560 144" fill="none">
+  <g transform="translate(8 8)">
+    <path d="M64 4 112 32v56l-48 28L16 88V32L64 4Z" fill="#14233A"/>
+    <path d="M64 13 104 36v48L64 107 24 84V36L64 13Z" stroke="#6E9BFF" stroke-width="2"/>
+    <path d="M38 80V38h12l14 19 14-19h12v42H77V58L64 75 51 58v22H38Z" fill="#F7FAFF"/>
+    <path d="m91 23 11-6v13l-11 6V23Z" fill="#49C5FF"/>
+  </g>
+  <text x="144" y="91" fill="#14233A" font-family="Manrope, Arial, sans-serif" font-size="62" font-weight="750" letter-spacing="-3">Моторика</text>
+</svg>

@@ -184,3 +184,101 @@
     line-height: 1.8;
   }
 }
+
+.motorika-story {
+  display: grid;
+  gap: clamp(44px, 8vw, 104px);
+  padding-block: clamp(48px, 8vw, 112px);
+}
+
+.motorika-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid color-mix(in srgb,var(--text) 12%,transparent);
+}
+
+.motorika-brand>img {
+  display: block;
+  width: min(280px, 48vw);
+  height: auto;
+}
+
+.motorika-brand>div {
+  max-width: 420px;
+  text-align: right;
+}
+
+.motorika-kicker,.motorika-scene-copy>span {
+  margin: 0 0 12px;
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.motorika-brand-copy {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.45;
+}
+
+.motorika-scene {
+  display: grid;
+  grid-template-columns: minmax(0,1.45fr) minmax(240px,.55fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 72px);
+}
+
+.motorika-scene-parts {
+  grid-template-columns: minmax(240px,.55fr) minmax(0,1.45fr);
+}
+
+.motorika-scene-parts .motorika-scene-image { order: 2; }
+.motorika-scene-parts .motorika-scene-copy { order: 1; }
+
+.motorika-scene-image {
+  overflow: hidden;
+  border-radius: 20px;
+  background: #e9edf2;
+}
+
+.motorika-scene-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.motorika-scene-copy h2 {
+  max-width: 13ch;
+  margin: 0 0 16px;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 550;
+  line-height: 1.08;
+  letter-spacing: -.045em;
+}
+
+.motorika-scene-copy p {
+  max-width: 38ch;
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+@media(max-width:760px) {
+  .motorika-story { gap: 48px; padding-block: 42px; }
+  .motorika-brand { align-items: flex-start; flex-direction: column; gap: 20px; }
+  .motorika-brand>img { width: min(240px, 70vw); }
+  .motorika-brand>div { text-align: left; }
+  .motorika-scene,.motorika-scene-parts { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .motorika-scene-parts .motorika-scene-image,.motorika-scene-parts .motorika-scene-copy { order: initial; }
+  .motorika-scene-image { border-radius: 14px; }
+  .motorika-scene-copy h2 { max-width: 18ch; font-size: 30px; }
+  .motorika-scene-copy p { font-size: 16px; }
+}
