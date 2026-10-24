@@ -118,8 +118,8 @@ try {
       assert.equal(await page.getByRole("button", { name: "Добавить профиль: Разработчик", exact: true }).count(), 0);
       await signIn(page, origin, "developer");
       fixture.store.db.exec("DELETE FROM auth_limits");
-      await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
-      const queue = page.getByRole("region", { name: "Общая очередь проектов", exact: true });
+      await page.getByRole("button", { name: "Очередь", exact: true }).click();
+      const queue = page.getByRole("region", { name: "Очередь проектов", exact: true });
       await queue.locator("article").filter({ has: page.getByRole("heading", { name: "one", exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       await page.getByRole("button", { name: "Все проекты", exact: true }).click();
       await page.getByRole("heading", { name: "В работе", exact: true }).waitFor();
@@ -203,8 +203,8 @@ try {
       }
 
       await signIn(page, origin, "developer");
-      await page.getByRole("button", { name: "Общая очередь", exact: true }).click();
-      await page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
+      await page.getByRole("button", { name: "Очередь", exact: true }).click();
+      await page.getByRole("region", { name: "Очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       assert.equal(await page.getByLabel("Название GitHub-репозитория", { exact: true }).inputValue(), `miniapp-project-${width}`);
       await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).click();
       await page.getByRole("heading", { name: new RegExp(`Разработка: ${name}$`) }).waitFor();

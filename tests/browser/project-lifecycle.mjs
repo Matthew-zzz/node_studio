@@ -24,7 +24,7 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await form.getByLabel("ТЗ проекта", { exact: true }).fill(brief);
     await form.getByRole("button", { name: "Создать проект", exact: true }).click();
     const receipt = page.getByRole("region", { name: "Проекты клиентов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
-    await receipt.getByText("В общей очереди", { exact: true }).waitFor();
+    await receipt.getByText("В очереди", { exact: true }).waitFor();
     assert.equal(fixture.repositories.length, before); assert.equal(fixture.sent.filter(item => item.email && !item.subject).length, sent);
     assert.equal(await page.getByRole("button", { name: "Создать GitHub-репозиторий", exact: true }).count(), 0);
     const project = fixture.store.all("projects").find(project => project.name === name);
@@ -33,8 +33,8 @@ export async function checkProjectLifecycle(browser, origin, width, screenshots,
     await page.getByText("Ожидает разработчика", { exact: true }).waitFor({ state: "attached" });
     await login(page, origin, "developer");
     if (width <= 650) await page.getByRole("button", { name: "Открыть меню кабинета", exact: true }).click();
-    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Общая очередь", exact: true }).click();
-    const card = page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await page.getByRole("navigation", { name: "Разделы кабинета", exact: true }).getByRole("button", { name: "Очередь", exact: true }).click();
+    const card = page.getByRole("region", { name: "Очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) });
     const description = await chooseAction(page, card.getByRole("button", { name: "О проекте", exact: true }), "Открыть описание проекта");
     await description.getByText(brief, { exact: true }).waitFor();
     await closeDialog(page);

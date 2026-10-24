@@ -46,8 +46,8 @@ try {
       await page.getByRole("region", { name: "Проекты клиентов", exact: true }).getByRole("heading", { name, exact: true }).waitFor();
     }
     async function accept(name) {
-      await navigate("Общая очередь");
-      await page.getByRole("region", { name: "Общая очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
+      await navigate("Очередь");
+      await page.getByRole("region", { name: "Очередь проектов", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name, exact: true }) }).getByRole("button", { name: "Взять в работу", exact: true }).click();
       await page.getByRole("heading", { name, exact: true, level: 1 }).waitFor();
     }
     try {

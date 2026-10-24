@@ -42,7 +42,7 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
           })}
         </section>
       )}
-      <section className={styles.panel} aria-label="Общая очередь проектов">
+      <section className={styles.panel} aria-label="Очередь проектов">
         <div className={`${styles.panelHeader} ${styles.projectQueueHeader}`}>
           <h2>Доступные проекты</h2>
           <div className={styles.searchField}>

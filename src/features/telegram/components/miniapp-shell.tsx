@@ -105,7 +105,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               <button type="button" className={styles.queue} disabled={controller.busy} onClick={() => navigate("queue")}>
                 <Icon name="flow" />
                 <span>
-                  Общая очередь
+                  Очередь
                 </span>
                 <Icon name="arrow" />
               </button>
@@ -123,7 +123,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                     <Icon name="arrow" />
                   </span>
                 </button>
-              )) : <section className={portal.panel}><Empty title={viewer.role === "client" ? "Проект появится здесь" : "Пока нет проектов в работе"} text={viewer.role === "client" ? "Разработчик подготовит проект и привяжет его к вашему кабинету." : "Изучите ТЗ в общей очереди и возьмите проект в работу."} /></section>}
+              )) : <section className={portal.panel}><Empty title={viewer.role === "client" ? "Проект появится здесь" : "Пока нет проектов в работе"} text={viewer.role === "client" ? "Разработчик подготовит проект и привяжет его к вашему кабинету." : "Изучите ТЗ в очереди и возьмите проект в работу."} /></section>}
             </div>
           ) : children}
         </main>

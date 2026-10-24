@@ -11,7 +11,7 @@ import { PaymentUpdates } from "@/features/portal/model/payment-updates";
 
 const successMessages: Partial<Record<PortalAction["type"], string>> = {
   "brief.generate": "Подготовка брифа запущена. Можно продолжать работу.",
-  "project.request": "Проект создан и передан в общую очередь.", "project.repository.create": "Создание репозитория запущено. Можно продолжать работу.",
+  "project.request": "Проект создан и передан в очередь.", "project.repository.create": "Создание репозитория запущено. Можно продолжать работу.",
   "project.create": "Клиентский проект создан.", "project.repository.add": "Подпроект подключён.",
   "project.accept": "Проект добавлен в работу.",
   "project.repository.attach": "Репозиторий подключён к проекту.",

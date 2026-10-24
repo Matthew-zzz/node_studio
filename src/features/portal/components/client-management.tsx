@@ -195,7 +195,7 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
         <article key={project.id} className={styles.order}>
           <div className={styles.taskTop}>
             <h3>{project.name}</h3>
-            <span className={styles.badge}>{project.developerId ? "В работе" : "В общей очереди"}</span>
+            <span className={styles.badge}>{project.developerId ? "В работе" : "В очереди"}</span>
           </div>
           <p className={styles.small}>{project.clientEmail}</p>
           <div className={styles.formActions}>
