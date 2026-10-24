@@ -243,9 +243,6 @@
   .header .brand>span:last-child {
     font-size: 25px;
   }
-  .header .brand-studio {
-    font-size: 13px;
-  }
   .menu-toggle {
     display: flex;
     flex-direction: column;
@@ -269,9 +266,6 @@
   }
   .mobile-drawer .brand>span:last-child {
     font-size: 25px;
-  }
-  .mobile-drawer .brand-studio {
-    font-size: 13px;
   }
 }
 

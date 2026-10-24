@@ -242,14 +242,6 @@ h2 {
   letter-spacing: -1px;
 }
 
-.brand-studio {
-  margin-left: 6px;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--muted);
-  letter-spacing: -.2px;
-}
-
 .brand-symbol {
   display: block;
   width: 32px;
@@ -696,10 +688,6 @@ h2 {
   font-size: 20px;
 }
 
-.footer-main .brand-studio {
-  font-size: 12px;
-}
-
 .footer-main .brand-symbol {
   width: 28px;
   height: 28px;
@@ -948,9 +936,6 @@ h2 {
   .brand>span:last-child {
     font-size: 22px;
   }
-  .brand-studio {
-    font-size: 12px;
-  }
   .section {
     padding-block: 80px;
   }
@@ -1049,9 +1034,6 @@ h2 {
   }
   .brand>span:last-child {
     font-size: 24px;
-  }
-  .brand-studio {
-    font-size: 12px;
   }
   .brand-symbol {
     width: 29px;
@@ -1274,9 +1256,6 @@ h2 {
   }
   .footer-main .brand>span:last-child {
     font-size: 21px;
-  }
-  .footer-main .brand-studio {
-    font-size: 11px;
   }
   .footer-main>p {
     flex-basis: 100%;
