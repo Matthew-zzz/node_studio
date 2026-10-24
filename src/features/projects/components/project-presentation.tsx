@@ -4,6 +4,10 @@ import { getScreenshot } from "@/features/projects/data/screenshots";
 import type { Project } from "@/features/projects/model/types";
 
 export function ProjectPresentation({ project, mode = "card" }: { project: Project; mode?: "card" | "cover" }) {
+  if (project.slug === "autoparts" && mode === "card") {
+    return <div className="project-stage project-stage-autoparts-empty stage-card stage-adaptive" aria-hidden="true" />;
+  }
+
   const paths = project.mobileOnly ? (project.showcase ?? [project.cover]).slice(0, mode === "cover" ? 3 : 2) : [project.cover];
 
   return (
