@@ -86,16 +86,16 @@ export function DetailDialog({ label, triggerLabel, title = label, children, cla
 
 export interface MenuAction { label: string; icon?: IconName; disabled?: boolean; danger?: boolean; onSelect: () => void }
 
-export function ActionsMenu({ label = "Действия", triggerLabel = "Действия", actions, buttonRef, disabled = false }: { label?: string; triggerLabel?: string; actions: readonly MenuAction[]; buttonRef?: RefObject<HTMLButtonElement | null>; disabled?: boolean }) {
+export function ActionsMenu({ label = "Действия", triggerLabel = "Действия", actions, buttonRef, disabled = false, iconOnly = false }: { label?: string; triggerLabel?: string; actions: readonly MenuAction[]; buttonRef?: RefObject<HTMLButtonElement | null>; disabled?: boolean; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const pending = useRef<(() => void) | null>(null);
   const localTrigger = useRef<HTMLButtonElement>(null);
   const trigger = buttonRef ?? localTrigger;
   return (
     <>
-      <button ref={trigger} type="button" className={styles.menuTrigger} aria-label={label} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => setOpen(true)}>
+      <button ref={trigger} type="button" className={`${styles.menuTrigger} ${iconOnly ? styles.menuTriggerIconOnly : ""}`} aria-label={label} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => setOpen(true)}>
         <Icon name="more" />
-        <span>{triggerLabel}</span>
+        {!iconOnly && <span>{triggerLabel}</span>}
       </button>
       <FocusDialog open={open} title={label} returnFocus={trigger} compact onClose={() => { setOpen(false); const action = pending.current; pending.current = null; action?.(); }}>
         <div className={styles.menu}>

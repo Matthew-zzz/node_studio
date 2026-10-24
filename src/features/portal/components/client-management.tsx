@@ -130,11 +130,21 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
   const projects = controller.snapshot.projects;
   return (
     <section className={styles.panel} aria-label="Проекты клиентов">
-      <div className={styles.panelHeader}>
-        <h2>{section === "projects" ? "Проекты" : "Оплаты"}</h2>
+      <div className={`${styles.panelHeader} ${styles.ordersHeader}`}>
+        <div className={styles.filters} role="group" aria-label="Проекты и оплаты">
+          <button type="button" aria-label="Проекты" aria-pressed={section === "projects"} onClick={() => setSection("projects")}>
+            Проекты
+            <span className={styles.filterCount}>{projects.length}</span>
+          </button>
+          <button type="button" aria-label="Оплаты" aria-pressed={section === "payments"} onClick={() => setSection("payments")}>
+            Оплаты
+            <span className={styles.filterCount}>{controller.snapshot.orders.length}</span>
+          </button>
+        </div>
         <ActionsMenu
-          label="Создать проект"
-          triggerLabel="Создать проект"
+          label="Действия с проектами"
+          iconOnly
+          triggerLabel=""
           actions={[
           { label: "Создать для существующего клиента", icon: "people", onSelect: () => setMode("client") },
           { label: "Подготовить ссылку на оплату", icon: "document", onSelect: () => setMode("payment") },
@@ -179,16 +189,6 @@ export function ProjectOrders({ controller, checkoutPath = "/checkout/", onOpenP
           </form>
         )}
       </FocusDialog>
-      <div className={styles.filters} role="group" aria-label="Проекты и оплаты">
-        <button type="button" aria-label="Проекты" aria-pressed={section === "projects"} onClick={() => setSection("projects")}>
-          Проекты
-          <span className={styles.filterCount}>{projects.length}</span>
-        </button>
-        <button type="button" aria-label="Оплаты" aria-pressed={section === "payments"} onClick={() => setSection("payments")}>
-          Оплаты
-          <span className={styles.filterCount}>{controller.snapshot.orders.length}</span>
-        </button>
-      </div>
       {section === "projects" && projects.length === 0 && <Empty title="Пока нет проектов" text="Создайте первый проект." icon="document" />}
       {section === "payments" && controller.snapshot.orders.length === 0 && <Empty title="Пока нет оплат" text="Подготовьте ссылку через «Создать проект»." icon="document" />}
       {section === "projects" && [...projects].reverse().map(project => (

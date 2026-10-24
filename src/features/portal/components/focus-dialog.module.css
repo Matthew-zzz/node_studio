@@ -11,6 +11,7 @@
 .detail { padding: 7px 0; border: 0; background: transparent; color: var(--p-accent); font-size: var(--type-control); text-align: left; overflow-wrap: anywhere; }
 .menuTrigger { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 8px 11px; border: 1px solid var(--p-line); border-radius: 11px; background: transparent; color: var(--p-muted); font-size: var(--type-control); font-weight: var(--weight-medium); }
 .menuTrigger svg { width: 18px; height: 18px; }
+.menuTriggerIconOnly { width: 44px; min-width: 44px; padding: 8px; }
 .menu { display: grid; gap: 5px; }
 .menu button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border: 0; border-radius: 12px; padding: 12px; text-align: left; background: transparent; color: var(--p-text); font-size: var(--type-body); font-weight: var(--weight-medium); }
 .menu button:hover, .menu button:focus-visible { background: var(--p-soft); }

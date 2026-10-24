@@ -44,7 +44,6 @@ export function DeveloperQueue({ controller, onAcceptProject, onOpenChat }: Deve
       )}
       <section className={styles.panel} aria-label="Очередь проектов">
         <div className={`${styles.panelHeader} ${styles.projectQueueHeader}`}>
-          <h2>Доступные проекты</h2>
           <div className={styles.searchField}>
             <input type="search" aria-label="Поиск проектов" value={search} onChange={event => setSearch(event.target.value)} placeholder="Проект или клиент" />
           </div>

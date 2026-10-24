@@ -87,7 +87,8 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
   }
   const visibleThread = showMore ? undefined : telegramThread;
   const compactProjectHeading = projectVisible && !showMore && !viewer.mustChangePassword;
-  const title = showMore ? "Ещё" : viewer.mustChangePassword ? "Добро пожаловать" : showProjects ? viewer.role === "client" ? "Мои проекты" : "В работе" : projectVisible ? project?.name ?? "Мои проекты" : PORTAL_VIEWS[activeView].label;
+  const compactSectionHeading = !showProjects && !showMore && !projectVisible && hasProjects && !viewer.mustChangePassword;
+  const title = showMore ? "Ещё" : viewer.mustChangePassword ? "Добро пожаловать" : showProjects ? viewer.role === "client" ? "Мои проекты" : "Проекты" : projectVisible ? `${project?.name ?? "Мои проекты"} · ${PORTAL_VIEWS[activeView].label}` : PORTAL_VIEWS[activeView].label;
   return (
     <div className={portal.root} data-theme={theme} data-presentation="miniapp" data-testid="portal" data-role={viewer.role}>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
@@ -112,8 +113,8 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
         </header>
         <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={!showMore && (Boolean(telegramThread) || projectVisible && activeView === "chat")}>
           {!visibleThread && (
-          <div className={styles.heading} data-project={compactProjectHeading}>
-            {compactProjectHeading ? (
+          <div className={styles.heading} data-project={compactProjectHeading || compactSectionHeading}>
+            {compactProjectHeading || compactSectionHeading ? (
               <>
                 <h1 tabIndex={-1}>
                   <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
@@ -121,7 +122,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                     <span>{title}</span>
                   </button>
                 </h1>
-                {project && <ProjectInfo key={project.id} project={project} controller={controller} />}
+                {compactProjectHeading && project && <ProjectInfo key={project.id} project={project} controller={controller} />}
               </>
             ) : (
               <>
@@ -139,15 +140,6 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
           <div className={styles.content} hidden={showMore} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
             {!viewer.mustChangePassword && showProjects ? (
               <div className={styles.projects}>
-                {viewer.role === "developer" && (
-                <button type="button" className={styles.queue} disabled={controller.busy} onClick={() => navigate("queue")}>
-                  <Icon name="flow" />
-                  <span>
-                    Очередь
-                  </span>
-                  <Icon name="arrow" />
-                </button>
-)}
                 {projects.length ? projects.map(item => (
                   <button type="button" key={item.id} aria-label={`Открыть проект ${item.name}`} className={styles.project} disabled={controller.busy} onClick={() => void openProject(item.id)}>
                     <span className={styles.projectTop}>

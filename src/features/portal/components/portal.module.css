@@ -199,6 +199,10 @@
 .filters button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 10px; border: 1px solid transparent; border-radius: 8px; font-size: var(--type-meta); color: var(--p-muted); background: var(--p-inset); }
 .filters button[aria-pressed="true"] { color: var(--p-accent); border-color: var(--p-accent); background: var(--p-soft); }
 .filters button span { font-size: var(--type-caption); opacity: .8; }
+.ordersHeader { flex-wrap: nowrap; }
+.ordersHeader .filters { flex-wrap: nowrap; gap: 4px; min-width: 0; }
+.ordersHeader .filters button { white-space: nowrap; padding-inline: 8px; }
+.root[data-presentation="miniapp"] .ordersHeader { flex-wrap: nowrap; gap: 8px; }
 .searchField { flex: 0 1 260px; }
 .searchField input { font-size: var(--type-label); }
 .inboxItem { width: 100%; background: transparent; color: var(--p-text); border: 0; border-radius: 10px; padding: 15px; text-align: left; }
