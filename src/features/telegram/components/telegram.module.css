@@ -29,6 +29,11 @@
 .heading > p { color: var(--p-muted); font-size: var(--type-label); margin-top: 8px; }
 .back { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 0 6px; min-height: 44px; font-size: var(--type-label); color: var(--p-accent); }
 .back svg { width: 15px; height: 15px; transform: rotate(180deg); }
+.heading[data-project="true"] { margin-bottom: 12px; }
+.heading[data-project="true"] h1 { font-size: 21px; }
+.projectBack { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--p-text); font: inherit; text-align: left; }
+.projectBack svg { width: 18px; height: 18px; flex-shrink: 0; transform: rotate(180deg); color: var(--p-accent); }
+.projectBack span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .projects { display: grid; gap: 14px; }
 .project { display: flex; flex-direction: column; gap: 12px; min-width: 0; text-align: left; padding: 20px; border-radius: 18px; border: 1px solid var(--p-line); background: var(--p-panel); color: var(--p-text); }
 .project:active, .queue:active { background: var(--p-soft); }

@@ -85,6 +85,7 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
     setShowMore(true);
   }
   const visibleThread = showMore ? undefined : telegramThread;
+  const compactProjectHeading = projectVisible && !showMore && !viewer.mustChangePassword;
   const title = showMore ? "Ещё" : viewer.mustChangePassword ? "Добро пожаловать" : showProjects ? viewer.role === "client" ? "Мои проекты" : "В работе" : projectVisible ? project?.name ?? "Мои проекты" : PORTAL_VIEWS[activeView].label;
   return (
     <div className={portal.root} data-theme={theme} data-presentation="miniapp" data-testid="portal" data-role={viewer.role}>
@@ -110,14 +111,25 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
         </header>
         <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={!showMore && (Boolean(telegramThread) || projectVisible && activeView === "chat")}>
           {!visibleThread && (
-          <div className={styles.heading}>
-            {(showMore || hasProjects && !showProjects) && !viewer.mustChangePassword && (
-            <button type="button" className={styles.back} disabled={controller.busy} onClick={showMore ? back : openProjects}>
-              <Icon name="arrow" />
-              {showMore ? "Назад" : "Все проекты"}
-            </button>
+          <div className={styles.heading} data-project={compactProjectHeading}>
+            {compactProjectHeading ? (
+              <h1 tabIndex={-1}>
+                <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
+                  <Icon name="arrow" />
+                  <span>{title}</span>
+                </button>
+              </h1>
+            ) : (
+              <>
+                {(showMore || hasProjects && !showProjects) && !viewer.mustChangePassword && (
+                <button type="button" className={styles.back} disabled={controller.busy} onClick={showMore ? back : openProjects}>
+                  <Icon name="arrow" />
+                  {showMore ? "Назад" : "Все проекты"}
+                </button>
 )}
-            <h1 tabIndex={-1}>{title}</h1>
+                <h1 tabIndex={-1}>{title}</h1>
+              </>
+            )}
           </div>
           )}
           <div className={styles.content} hidden={showMore} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
