@@ -20,7 +20,7 @@ body:has(.home-landing) {
 }
 
 body:has(.home-landing) .header {
-  border-color: #e7e9ef;
+  border-bottom: 0;
   background: rgb(255 255 255 / 94%);
   backdrop-filter: blur(12px);
 }
@@ -35,7 +35,11 @@ body:has(.home-landing) .header .brand > * {
 }
 
 body:has(.home-landing) .header .desktop-nav {
-  font-weight: 700;
+  font-weight: 800;
+}
+
+body:has(.home-landing) .header .desktop-nav a {
+  font-weight: 800;
 }
 
 body:has(.home-landing) .header-contact {
