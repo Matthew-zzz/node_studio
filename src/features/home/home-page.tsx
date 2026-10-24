@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
-import { ResponsiveCopy } from "@/components/ui/responsive-copy";
 import { site } from "@/config/site";
 import { Faq } from "@/features/home/components/faq";
 import { Process } from "@/features/home/components/process";
@@ -13,12 +12,6 @@ function HomeHero() {
   return (
     <section className="landing-hero" aria-labelledby="intro-title">
       <div className="container">
-        <p className="landing-kicker">
-          Node Studio
-          <span />
-          {' '}
-          Цифровая разработка
-        </p>
         <h1 id="intro-title">
           Свяжем ваши сервисы.
           <br />
@@ -27,7 +20,6 @@ function HomeHero() {
           <span>Запустим ваш продукт.</span>
         </h1>
         <div className="landing-hero-bottom">
-          <p><ResponsiveCopy wide="Создаём сайты, Telegram-ботов и приложения под реальные рабочие задачи. Объединяем данные и подключаем ИИ к вашим процессам." compact="Сайты, Telegram-приложения и ИИ под рабочие задачи." /></p>
           <div className="landing-hero-action">
             <ExternalLink className="button button-primary" href={site.contact}>
               Обсудить задачу

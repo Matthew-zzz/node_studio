@@ -110,11 +110,12 @@ body:has(.home-landing) .footer {
 
 .landing-hero h1 {
   max-width: 1120px;
-  margin: 29px 0 35px;
+  margin: 0 auto 35px;
   font-size: clamp(46px,7.2vw,100px);
   font-weight: 600;
   line-height: 1.02;
   letter-spacing: -.065em;
+  text-align: center;
 }
 
 .landing-hero h1 > span {
@@ -123,10 +124,11 @@ body:has(.home-landing) .footer {
 
 .landing-hero-bottom {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 40px;
   max-width: 1100px;
+  margin-inline: auto;
 }
 
 .landing-hero-bottom > p {
@@ -139,6 +141,7 @@ body:has(.home-landing) .footer {
 .landing-hero-action {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 22px;
 }
 
@@ -157,7 +160,8 @@ body:has(.home-landing) .footer {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  margin-top: clamp(48px,8vw,100px);
+  width: max-content;
+  margin: clamp(48px,8vw,100px) auto 0;
   color: #606a7d;
   font-size: 12px;
 }
@@ -312,19 +316,19 @@ body:has(.home-landing) .footer {
   }
 
   .landing-hero h1 {
-    margin: 25px 0;
+    margin: 0 auto 25px;
     font-size: clamp(42px,10vw,72px);
     letter-spacing: -.06em;
   }
 
   .landing-hero-bottom {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
     gap: 20px;
   }
 
   .landing-hero-action {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
     gap: 12px;
   }
