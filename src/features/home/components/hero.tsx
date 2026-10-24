@@ -4,8 +4,6 @@ import { Icon } from "@/components/ui/icon";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
 import { site } from "@/config/site";
 import { HeroAtmosphere } from "@/features/home/components/hero-atmosphere";
-import { Screenshot } from "@/features/projects/components/screenshot";
-import { getScreenshot } from "@/features/projects/data/screenshots";
 
 export function Hero() {
   return (
@@ -42,7 +40,7 @@ export function Hero() {
         <div className="workbench reveal" aria-label="Пример реализованного проекта">
           <div className="work-panels">
             <div className="work-panel">
-              <div className="screen-viewport work-image-viewport" role="region" aria-label="Локальная система автомагазина"><div className="work-image-link screenshot-static"><Screenshot image={getScreenshot("/assets/autoparts-catalog.jpg")} alt="Концепция интерфейса каталога запчастей с поиском и остатками" priority /></div></div>
+              <div className="screen-viewport work-image-viewport" aria-hidden="true"><div className="work-image-link screenshot-static autoparts-empty-window" /></div>
               <div className="work-caption">
                 <div><h2>Локальная система автомагазина</h2></div>
                 <p>Связали каталог и склад. Подбор — в одном интерфейсе.</p>
