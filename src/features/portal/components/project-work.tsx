@@ -100,7 +100,7 @@ export function Stages({ project, controller, subprojectId }: { project: PortalP
 }
 
 function TaskControls({ task, controller, onSaved }: { task: WorkItem; controller: PortalController; onSaved: () => void }) {
-  const [status, setStatus] = useState(task.status); const [price, setPrice] = useState("");
+  const [status, setStatus] = useState(task.status); const [price, setPrice] = useState(task.priceKopecks === undefined ? "" : (task.priceKopecks / 100).toString());
   const kopecks = parseRubles(price);
   const scope = task.subprojectId ? { subprojectId: task.subprojectId } : {};
   const quote = controller.snapshot.quotes.find(quote => quote.projectId === task.projectId && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
@@ -112,6 +112,14 @@ function TaskControls({ task, controller, onSaved }: { task: WorkItem; controlle
           <StatusSelect value={status} change={setStatus} />
         </label>
         <button className={styles.secondary} type="submit" disabled={controller.busy}>Обновить</button>
+      </form>
+      <form className={styles.inlineForm} onSubmit={event => { event.preventDefault(); if (kopecks) void controller.run({ type: "task.price", projectId: task.projectId, number: task.number, priceKopecks: kopecks, ...scope }).then(done => { if (done) onSaved(); }); }}>
+        <label>
+          Стоимость задачи, ₽
+          <input aria-label="Стоимость задачи, ₽" inputMode="decimal" required maxLength={12} value={price} onChange={event => setPrice(event.target.value)} placeholder="10 000" />
+        </label>
+        <button className={styles.secondary} type="submit" disabled={controller.busy || !kopecks}>Сохранить стоимость</button>
+        {task.priceKopecks !== undefined && <button className={styles.textButton} type="button" disabled={controller.busy} onClick={() => void controller.run({ type: "task.price", projectId: task.projectId, number: task.number, priceKopecks: null, ...scope }).then(done => { if (done) onSaved(); })}>Убрать стоимость</button>}
       </form>
       {task.kind === "wish" && !task.included && !task.paid && quote?.status !== "paid" && (
         <>
@@ -172,6 +180,7 @@ function TaskCard({ task, project, controller }: { task: WorkItem; project: Port
             <span>
               {developer ? `#${task.number} · ` : ""}
               {task.kind === "initial" ? "Первоначальное ТЗ" : task.included ? "Входит в ТЗ" : "Задача"}
+              {task.priceKopecks !== undefined ? ` · ${formatRubles(task.priceKopecks)}` : ""}
               {developer && (project.subprojects?.length ?? 0) > 1 ? ` · ${project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name ?? ""}` : ""}
             </span>
           </span>
@@ -183,8 +192,14 @@ function TaskCard({ task, project, controller }: { task: WorkItem; project: Port
           <div className={styles.stack}>
             <h3>{task.title}</h3>
             <p>{task.body || "Описание пока не добавлено."}</p>
+            {task.priceKopecks !== undefined && (
+              <p className={styles.small}>
+                Стоимость задачи:
+                {formatRubles(task.priceKopecks)}
+              </p>
+            )}
             {(task.paid || quote?.status === "paid") ? <p className={styles.small}>Оплачено · тест</p> : quote && <p className={styles.small}>{formatRubles(quote.totalKopecks)}</p>}
-            {developer && <TaskControls key={`${task.id}:${task.status}:${task.included}`} task={task} controller={controller} onSaved={() => setOpen(false)} />}
+            {developer && <TaskControls key={`${task.id}:${task.status}:${task.included}:${task.priceKopecks ?? ""}`} task={task} controller={controller} onSaved={() => setOpen(false)} />}
             {controller.snapshot.viewer?.role === "client" && task.kind === "wish" && task.status !== "canceled" && (pendingEdit ? <p className={styles.small}>Изменения ждут решения в разделе «В процессе редактирования».</p> : <button className={styles.secondary} type="button" disabled={controller.busy} onClick={() => setEditing(true)}>Изменить</button>)}
             <TaskHistory task={task} controller={controller} />
           </div>

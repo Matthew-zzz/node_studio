@@ -140,7 +140,13 @@ export class PortalService {
       }
       const scope = (item: WorkItem) => ({ ...item, ...(project.subprojects?.length ? { subprojectId: part.id } : {}), id: workItemId(project.id, part.id, item.number), projectId: project.id });
       if (this.store.get("projects", project.id)?.status === "archived") return;
-      this.store.replace("tasks", project.id, issues.filter(item => item.kind !== "stage").map(scope), part.id);
+      const previousPrices = new Map(this.store.all("tasks", project.id)
+        .filter(item => repositoryKey(item.subprojectId) === part.id && item.priceKopecks !== undefined)
+        .map(item => [item.number, item.priceKopecks!]));
+      this.store.replace("tasks", project.id, issues.filter(item => item.kind !== "stage").map(item => ({
+        ...scope(item),
+        ...(previousPrices.has(item.number) ? { priceKopecks: previousPrices.get(item.number)! } : {}),
+      })), part.id);
       this.store.replace("stages", project.id, issues.filter(item => item.kind === "stage").map(scope), part.id);
       this.store.replace("commits", project.id, commits, part.id);
       const initial = issues.find(issue => issue.kind === "initial");
@@ -350,7 +356,7 @@ export class PortalService {
       });
       return;
     }
-    if (["stage.save", "task.status", "task.include", "quote.create"].includes(type)) {
+    if (["stage.save", "task.status", "task.price", "task.include", "quote.create"].includes(type)) {
       this.role(viewer, ["developer"]);
       const project = this.project(viewer, text(action.projectId, 100));
       const part = this.repository(project, action.subprojectId ?? "main");
@@ -367,7 +373,15 @@ export class PortalService {
           this.saveWork(project.id, !number && nextStatus !== "new" ? await this.integrations.updateIssue(part.repo, issue.number, { status: nextStatus }) : issue, scopeId);
         } else {
           const task = this.work(project, number, "tasks", part.id);
-          if (type === "quote.create") {
+          if (type === "task.price") {
+            const priceKopecks = action.priceKopecks;
+            if (priceKopecks !== null && (typeof priceKopecks !== "number" || !Number.isSafeInteger(priceKopecks) || priceKopecks <= 0 || priceKopecks > Math.floor(Number.MAX_SAFE_INTEGER / 130))) {
+              throw new PortalError(400, "Укажите стоимость в рублях больше нуля.");
+            }
+            const taskWithoutPrice = { ...task };
+            Reflect.deleteProperty(taskWithoutPrice, "priceKopecks");
+            this.saveWork(project.id, priceKopecks === null ? taskWithoutPrice : { ...task, priceKopecks }, scopeId);
+          } else if (type === "quote.create") {
             if (task.kind !== "wish" || task.included) throw new PortalError(409, "Для этой задачи отдельная оплата не нужна.");
             const quotes = this.store.all("quotes", project.id).filter(quote => quote.taskNumber === number && sameTaskScope(quote, task));
             if (quotes.some(quote => quote.status === "paid")) throw new PortalError(409, "Задача уже оплачена.");
@@ -379,13 +393,13 @@ export class PortalService {
             });
           } else if (type === "task.include") {
             if (this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameTaskScope(quote, task) && quote.status === "paid")) throw new PortalError(409, "У задачи уже есть оплаченная оценка.");
-            this.saveWork(project.id, await this.integrations.updateIssue(part.repo, number, { included: true }), scopeId);
+            this.saveWork(project.id, { ...await this.integrations.updateIssue(part.repo, number, { included: true }), ...(task.priceKopecks !== undefined ? { priceKopecks: task.priceKopecks } : {}) }, scopeId);
             this.store.all("quotes", project.id).filter(quote => !quote.deletedAt && quote.taskNumber === number && sameTaskScope(quote, task) && quote.status === "pending").forEach(quote => this.store.put("quotes", { ...quote, status: "superseded" }));
           } else {
             const nextStatus = status(action.status);
             if (["in_progress", "done"].includes(nextStatus) && !task.included && task.kind === "wish"
               && !this.store.all("quotes", project.id).some(quote => quote.taskNumber === number && sameTaskScope(quote, task) && quote.status === "paid")) throw new PortalError(409, "Дождитесь оплаты или отметьте, что задача входит в оплаченное ТЗ.");
-            this.saveWork(project.id, await this.integrations.updateIssue(part.repo, number, { status: nextStatus }), scopeId);
+            this.saveWork(project.id, { ...await this.integrations.updateIssue(part.repo, number, { status: nextStatus }), ...(task.priceKopecks !== undefined ? { priceKopecks: task.priceKopecks } : {}) }, scopeId);
           }
         }
         this.synced.delete(project.id);

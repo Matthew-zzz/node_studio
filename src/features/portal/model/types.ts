@@ -63,6 +63,8 @@ export interface WorkItem {
   readonly included: boolean;
   /** Derived by the server from payment history, including removed payment cards. */
   readonly paid?: boolean;
+  /** Client-facing task price set by a developer, in kopecks. */
+  readonly priceKopecks?: number;
   readonly scopeRevision?: number;
   readonly updatedAt: string;
 }
@@ -225,6 +227,7 @@ export type PortalAction =
   | { type: "task.edit.propose"; projectId: string; number: number; subprojectId?: string; title: string; body: string; baseTitle: string; baseBody: string }
   | { type: "stage.save"; projectId: string; number: number; title: string; body: string; status: WorkStatus; subprojectId?: string }
   | { type: "task.status"; projectId: string; number: number; status: WorkStatus; subprojectId?: string }
+  | { type: "task.price"; projectId: string; number: number; priceKopecks: number | null; subprojectId?: string }
   | { type: "task.include"; projectId: string; number: number; subprojectId?: string }
   | { type: "quote.create"; projectId: string; number: number; baseKopecks: number; subprojectId?: string }
   | { type: "quote.pay"; quoteId: string; outcome: "succeeded" | "failed" }
