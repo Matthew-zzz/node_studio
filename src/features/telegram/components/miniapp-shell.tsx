@@ -3,7 +3,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
-import { BrandMark } from "@/components/ui/brand";
 import { Empty, ThemeSwitch } from "@/features/portal/components/ui";
 import { ProfileSwitcher } from "@/features/portal/components/profile-switcher";
 import { ChatActions } from "@/features/portal/components/chat-actions";
@@ -16,7 +15,6 @@ import { isProjectView, PROJECT_VIEWS } from "@/features/portal/model/project-vi
 import type { Conversation, PortalProject, Role } from "@/features/portal/model/types";
 import { TaskNotification } from "@/features/portal/components/task-notification";
 import { pendingTaskCount } from "@/features/portal/model/task-planning";
-import { ROLE_LABELS } from "@/features/portal/model/types";
 import { useTelegramBack } from "@/features/telegram/lib/use-telegram";
 import portal from "@/features/portal/components/portal.module.css";
 import styles from "./telegram.module.css";
@@ -93,37 +91,29 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
     <div className={portal.root} data-theme={theme} data-presentation="miniapp" data-testid="portal" data-role={viewer.role}>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       <div className={styles.app}>
-        <header className={styles.header}>
+        <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={!showMore && (Boolean(telegramThread) || projectVisible && activeView === "chat")}>
           {visibleThread ? (
-            <div className={styles.dialogIdentity}>
-              <button type="button" className={`${styles.moreButton} ${styles.dialogBack}`} aria-label="Вернуться к диалогам" onClick={onCloseTelegramThread}><Icon name="arrow" /></button>
-              <div>
-                <h1>{visibleThread.name}</h1>
-                {visibleThread.ownerName && <p>{`${visibleThread.ownerName} · на связи`}</p>}
-              </div>
+            <div className={styles.heading} data-project="true" data-tools="true">
+              <h1 tabIndex={-1}>
+                <button type="button" className={styles.projectBack} aria-label="Вернуться к диалогам" title="К диалогам" disabled={controller.busy} onClick={onCloseTelegramThread}>
+                  <Icon name="arrow" />
+                  <span>{visibleThread.name}</span>
+                </button>
+              </h1>
+              <ChatActions key={visibleThread.id} thread={visibleThread} controller={controller} />
             </div>
           ) : (
-            <div className={styles.brand}>
-              <BrandMark size={34} />
-              <strong>Node</strong>
-              <span>{ROLE_LABELS[viewer.role]}</span>
-            </div>
-          )}
-          {visibleThread && <ChatActions key={visibleThread.id} thread={visibleThread} controller={controller} />}
-        </header>
-        <main id="main" ref={scroll} className={styles.main} aria-busy={controller.busy} data-chat={!showMore && (Boolean(telegramThread) || projectVisible && activeView === "chat")}>
-          {!visibleThread && (
-          <div className={styles.heading} data-project={compactProjectHeading || compactSectionHeading} data-tools={!showMore && !viewer.mustChangePassword}>
-            {compactProjectHeading || compactSectionHeading ? (
-              <>
-                <h1 tabIndex={-1}>
-                  <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
-                    <Icon name="arrow" />
-                    <span>{title}</span>
-                  </button>
-                </h1>
-                {compactProjectHeading && project && <ProjectInfo key={project.id} project={project} controller={controller} />}
-              </>
+            <div className={styles.heading} data-project={compactProjectHeading || compactSectionHeading} data-tools={!showMore && !viewer.mustChangePassword}>
+              {compactProjectHeading || compactSectionHeading ? (
+                <>
+                  <h1 tabIndex={-1}>
+                    <button type="button" className={styles.projectBack} title="К списку проектов" disabled={controller.busy} onClick={openProjects}>
+                      <Icon name="arrow" />
+                      <span>{title}</span>
+                    </button>
+                  </h1>
+                  {compactProjectHeading && project && <ProjectInfo key={project.id} project={project} controller={controller} />}
+                </>
             ) : (
               <>
                 {(showMore || hasProjects && !showProjects) && !viewer.mustChangePassword && (
@@ -135,8 +125,8 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
                 <h1 tabIndex={-1}>{title}</h1>
               </>
             )}
-            {!showMore && !viewer.mustChangePassword && <button className={styles.moreButton} type="button" aria-label="Открыть раздел Ещё" aria-pressed={showMore} disabled={controller.busy} onClick={openMore}><Icon name="menu" /></button>}
-          </div>
+              {!showMore && !viewer.mustChangePassword && <button className={styles.moreButton} type="button" aria-label="Открыть раздел Ещё" aria-pressed={showMore} disabled={controller.busy} onClick={openMore}><Icon name="menu" /></button>}
+            </div>
           )}
           <div className={styles.content} hidden={showMore} data-chat={Boolean(telegramThread) || projectVisible && activeView === "chat"}>
             {!viewer.mustChangePassword && showProjects ? (

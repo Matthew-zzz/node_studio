@@ -10,20 +10,11 @@
 }
 .viewport[data-theme="dark"] { background: var(--ui-dark-bg); }
 .app { height: 100%; max-width: 560px; margin-inline: auto; display: flex; flex-direction: column; min-width: 0; padding-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px), var(--tg-content-safe-area-inset-left, 0px)); padding-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px), var(--tg-content-safe-area-inset-right, 0px)); }
-.header { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 12px; padding: calc(10px + var(--miniapp-top)) 16px 10px; border-bottom: 1px solid var(--p-line); background: var(--p-bg); }
-.dialogIdentity { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.dialogIdentity > div { min-width: 0; }
-.dialogIdentity h1 { font-size: 18px; font-weight: var(--weight-semibold); letter-spacing: -.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dialogIdentity p { font-size: var(--type-meta); color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dialogBack svg { transform: rotate(180deg); }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.brand > strong { font-size: 23px; font-weight: var(--weight-bold); letter-spacing: -.06em; }
-.brand > span:last-child { font-size: var(--type-meta); color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--p-soft); color: var(--p-accent); flex-shrink: 0; }
 .mark svg { width: 18px; height: 18px; }
 .moreButton { display: grid; place-items: center; width: 44px; min-height: 44px; flex-shrink: 0; border: 1px solid var(--p-line); border-radius: 12px; background: var(--p-panel); color: var(--p-text); }
 .moreButton svg { width: 19px; height: 19px; }
-.main { min-height: 0; min-width: 0; flex: 1; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: var(--p-line) transparent; padding: 22px 16px 24px; scroll-padding-block: 16px; }
+.main { min-height: 0; min-width: 0; flex: 1; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: var(--p-line) transparent; padding: calc(22px + var(--miniapp-top)) 16px 24px; scroll-padding-block: 16px; }
 .heading { margin-bottom: 22px; min-width: 0; }
 .heading h1 { font-size: 28px; line-height: 1.2; font-weight: var(--weight-bold); letter-spacing: -.04em; }
 .heading > p { color: var(--p-muted); font-size: var(--type-label); margin-top: 8px; }
