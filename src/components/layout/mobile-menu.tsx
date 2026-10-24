@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Brand } from "@/components/ui/brand";
 import { Icon } from "@/components/ui/icon";
-import { ExternalLink } from "@/components/ui/external-link";
 import { navigation } from "@/config/navigation";
 import { site } from "@/config/site";
 
@@ -91,7 +90,7 @@ export function MobileMenu() {
         </div>
         <h2 id="drawer-title" className="sr-only">Навигация по сайту</h2>
         <nav className="drawer-nav" aria-label="Мобильная навигация">
-          {[{ href: "/", label: "Главная", icon: "code" } as const, ...navigation].map((item) => (
+          {navigation.map((item) => (
             <Link key={item.href} href={item.href} onClick={() => close(false)}>
               <Icon name={item.icon} />
               <span>{item.label}</span>
@@ -104,10 +103,10 @@ export function MobileMenu() {
             <span className="status-dot" />
             {site.hours}
           </p>
-          <ExternalLink className="button button-primary" href={site.contact} onClick={() => close(false)}>
-            Обсудить задачу
-            <Icon name="diagonal" />
-          </ExternalLink>
+          <Link className="button button-primary" href="/cabinet/" onClick={() => close(false)}>
+            Личный кабинет
+            <Icon name="people" />
+          </Link>
           <span>Общаемся в Telegram.</span>
         </div>
       </dialog>

@@ -1,28 +1,81 @@
-/* One calm brand canvas for the studio landing page. */
+/* White editorial theme for the studio landing page. */
 
 body:has(.home-landing) {
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse at 76% 3%,rgb(39 83 228 / 25%) 0,transparent 35%),
-    radial-gradient(ellipse at 8% 32%,rgb(103 37 183 / 21%) 0,transparent 42%),
-    linear-gradient(132deg,#080f29 0%,#11143b 52%,#211044 100%);
-  background-attachment: fixed;
+  color-scheme: light;
+  --bg: #fff;
+  --surface: #fff;
+  --surface-2: #f5f6f9;
+  --surface-blue: #f5f6fa;
+  --surface-violet: #f4f1fa;
+  --line: #e2e5ed;
+  --line-strong: #c8cedb;
+  --text: #171b2b;
+  --muted: #697286;
+  --muted-strong: #414a5e;
+  --accent: #553ba1;
+  --accent-pink: #8c4cba;
+  --accent-text-gradient: linear-gradient(105deg,#3152b5,#6a3caa);
+  background: #fff;
 }
 
 body:has(.home-landing) .header {
-  border-color: rgb(255 255 255 / 10%);
-  background: rgb(8 15 41 / 48%);
-  backdrop-filter: blur(14px);
+  border-color: #e7e9ef;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(12px);
+}
+
+body:has(.home-landing) .header :is(.brand,.desktop-nav,.header-contact) {
+  color: #171b2b;
+  font-weight: 700;
+}
+
+body:has(.home-landing) .header .brand > * {
+  font-weight: 700;
+}
+
+body:has(.home-landing) .header .desktop-nav {
+  font-weight: 700;
+}
+
+body:has(.home-landing) .header-contact {
+  border-color: #d5d9e3;
+  border-radius: 8px;
+}
+
+body:has(.home-landing) .header-contact .icon {
+  color: #553ba1;
+}
+
+body:has(.home-landing) .header .menu-toggle {
+  border-color: #d5d9e3;
+  background: #fff;
+  color: #171b2b;
+}
+
+body:has(.home-landing) .mobile-drawer {
+  border-color: #e2e5ed;
+  background: #fff;
+  color: #171b2b;
+}
+
+body:has(.home-landing) .drawer-nav > a {
+  color: #171b2b;
+  font-weight: 700;
+}
+
+body:has(.home-landing) .drawer-heading .brand > * {
+  font-weight: 700;
 }
 
 body:has(.home-landing) .footer {
-  border-color: rgb(255 255 255 / 12%);
+  border-color: #e2e5ed;
   background: transparent;
 }
 
 .home-landing {
   overflow: clip;
-  color: #f4f6ff;
+  color: #171b2b;
 }
 
 .home-landing .studio-intro,
@@ -43,7 +96,7 @@ body:has(.home-landing) .footer {
   display: flex;
   align-items: center;
   gap: 11px;
-  color: #c1cbed;
+  color: #606a7d;
   font-size: 12px;
   letter-spacing: .04em;
 }
@@ -52,7 +105,7 @@ body:has(.home-landing) .footer {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #8b7cff;
+  background: #6249b3;
 }
 
 .landing-hero h1 {
@@ -65,7 +118,7 @@ body:has(.home-landing) .footer {
 }
 
 .landing-hero h1 > span {
-  color: #b8adff;
+  color: #563ba1;
 }
 
 .landing-hero-bottom {
@@ -78,7 +131,7 @@ body:has(.home-landing) .footer {
 
 .landing-hero-bottom > p {
   max-width: 490px;
-  color: #c2cbe2;
+  color: #535d72;
   font-size: 16px;
   line-height: 1.8;
 }
@@ -90,7 +143,7 @@ body:has(.home-landing) .footer {
 }
 
 .landing-hero-action > span {
-  color: #aeb9d6;
+  color: #606a7d;
   font-size: 11px;
   line-height: 1.7;
   white-space: nowrap;
@@ -105,7 +158,7 @@ body:has(.home-landing) .footer {
   align-items: center;
   gap: 12px;
   margin-top: clamp(48px,8vw,100px);
-  color: #c1cbed;
+  color: #606a7d;
   font-size: 12px;
 }
 
@@ -113,7 +166,7 @@ body:has(.home-landing) .footer {
   width: 15px;
   height: 15px;
   transform: rotate(90deg);
-  color: #b8adff;
+  color: #563ba1;
 }
 
 .home-landing .section {
@@ -124,7 +177,7 @@ body:has(.home-landing) .footer {
 .home-landing .landing-capability h3,
 .home-landing .process-step h3,
 .home-landing .faq-intro h2 {
-  color: #f4f6ff;
+  color: #171b2b;
 }
 
 .home-landing .section-head > p,
@@ -132,18 +185,18 @@ body:has(.home-landing) .footer {
 .home-landing .project-content > p,
 .home-landing .process-step p,
 .home-landing .faq-answer p {
-  color: #bbc5df;
+  color: #535d72;
 }
 
 .home-landing .project-card {
-  border-color: rgb(225 231 255 / 17%);
+  border-color: #e0e3eb;
   border-radius: 12px;
   background: transparent;
   box-shadow: none;
 }
 
 .home-landing .project-card:hover {
-  border-color: rgb(190 181 255 / 55%);
+  border-color: #a89bcc;
 }
 
 .home-landing .project-media,
@@ -153,7 +206,7 @@ body:has(.home-landing) .footer {
 }
 
 .home-landing .project-content {
-  border-top: 1px solid rgb(225 231 255 / 12%);
+  border-top: 1px solid #e8eaf0;
 }
 
 .landing-capabilities .section-head {
@@ -163,7 +216,7 @@ body:has(.home-landing) .footer {
 .landing-capability-grid {
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
-  border-top: 1px solid rgb(225 231 255 / 19%);
+  border-top: 1px solid #dfe2ea;
 }
 
 .landing-capability {
@@ -171,11 +224,11 @@ body:has(.home-landing) .footer {
   grid-template-columns: 50px minmax(0,1fr);
   gap: 20px;
   padding: 27px 25px 30px 0;
-  border-bottom: 1px solid rgb(225 231 255 / 15%);
+  border-bottom: 1px solid #e5e7ed;
 }
 
 .landing-capability:nth-child(odd) {
-  border-right: 1px solid rgb(225 231 255 / 15%);
+  border-right: 1px solid #e5e7ed;
 }
 
 .landing-capability:nth-child(even) {
@@ -184,7 +237,7 @@ body:has(.home-landing) .footer {
 
 .landing-capability-index {
   padding-top: 4px;
-  color: #a69aff;
+  color: #654bb0;
   font: 12px/1.5 var(--mono);
 }
 
@@ -196,7 +249,7 @@ body:has(.home-landing) .footer {
 
 .landing-capability p {
   max-width: 520px;
-  color: #bbc5df;
+  color: #535d72;
   font-size: 13px;
   line-height: 1.75;
 }
@@ -206,7 +259,7 @@ body:has(.home-landing) .footer {
   align-items: center;
   gap: 8px;
   margin-top: 13px;
-  color: #c6bcff;
+  color: #553ba1;
   font-size: 12px;
 }
 
@@ -220,13 +273,13 @@ body:has(.home-landing) .footer {
 }
 
 .home-landing .process-note {
-  border-color: rgb(225 231 255 / 17%);
+  border-color: #e0e3eb;
   background: transparent;
 }
 
 .home-landing .faq-item,
 .home-landing .faq-item:first-child {
-  border-color: rgb(225 231 255 / 19%);
+  border-color: #e0e3eb;
 }
 
 .home-landing .contact-section {
@@ -234,9 +287,9 @@ body:has(.home-landing) .footer {
 }
 
 .home-landing .contact-panel {
-  border: 1px solid rgb(225 231 255 / 18%);
+  border: 1px solid #dfe3eb;
   border-radius: 14px;
-  background: rgb(12 18 53 / 30%);
+  background: #fafbfc;
   box-shadow: none;
 }
 
@@ -245,11 +298,11 @@ body:has(.home-landing) .footer {
 }
 
 .home-landing .contact-panel h2 > span {
-  color: #c4baff;
+  color: #553ba1;
 }
 
 .home-landing .contact-bottom {
-  border-color: rgb(225 231 255 / 18%);
+  border-color: #dfe3eb;
 }
 
 @media (max-width: 760px) {
