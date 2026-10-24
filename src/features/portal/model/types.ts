@@ -222,6 +222,7 @@ export type PortalAction =
   | { type: "draft.reject"; draftId: string; revision: number }
   | { type: "draft.edit"; draftId: string; revision: number; title: string; body: string }
   | { type: "tasks.analyze"; projectId: string }
+  | { type: "task.edit.propose"; projectId: string; number: number; subprojectId?: string; title: string; body: string; baseTitle: string; baseBody: string }
   | { type: "stage.save"; projectId: string; number: number; title: string; body: string; status: WorkStatus; subprojectId?: string }
   | { type: "task.status"; projectId: string; number: number; status: WorkStatus; subprojectId?: string }
   | { type: "task.include"; projectId: string; number: number; subprojectId?: string }

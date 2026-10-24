@@ -13,7 +13,6 @@ import type { PortalController } from "@/features/portal/lib/use-portal";
 import styles from "./portal.module.css";
 import { ActionsDialog } from "@/features/portal/components/focus-dialog";
 import { DeletePayment } from "@/features/portal/components/delete-confirmation";
-import { TaskProposals } from "./task-proposals";
 import { ResendPayment } from "@/features/portal/components/resend-payment";
 
 export function Chat({ thread, controller, draft, onDraftChange, showHeader = true }: { thread: Conversation | undefined; controller: PortalController; draft?: string; onDraftChange?: (value: string) => void; showHeader?: boolean }) {
@@ -24,9 +23,8 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
   const { snapshot, busy, run } = controller;
   const viewer = snapshot.viewer;
   const messages = snapshot.messages.filter(message => message.threadId === thread?.id);
-  const drafts = snapshot.drafts.filter(draft => draft.threadId === thread?.id && !draft.confirmed);
   const quotes = snapshot.quotes.filter(quote => quote.projectId === thread?.projectId && quote.status !== "superseded");
-  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages.length, drafts.length, quotes.length, thread?.id]);
+  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages.length, quotes.length, thread?.id]);
   if (!thread || !viewer) return <section className={`${styles.panel} ${styles.chat}`}><Empty title="Диалог появится здесь" text="Выберите проект или обращение из очереди." icon="bot" /></section>;
   const human = viewer.role === "developer";
   const canWrite = viewer.role === "client" || thread.ownerId === viewer.id;
@@ -71,7 +69,6 @@ export function Chat({ thread, controller, draft, onDraftChange, showHeader = tr
             <div className={styles.bubble}>{message.html ? <TelegramText html={message.html} collapsible /> : message.text.length > 480 ? <LongText text={message.text} label={`${message.text.slice(0, 90)}… Читать`} /> : message.text}</div>
           </article>
         ))}
-        <TaskProposals controller={controller} threadId={thread.id} compact />
         {quotes.map(quote => (
           <article key={quote.id} className={styles.quote}>
             <h3>{quote.title}</h3>

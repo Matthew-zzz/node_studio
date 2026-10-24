@@ -106,8 +106,14 @@ try {
       await page.screenshot({ path: resolve(screenshots, `${width}-chat-keyboard.png`) });
       await page.setViewportSize({ width, height: 800 });
       await chat.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
-      await chat.getByRole("button", { name: "Подтвердить и отправить задачу", exact: true }).click();
-      await tab(page, "Задачи"); await page.getByRole("heading", { name: "Подготовленная задача", exact: true }).waitFor();
+      assert.equal(await chat.getByRole("button", { name: /Одобрить|Подтвердить.*задачу/ }).count(), 0);
+      await tab(page, "Задачи");
+      await page.getByRole("button", { name: "Ждут одобрения", exact: true }).click();
+      await page.getByRole("button", { name: "Действия предложения: Подготовленная задача", exact: true }).click();
+      const proposal = page.getByRole("dialog", { name: "Подготовленная задача", exact: true });
+      await proposal.getByRole("button", { name: "Одобрить задачу", exact: true }).click(); await proposal.waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "Одобренные", exact: true }).click();
+      await page.getByRole("heading", { name: "Подготовленная задача", exact: true }).waitFor();
       await tab(page, "История"); await page.getByText("init: первоначальная версия проекта", { exact: true }).waitFor();
       await page.evaluate(() => window.__telegram.back());
       await page.getByRole("heading", { name: "Мои проекты", exact: true }).waitFor();

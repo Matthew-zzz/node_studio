@@ -184,8 +184,12 @@ export async function checkPortal(page, origin, width, screenshots, portal) {
   await chat.getByRole("button", { name: "Отправить сообщение", exact: true }).click();
   await portal.service.workJobs();
   await page.reload(); await root.waitFor(); await openChat(page, width);
-  const confirm = chat.getByRole("button", { name: "Подтвердить и отправить задачу", exact: true });
-  await confirm.click(); await confirm.waitFor({ state: "detached" });
+  assert.equal(await chat.getByRole("button", { name: /Одобрить|Подтвердить.*задачу/ }).count(), 0);
+  await openProject(page, width, "one", "Задачи");
+  await page.getByRole("button", { name: "Ждут одобрения", exact: true }).click();
+  await page.getByRole("button", { name: "Действия предложения: Подготовленная задача", exact: true }).click();
+  const proposal = page.getByRole("dialog", { name: "Подготовленная задача", exact: true });
+  await proposal.getByRole("button", { name: "Одобрить задачу", exact: true }).click(); await proposal.waitFor({ state: "hidden" });
 
   const title = "Подготовленная задача";
   await login(page, origin, "developer");

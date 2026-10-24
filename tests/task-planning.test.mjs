@@ -299,8 +299,8 @@ test('changing an intended update to cancellation and back keeps a single pendin
 test('proposal decisions require a valid session, origin and CSRF at the HTTP boundary',async()=>{
   const f=setup();try{
     await f.send('Добавь поиск');const draft=f.pending()[0];const api=portalApi(f,true);const client=await api.login('client');
-    for(const type of ['draft.confirm','draft.reject','draft.edit']){
-      const body={type,draftId:draft.id,revision:draft.revision,title:'Поиск',body:'Описание'};
+    for(const type of ['draft.confirm','draft.reject','draft.edit','task.edit.propose']){
+      const body={type,draftId:draft.id,revision:draft.revision,title:'Поиск',body:'Описание',projectId:'one',number:2,baseTitle:'Пожелание',baseBody:'Согласованный текст'};
       assert.equal((await api.request('action',body)).statusCode,401);
       assert.equal((await api.request('action',body,client,{'x-csrf-token':''})).statusCode,403);
       assert.equal((await api.request('action',body,client,{origin:'https://other.example.test'})).statusCode,403);
@@ -385,5 +385,44 @@ test('an edited proposal after a lost creation response updates the recovered Is
     const edited=f.pending()[0];await f.decide(edited);
     assert.equal(f.issues.get(repo).length,3);assert.equal(f.issues.get(repo).at(-1).title,edited.title);assert.equal(f.issues.get(repo).at(-1).body,edited.body);
     assert.equal(f.store.get('drafts',edited.id).status,'approved');
+  }finally{f.close();}
+});
+
+test('task-section counters include legacy, revised and client-edited pending proposals without mixing projects', async () => {
+  const { pendingTaskCount, proposalInEditing } = await import('../src/features/portal/model/task-planning.ts');
+  const drafts=[
+    {projectId:'one',confirmed:false},
+    {projectId:'one',confirmed:false,kind:'update',status:'pending',subprojectId:'backend'},
+    {projectId:'one',confirmed:false,editedAt:new Date().toISOString(),status:'pending'},
+    {projectId:'one',confirmed:true,status:'approved'},
+    {projectId:'one',confirmed:false,status:'rejected'},
+    {projectId:'one',confirmed:false,status:'withdrawn'},
+    {projectId:'two',confirmed:false,status:'pending'},
+  ];
+  assert.equal(pendingTaskCount(drafts,'one'),3);
+  assert.equal(pendingTaskCount(drafts,'one','main'),2);
+  assert.equal(pendingTaskCount(drafts,'one','backend'),1);
+  assert.equal(proposalInEditing(drafts[0]),false);
+  assert.equal(proposalInEditing(drafts[1]),true);
+  assert.equal(proposalInEditing(drafts[2]),true);
+});
+
+test('editing an approved task in its dialog proposes a revision without changing GitHub until approved', async()=>{
+  const f=setup();try{
+    await f.send('Добавь поиск');await f.decide(f.pending()[0]);
+    const task=f.store.all('tasks','one').find(item=>item.title==='Поиск товаров');
+    const action={type:'task.edit.propose',projectId:'one',number:task.number,title:'Поиск по артикулу',body:'Искать по полному артикулу.',baseTitle:task.title,baseBody:task.body};
+    const issueCount=f.issues.get(repo).length;
+    await assert.rejects(f.service.action(f.developer,action),{status:403});
+    await assert.rejects(f.service.action(f.login('other').session,action),{status:404});
+    await assert.rejects(f.service.action(f.client,{...action,baseBody:'Устаревшее описание'}),{status:409});
+    await f.service.action(f.client,action);
+    const proposal=f.pending()[0];assert.equal(proposal.kind,'update');assert.ok(proposal.editedAt);assert.equal(proposal.baseBody,task.body);
+    assert.equal(f.issues.get(repo).length,issueCount);assert.equal(f.issues.get(repo).at(-1).body,task.body);
+    await assert.rejects(f.service.action(f.client,action),{status:409});assert.equal(f.pending().length,1);
+    await f.decide(proposal);assert.equal(f.issues.get(repo).length,issueCount);assert.equal(f.issues.get(repo).at(-1).body,action.body);
+    assert.equal(f.store.get('tasks',task.id).scopeRevision,undefined);assert.equal(f.store.get('taskScopes',task.id).revision,1);
+    await f.service.snapshot(f.client,'one');
+    await assert.rejects(f.service.action(f.client,{...action,number:1,baseTitle:'Основная работа',baseBody:'Согласованный текст'}),{status:409});
   }finally{f.close();}
 });

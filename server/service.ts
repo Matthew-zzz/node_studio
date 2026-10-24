@@ -321,6 +321,18 @@ export class PortalService {
       }
       return;
     }
+    if (type === "task.edit.propose") {
+      this.role(viewer, ["client"]);
+      const project = this.project(viewer, text(action.projectId, 100));
+      const sourceId = text(action.subprojectId ?? "main", 100);
+      await this.exclusive(`write:${project.id}`, async () => {
+        this.project(viewer, project.id);
+        const task = this.work(project, integer(action.number, 1), "tasks", sourceId);
+        if (task.title !== text(action.baseTitle, 200) || task.body !== text(action.baseBody, 8000, 0)) throw new PortalError(409, "Задача изменилась. Проверьте актуальное описание перед редактированием.");
+        this.taskPlanning.proposeEdit(viewer, project, task, action.title, action.body);
+      });
+      return;
+    }
     if (["draft.confirm", "draft.reject", "draft.edit"].includes(type)) {
       this.role(viewer, ["client"]);
       const draft = this.store.get("drafts", text(action.draftId, 100));

@@ -88,6 +88,8 @@ test("assistant request contains only supplied messages, configured model, and a
   assert.equal(payload.model, "fixture-model"); assert.equal(payload.store, false); assert.equal(payload.tools, undefined);
   assert.deepEqual(payload.input, [{ role: "user", content: "Client: Пожелание" }]);
   assert.equal(payload.text.format.type, "json_schema"); assert.equal(payload.text.format.strict, true);
+  assert.ok(payload.instructions.includes("Не предлагай одобрить, подтвердить, отклонить или согласовать задачу в сообщениях"));
+  assert.ok(!payload.instructions.includes("Сообщи, что предложения появятся в карточках"));
 });
 
 test("email adapter provides idempotency and missing integration settings fail explicitly", async () => {

@@ -13,6 +13,8 @@ import { PORTAL_VIEWS, ROLE_VIEWS } from "@/features/portal/model/navigation";
 import type { PortalView } from "@/features/portal/model/navigation";
 import { isProjectView, PROJECT_VIEWS } from "@/features/portal/model/project-views";
 import type { Conversation, PortalProject, Role } from "@/features/portal/model/types";
+import { TaskNotification } from "@/features/portal/components/task-notification";
+import { pendingTaskCount } from "@/features/portal/model/task-planning";
 import { ROLE_LABELS } from "@/features/portal/model/types";
 import { useTelegramBack } from "@/features/telegram/lib/use-telegram";
 import portal from "@/features/portal/components/portal.module.css";
@@ -201,8 +203,11 @@ export function MiniAppShell({ controller, theme, setTheme, activeView, project,
               </button>
             )}
             {navigationTabs.map(view => (
-              <button type="button" key={view} disabled={controller.busy || (isProjectView(view) && (!project || (viewer.role === "developer" && project.developerId !== viewer.id)))} aria-current={!showMore && !showProjects && activeView === view ? "page" : undefined} onClick={() => navigate(view)}>
-                <Icon name={PORTAL_VIEWS[view].icon} />
+              <button type="button" key={view} aria-label={shortLabels[view] ?? PORTAL_VIEWS[view].label} disabled={controller.busy || (isProjectView(view) && (!project || (viewer.role === "developer" && project.developerId !== viewer.id)))} aria-current={!showMore && !showProjects && activeView === view ? "page" : undefined} onClick={() => navigate(view)}>
+                <span className={styles.tabIcon}>
+                  <Icon name={PORTAL_VIEWS[view].icon} />
+                  {view === "tasks" && project && <TaskNotification count={pendingTaskCount(controller.snapshot.drafts, project.id)} />}
+                </span>
                 <span>{shortLabels[view] ?? PORTAL_VIEWS[view].label}</span>
               </button>
             ))}

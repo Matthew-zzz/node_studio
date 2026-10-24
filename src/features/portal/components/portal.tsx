@@ -24,6 +24,8 @@ import management from "./project-manager.module.css";
 
 import { PORTAL_VIEWS as views, ROLE_VIEWS as roleViews } from "@/features/portal/model/navigation";
 import type { PortalView as View } from "@/features/portal/model/navigation";
+import { pendingTaskCount } from "@/features/portal/model/task-planning";
+import { TaskNotification } from "./task-notification";
 import { MiniAppShell } from "@/features/telegram/components/miniapp-shell";
 
 export function Portal({ presentation = "web" }: { presentation?: "web" | "miniapp" }) {
@@ -139,9 +141,10 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
               </summary>
               <div className={styles.projectSections} role="group" aria-label={`Разделы проекта ${item.name}`}>
                 {PROJECT_VIEWS.map(key => (
-                  <button type="button" key={key} disabled={busy} aria-current={item.id === project?.id && !subprojectId && activeView === key ? "page" : undefined} data-secondary={item.id === project?.id && secondaryView === key} onClick={() => void openProject(item.id, key)}>
+                  <button type="button" aria-label={views[key].label} key={key} disabled={busy} aria-current={item.id === project?.id && !subprojectId && activeView === key ? "page" : undefined} data-secondary={item.id === project?.id && secondaryView === key} onClick={() => void openProject(item.id, key)}>
                     <Icon name={views[key].icon} />
                     {views[key].label}
+                    {key === "tasks" && <TaskNotification count={pendingTaskCount(snapshot.drafts, item.id)} />}
                   </button>
                 ))}
                 {developer && Boolean(item.subprojects?.length) && (
@@ -156,7 +159,10 @@ export function Portal({ presentation = "web" }: { presentation?: "web" | "minia
                         {item.id === project?.id && subprojectId === part.id && (
                           <div role="group" aria-label={`Разделы подпроекта ${part.name}`}>
                             {PROJECT_VIEWS.filter(key => key !== "chat").map(key => (
-                              <button type="button" key={key} disabled={busy} aria-current={activeView === key ? "page" : undefined} onClick={() => void openProject(item.id, key, part.id)}>{views[key].label}</button>
+                              <button type="button" key={key} aria-label={views[key].label} disabled={busy} aria-current={activeView === key ? "page" : undefined} onClick={() => void openProject(item.id, key, part.id)}>
+                                {views[key].label}
+                                {key === "tasks" && <TaskNotification count={pendingTaskCount(snapshot.drafts, item.id, part.id)} />}
+                              </button>
                             ))}
                           </div>
                         )}

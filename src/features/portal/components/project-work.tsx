@@ -7,13 +7,14 @@ import { Empty, shortDate, WorkBadge } from "@/features/portal/components/ui";
 import type { PortalController } from "@/features/portal/lib/use-portal";
 import { STATUS_LABELS } from "@/features/portal/model/types";
 import type { PortalProject, WorkItem, WorkStatus } from "@/features/portal/model/types";
-import { repositoryKey, sameTaskScope } from "@/features/portal/model/project-repositories";
+import { repositoryKey, sameTaskScope, sameWorkSource } from "@/features/portal/model/project-repositories";
 import { formatRubles, parseRubles } from "@/features/payments/model/payment";
 import styles from "./portal.module.css";
 import { ActionsDialog, DetailDialog } from "@/features/portal/components/focus-dialog";
 import { ProjectBriefContent } from "@/features/portal/components/client-brief";
-import { TaskProposals } from "./task-proposals";
-import { proposalStatus } from "@/features/portal/model/task-planning";
+import { TaskAnalysisNotice, TaskDecisionHistory, TaskProposals, TaskHistory } from "./task-proposals";
+import taskStyles from "./task-proposals.module.css";
+import { proposalInEditing, proposalStatus } from "@/features/portal/model/task-planning";
 import { DeleteProject } from "@/features/portal/components/delete-confirmation";
 
 function StatusSelect({ value, change }: { value: WorkStatus; change: (value: WorkStatus) => void }) {
@@ -129,68 +130,130 @@ function TaskControls({ task, controller, onSaved }: { task: WorkItem; controlle
   );
 }
 
+function EditApprovedTask({ task, controller, onSaved }: { task: WorkItem; controller: PortalController; onSaved: () => void }) {
+  const [title, setTitle] = useState(task.title);
+  const [body, setBody] = useState(task.body);
+  const [base] = useState({ title: task.title, body: task.body });
+  return (
+    <form className={styles.form} onSubmit={event => { event.preventDefault(); void controller.run({ type: "task.edit.propose", projectId: task.projectId, number: task.number, ...(task.subprojectId ? { subprojectId: task.subprojectId } : {}), title, body, baseTitle: base.title, baseBody: base.body }).then(saved => { if (saved) onSaved(); }); }}>
+      <label>
+        Название задачи
+        <input aria-label="Название задачи" required maxLength={200} value={title} onChange={event => setTitle(event.target.value)} />
+      </label>
+      <label>
+        Описание задачи
+        <textarea aria-label="Описание задачи" required rows={8} maxLength={8000} value={body} onChange={event => setBody(event.target.value)} />
+      </label>
+      <p className={styles.small}>Изменения появятся в разделе «В процессе редактирования». Прежняя задача сохранится до одобрения новой формулировки.</p>
+      <button type="submit" className={styles.primary} disabled={controller.busy || !title.trim() || !body.trim() || title === base.title && body === base.body}>Сохранить изменения</button>
+    </form>
+  );
+}
+
 function TaskCard({ task, project, controller }: { task: WorkItem; project: PortalProject; controller: PortalController }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const developer = controller.snapshot.viewer?.role === "developer";
+  const pendingEdit = controller.snapshot.drafts.some(draft => draft.projectId === task.projectId && draft.taskNumber === task.number && sameWorkSource(draft, task) && proposalStatus(draft) === "pending");
   const quote = controller.snapshot.quotes.find(quote => quote.projectId === project.id && quote.taskNumber === task.number && sameTaskScope(quote, task) && quote.status !== "superseded");
   return (
-    <article className={styles.task}>
-      <div className={styles.taskTop}>
-        <div>
-          <h3>
-            {developer && <span className={styles.taskNumber}>{`#${task.number}`}</span>}
-            {task.title}
-          </h3>
-          <div className={styles.meta}>
-            {developer && (project.subprojects?.length ?? 0) > 1 && <span>{project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name}</span>}
-            {task.kind === "initial" ? <span>Первоначальное ТЗ</span> : task.included && <span>Входит в ТЗ</span>}
-            {task.paid || quote?.status === "paid" ? <span>Оплачено · тест</span> : quote && <span>{formatRubles(quote.totalKopecks)}</span>}
+    <article className={taskStyles.rowWrap}>
+      <DetailDialog
+        label={`Действия задачи: ${task.title}`}
+        title={developer ? "Управление задачей" : "Описание задачи"}
+        open={open}
+        onOpenChange={value => { setOpen(value); if (!value) setEditing(false); }}
+        busy={controller.busy}
+        buttonClassName={taskStyles.row}
+        triggerLabel={<>
+          <span className={taskStyles.symbol}><Icon name={task.status === "done" ? "check" : "document"} /></span>
+          <span className={taskStyles.rowText}>
+            <span role="heading" aria-level={3}>{task.title}</span>
+            <span>
+              {developer ? `#${task.number} · ` : ""}
+              {task.kind === "initial" ? "Первоначальное ТЗ" : task.included ? "Входит в ТЗ" : "Задача"}
+              {developer && (project.subprojects?.length ?? 0) > 1 ? ` · ${project.subprojects?.find(part => part.id === repositoryKey(task.subprojectId))?.name ?? ""}` : ""}
+            </span>
+          </span>
+          <WorkBadge status={task.status} />
+          <Icon name="arrow" />
+        </>}
+      >
+        {editing ? <EditApprovedTask task={task} controller={controller} onSaved={() => { setEditing(false); setOpen(false); }} /> : (
+          <div className={styles.stack}>
+            <h3>{task.title}</h3>
+            <p>{task.body || "Описание пока не добавлено."}</p>
+            {(task.paid || quote?.status === "paid") ? <p className={styles.small}>Оплачено · тест</p> : quote && <p className={styles.small}>{formatRubles(quote.totalKopecks)}</p>}
+            {developer && <TaskControls key={`${task.id}:${task.status}:${task.included}`} task={task} controller={controller} onSaved={() => setOpen(false)} />}
+            {controller.snapshot.viewer?.role === "client" && task.kind === "wish" && task.status !== "canceled" && (pendingEdit ? <p className={styles.small}>Изменения ждут решения в разделе «В процессе редактирования».</p> : <button className={styles.secondary} type="button" disabled={controller.busy} onClick={() => setEditing(true)}>Изменить</button>)}
+            <TaskHistory task={task} controller={controller} />
           </div>
-        </div>
-        <WorkBadge status={task.status} />
-      </div>
-      <DetailDialog label={`Действия задачи: ${task.title}`} triggerLabel={developer ? "Управление" : "Подробнее"} title={developer ? "Управление задачей" : "Описание задачи"} open={open} onOpenChange={setOpen} busy={controller.busy}>
-        <div className={styles.stack}>
-          <h3>{task.title}</h3>
-          <p>{task.body || "Описание пока не добавлено."}</p>
-          {developer && <TaskControls key={`${task.id}:${task.status}:${task.included}`} task={task} controller={controller} onSaved={() => setOpen(false)} />}
-        </div>
+)}
       </DetailDialog>
     </article>
   );
 }
 
+type TaskSection = "pending" | "approved" | "editing";
+
 export function Tasks({ project, controller, compact = false, onOpenTasks }: { project: PortalProject; controller: PortalController; compact?: boolean; onOpenTasks?: () => void }) {
-  const [filter, setFilter] = useState<"active" | "closed" | "all">("active");
+  const [section, setSection] = useState<TaskSection>(() => {
+    const pending = controller.snapshot.drafts.filter(draft => draft.projectId === project.id && proposalStatus(draft) === "pending");
+    return pending.some(draft => !proposalInEditing(draft)) ? "pending" : pending.length ? "editing" : "approved";
+  });
+  const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const tasks = controller.snapshot.tasks.filter(task => task.projectId === project.id).sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || b.number - a.number);
-  const active = tasks.filter(task => task.status === "new" || task.status === "in_progress");
-  const closed = tasks.filter(task => task.status === "done" || task.status === "canceled");
+  const pending = controller.snapshot.drafts.filter(draft => draft.projectId === project.id && proposalStatus(draft) === "pending");
+  const waiting = pending.filter(draft => !proposalInEditing(draft));
+  const editing = pending.filter(proposalInEditing);
   const query = search.trim().toLocaleLowerCase("ru");
-  const pendingMatches = controller.snapshot.drafts.some(draft => draft.projectId === project.id && proposalStatus(draft) === "pending" && (!query || `${draft.title} ${draft.body}`.toLocaleLowerCase("ru").includes(query)));
-  const visible = (compact || filter === "active" ? active : filter === "closed" ? closed : tasks).filter(task => !query || `${task.title} ${task.body}`.toLocaleLowerCase("ru").includes(query));
+  const visible = tasks.filter(task => (!compact || ["new", "in_progress"].includes(task.status)) && (filter === "all" || task.status === filter) && (!query || `${task.title} ${task.body}`.toLocaleLowerCase("ru").includes(query)));
+  const matching = (section === "editing" ? editing : waiting).filter(draft => !query || `${draft.title} ${draft.body}`.toLocaleLowerCase("ru").includes(query));
   return (
     <section className={styles.panel} aria-label="Задачи проекта">
       <div className={styles.panelHeader}>
         <h2>Задачи</h2>
         {compact && onOpenTasks && <button className={styles.textButton} type="button" onClick={onOpenTasks}>Все задачи</button>}
       </div>
-      {!compact && tasks.length > 0 && (
-        <div className={styles.listTools}>
-          <div className={styles.filters} role="group" aria-label="Фильтр задач">
-            {([["active", "Текущие", active.length], ["closed", "Завершённые", closed.length], ["all", "Все", tasks.length]] as const).map(([value, label, count]) => (
-              <button key={value} type="button" aria-label={label} aria-pressed={filter === value} onClick={() => setFilter(value)}>
-                {label}
-                <span className={styles.filterCount}>{count}</span>
-              </button>
-))}
+      {compact ? (
+        <>
+          {pending.length > 0 && (
+          <div className={taskStyles.summary}>
+            <span>{`Ждут решения: ${pending.length}`}</span>
+            <button className={styles.textButton} type="button" onClick={onOpenTasks}>Открыть задачи</button>
           </div>
-          <input type="search" aria-label="Поиск задач" placeholder="Найти задачу" value={search} onChange={event => setSearch(event.target.value)} />
-        </div>
-      )}
-      {(compact || filter !== "closed") && <TaskProposals controller={query ? { ...controller, snapshot: { ...controller.snapshot, drafts: controller.snapshot.drafts.filter(draft => `${draft.title} ${draft.body}`.toLocaleLowerCase("ru").includes(query)) } } : controller} projectId={project.id} compact={compact} summary={compact} {...(onOpenTasks ? { onOpenTasks } : {})} />}
-      {visible.slice(0, compact ? 3 : undefined).map(task => <TaskCard key={task.id} task={task} project={project} controller={controller} />)}
-      {!visible.length && ((filter === "closed" && !compact) || !pendingMatches) && <p className={styles.small}>{query ? "Задачи не найдены." : filter === "closed" && !compact ? "Завершённых задач пока нет." : tasks.length ? "Текущих задач нет." : "Новых задач пока нет. Напишите пожелание в чате."}</p>}
+)}
+          <div className={taskStyles.list}>{visible.slice(0, 3).map(task => <TaskCard key={task.id} task={task} project={project} controller={controller} />)}</div>
+          {!visible.length && !pending.length && <p className={styles.small}>Новых задач пока нет.</p>}
+        </>
+) : (
+  <>
+    <div className={taskStyles.sections} role="group" aria-label="Подразделы задач">
+      {([["pending", "Ждут одобрения", waiting.length], ["approved", "Одобренные", tasks.length], ["editing", "В процессе редактирования", editing.length]] as const).map(([value, label, count]) => (
+        <button key={value} type="button" aria-label={label} aria-pressed={section === value} onClick={() => setSection(value)}>
+          <span>{label}</span>
+          <span className={taskStyles.sectionCount}>{count}</span>
+        </button>
+))}
+    </div>
+    <div className={taskStyles.tools}>
+      <input type="search" aria-label="Поиск задач" placeholder="Найти задачу" value={search} onChange={event => setSearch(event.target.value)} />
+      {section === "approved" && (
+      <select aria-label="Статус задач" value={filter} onChange={event => setFilter(event.target.value)}>
+        <option value="all">Все статусы</option>
+        {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select>
+)}
+    </div>
+    <TaskAnalysisNotice controller={controller} projectId={project.id} />
+    <div role="region" aria-label={section === "pending" ? "Ждут одобрения" : section === "approved" ? "Одобренные" : "В процессе редактирования"}>
+      {section === "approved" ? <div className={taskStyles.list}>{visible.map(task => <TaskCard key={task.id} task={task} project={project} controller={controller} />)}</div> : <TaskProposals controller={controller} projectId={project.id} group={section} query={query} />}
+      {!(section === "approved" ? visible.length : matching.length) && <p className={taskStyles.empty}>{query ? "Задачи не найдены." : section === "pending" ? "Все решения приняты. Новые пожелания появятся здесь." : section === "editing" ? "Задач на редактировании нет." : "Одобренных задач пока нет."}</p>}
+    </div>
+    <TaskDecisionHistory controller={controller} projectId={project.id} query={query} />
+  </>
+)}
     </section>
   );
 }

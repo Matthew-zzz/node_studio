@@ -21,12 +21,14 @@ async function fits(page) {
 }
 async function dismiss(page, text) {
   const toast = page.locator('[data-sonner-toast]:not([data-removed="true"])').filter({ hasText: text });
-  await toast.waitFor(); await toast.getByRole("button", { name: "Закрыть уведомление", exact: true }).click();
+  await toast.waitFor();
+  try { await toast.getByRole("button", { name: "Закрыть уведомление", exact: true }).click({ timeout: 3000 }); }
+  catch (error) { if (await toast.isVisible()) throw error; }
 }
 try {
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve)); const origin = `http://127.0.0.1:${server.address().port}`;
   browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}) });
-  for (const [presentation, width] of [["web", 1440], ["web", 320], ["miniapp", 390], ["miniapp", 320]]) {
+  for (const [presentation, width] of [["web", 1440], ["web", 320], ["miniapp", 390], ["miniapp", 320]].filter(([presentation, width]) => !process.env.DELETION_CASES || process.env.DELETION_CASES.split(",").includes(`${presentation}:${width}`))) {
     fixture = portalFixture(origin); preparePortalFixture(fixture);
     fixture.store.put("conversations", { id: "payment-client", kind: "telegram", projectId: "", name: "Клиент", username: "client", email: "client@example.test", telegramId: "123", ownerId: null, ownerName: null, handoffRequested: false, updatedAt: new Date().toISOString() });
     const developer = fixture.login("developer").session;
@@ -121,8 +123,8 @@ try {
       }
       await project("one", "Задачи");
       const task = page.getByRole("region", { name: "Задачи проекта", exact: true }).locator("article").filter({ has: page.getByRole("heading", { name: /Пожелание$/ }) });
-      await task.getByText("Оплачено · тест", { exact: true }).waitFor();
       await chooseAction(page, task.getByRole("button", { name: /^Действия задачи:/ }), "Управление задачей");
+      await task.getByText("Оплачено · тест", { exact: true }).waitFor();
       assert.equal(await page.getByRole("textbox", { name: "Ваша стоимость, ₽", exact: true }).count(), 0); await closeDialog(page);
       await project("one");
       let dialog = await chooseAction(page, "О проекте", "Удалить проект");

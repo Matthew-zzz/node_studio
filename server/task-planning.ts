@@ -207,6 +207,16 @@ export class TaskPlanning {
     return draft;
   }
 
+  proposeEdit(viewer: Viewer, project: PortalProject, task: WorkItem, titleValue: unknown, bodyValue: unknown) {
+    if (task.kind !== "wish" || task.status === "canceled") throw new PortalError(409, "Изменения общего ТЗ и отменённых задач обсудите в чате проекта.");
+    const title = text(titleValue, 200); const body = text(bodyValue, 8000);
+    if (task.title === title && task.body === body) throw new PortalError(409, "Формулировка не изменилась.");
+    if (this.store.all("drafts", project.id).some(draft => draft.taskNumber === task.number && repositoryKey(draft.subprojectId) === repositoryKey(task.subprojectId) && proposalStatus(draft) === "pending")) throw new PortalError(409, "У задачи уже есть изменения. Откройте их в разделе «В процессе редактирования».");
+    const thread = this.store.all("conversations", project.id).find(thread => thread.kind === "project");
+    if (!thread) throw new PortalError(409, "Чат проекта недоступен. Обновите страницу.");
+    return this.store.transaction(() => this.save({ id: `draft:edit:${id()}`, projectId: project.id, threadId: thread.id, kind: "update", status: "pending", confirmed: false, title, body, taskNumber: task.number, subprojectId: repositoryKey(task.subprojectId), baseTitle: task.title, baseBody: task.body, editedAt: now(), createdAt: now(), reason: "Клиент предложил изменения в разделе задач." }, viewer.name));
+  }
+
   decide(viewer: Viewer, draftId: string, expected: unknown, projectId: string, edit?: { title: unknown; body: unknown }) {
     const draft = this.checked(draftId, expected, projectId);
     if (proposalStatus(draft) !== "pending") throw new PortalError(409, "Решение по этой версии уже принято.");

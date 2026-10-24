@@ -65,3 +65,6 @@
 .viewport[data-keyboard="true"] .tabs { display: none; }
 .viewport[data-keyboard="true"] .main[data-chat="true"] > .heading { display: none; }
 @media (prefers-reduced-motion: no-preference) { .project, .tabs button { transition: background .15s ease; } }
+
+.tabs button .tabIcon { position: relative; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.tabs button .tabIcon > span { position: absolute; left: 14px; top: -8px; min-width: 18px; height: 18px; padding-inline: 4px; font-size: 10px; }

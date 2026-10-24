@@ -19,7 +19,7 @@ try{
     const issues=fixture.issues.get(project.repo);issues[1].title='Поиск по артикулу';
     issues.push({...issues[1],id:'3',number:3,title:'Готовая задача',status:'done'});
     issues.push({...issues[1],id:'4',number:4,title:'Текущая разработка',status:'in_progress',included:true});
-    for(let i=1;i<=4;i++)fixture.store.put('drafts',{id:`pending-${i}`,threadId:'chat-one',projectId:'one',title:`Пожелание ${i}`,body:'Конкретные требования клиента.',confirmed:false,status:'pending',revision:1,createdAt:new Date().toISOString()});
+    for(let i=1;i<=4;i++)fixture.store.put('drafts',{id:`pending-${i}`,threadId:'chat-one',projectId:'one',title:`Пожелание ${i}`,body:i===1?'Подробные требования клиента. '.repeat(80):'Конкретные требования клиента.',confirmed:false,status:'pending',revision:1,createdAt:new Date().toISOString()});
     await fixture.service.action(fixture.login('developer').session,{type:'order.create',order:{projectName:'Оплата каталога',clientName:'Client',email:'client@example.test',username:'client',brief:'Каталог.',totalKopecks:100000}});
     worker=setInterval(()=>void fixture.service.workJobs(),100);
     const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
@@ -47,20 +47,26 @@ try{
     try{
       await signIn('client');await openOne();
       const tasks=page.getByRole('region',{name:'Задачи проекта',exact:true});
-      await tasks.getByText('На согласовании: 4',{exact:true}).waitFor();
+      await tasks.getByText('Ждут решения: 4',{exact:true}).waitFor();
       assert.equal(await tasks.getByRole('article',{name:/Новая задача:/}).count(),0,'overview summarizes proposals');
       assert.equal(await tasks.getByRole('heading',{name:'Готовая задача',exact:true}).count(),0,'completed work is not repeated on overview');
       if(!mini&&width===320){const profile=page.getByRole('button',{name:'Открыть профили',exact:true});const bounds=await profile.boundingBox();assert.ok(bounds.y<73,'profile switcher stays in the header');await profile.click();await page.getByRole('group',{name:'Переключение профилей',exact:true}).waitFor();await page.keyboard.press('Escape');}
       await fits();await page.screenshot({path:resolve(screenshots,`${presentation}-${width}-client-overview.png`),fullPage:true});
-      await tasks.getByRole('button',{name:'Проверить задачи',exact:true}).click();
-      await page.getByRole('group',{name:'Фильтр задач',exact:true}).waitFor();assert.equal(await page.getByRole('article',{name:/Новая задача:/}).count(),4);
-      await tasks.getByRole('group',{name:'Фильтр задач',exact:true}).getByRole('button',{name:'Завершённые',exact:true}).click();
-      await tasks.getByRole('heading',{name:'Готовая задача',exact:true}).waitFor();assert.equal(await tasks.getByRole('article',{name:/Новая задача:/}).count(),0);
+      await tasks.getByRole('button',{name:'Открыть задачи',exact:true}).click();
+      const taskSections=tasks.getByRole('group',{name:'Подразделы задач',exact:true});
+      await taskSections.waitFor();assert.equal(await tasks.getByRole('button',{name:/Действия предложения:/}).count(),4);
+      assert.equal(await tasks.getByRole('button',{name:'Одобрить задачу',exact:true}).count(),0,'approval controls are inside dialogs');
+      await tasks.getByRole('button',{name:'Действия предложения: Пожелание 1',exact:true}).click();
+      const proposal=page.getByRole('dialog',{name:'Пожелание 1',exact:true});await proposal.getByText('Подробные требования клиента. '.repeat(80),{exact:true}).waitFor();assert.equal(await page.locator('dialog[open]').count(),1);await fits();await page.keyboard.press('Escape');
+      await taskSections.getByRole('button',{name:'Одобренные',exact:true}).click();
+      await tasks.getByLabel('Статус задач',{exact:true}).selectOption('done');
+      await tasks.getByRole('heading',{name:'Готовая задача',exact:true}).waitFor();
       const details=tasks.getByRole('button',{name:'Действия задачи: Готовая задача',exact:true});await details.click();
       const description=page.getByRole('dialog',{name:'Описание задачи',exact:true});await description.waitFor();assert.equal(await description.getByLabel('Статус',{exact:true}).count(),0);
       await page.keyboard.press('Escape');await description.waitFor({state:'hidden'});assert.ok(await details.evaluate(el=>el===document.activeElement));
-      await tasks.getByRole('group',{name:'Фильтр задач',exact:true}).getByRole('button',{name:'Текущие',exact:true}).click();
-      await tasks.getByLabel('Поиск задач',{exact:true}).fill('АРТИКУЛУ');await tasks.getByRole('heading',{name:'Поиск по артикулу',exact:true}).waitFor();assert.equal(await tasks.getByRole('heading',{name:'Текущая разработка',exact:true}).count(),0);assert.equal(await tasks.getByRole('article',{name:/Новая задача:/}).count(),0,'search applies to proposals as well');
+      await tasks.getByLabel('Статус задач',{exact:true}).selectOption('all');
+      await tasks.getByLabel('Поиск задач',{exact:true}).fill('АРТИКУЛУ');await tasks.getByRole('heading',{name:'Поиск по артикулу',exact:true}).waitFor();assert.equal(await tasks.getByRole('heading',{name:'Текущая разработка',exact:true}).count(),0);
+      await taskSections.getByRole('button',{name:'Ждут одобрения',exact:true}).click();assert.equal(await tasks.getByRole('button',{name:/Действия предложения:/}).count(),0,'search applies to proposals');
       await tasks.getByLabel('Поиск задач',{exact:true}).fill('');await fits();await page.screenshot({path:resolve(screenshots,`${presentation}-${width}-client-tasks.png`),fullPage:true});
       await signIn('developer');await openOne();
       const manager=page.getByRole('region',{name:'Подготовить разработку',exact:true});await manager.getByRole('heading',{name:'Подпроекты',exact:true}).waitFor();
@@ -68,7 +74,7 @@ try{
       await manager.getByRole('button',{name:'Добавить подпроект',exact:true}).click();const add=page.getByRole('dialog',{name:'Добавить подпроект',exact:true});await add.waitFor();await fits();
       await add.getByLabel('Название нового подпроекта',{exact:true}).fill('Backend');await add.getByLabel('Репозиторий нового подпроекта',{exact:true}).fill('Matthew-zzz/interface-backend');await add.getByRole('button',{name:'Подключить подпроект',exact:true}).click();await add.waitFor({state:'hidden'});
       await manager.getByRole('link',{name:'Matthew-zzz/interface-backend',exact:true}).waitFor();await fits();await page.screenshot({path:resolve(screenshots,`${presentation}-${width}-developer-overview.png`),fullPage:true});
-      await section('Задачи');await page.getByRole('button',{name:'Действия задачи: Поиск по артикулу',exact:true}).click();const edit=page.getByRole('dialog',{name:'Управление задачей',exact:true});await edit.getByLabel('Статус',{exact:true}).waitFor();await page.keyboard.press('Escape');
+      await section('Задачи');await tasks.getByRole('button',{name:'Одобренные',exact:true}).click();await page.getByRole('button',{name:'Действия задачи: Поиск по артикулу',exact:true}).click();const edit=page.getByRole('dialog',{name:'Управление задачей',exact:true});await edit.getByLabel('Статус',{exact:true}).waitFor();await page.keyboard.press('Escape');
       await section('Чат');const chat=page.getByRole('region',{name:'Чат проекта',exact:true});const connect=chat.getByRole('button',{name:'Подключиться к диалогу',exact:true});const log=chat.getByRole('log',{name:'Сообщения',exact:true});assert.ok((await connect.boundingBox()).y<(await log.boundingBox()).y);await connect.click();await page.waitForFunction(()=>document.querySelector('textarea[aria-label="Сообщение"]')?.disabled===false);assert.ok(await chat.getByLabel('Сообщение',{exact:true}).isEnabled());
       if(mini){await page.getByRole('button',{name:'Открыть раздел Ещё',exact:true}).click();await page.getByRole('button',{name:'Проекты и оплаты',exact:true}).click();}
       else{if(width<=650)await page.getByRole('button',{name:'Открыть меню кабинета',exact:true}).click();await page.getByRole('navigation',{name:'Разделы кабинета',exact:true}).getByRole('button',{name:'Проекты и оплаты',exact:true}).click();}

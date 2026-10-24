@@ -46,3 +46,10 @@ export interface TaskPlanningInput {
 }
 
 export const proposalStatus = (draft: { status?: TaskProposalStatus; confirmed: boolean }): TaskProposalStatus => draft.status ?? (draft.confirmed ? "approved" : "pending");
+
+/** Revisions and client-edited wording still require an explicit decision. */
+export const proposalInEditing = (draft: { kind?: TaskProposalKind; editedAt?: string }) => Boolean(draft.editedAt || draft.kind === "update" || draft.kind === "cancel");
+
+export function pendingTaskCount(drafts: readonly { projectId: string; subprojectId?: string; status?: TaskProposalStatus; confirmed: boolean }[], projectId: string, subprojectId?: string) {
+  return drafts.filter(draft => draft.projectId === projectId && (!subprojectId || (draft.subprojectId ?? "main") === subprojectId) && proposalStatus(draft) === "pending").length;
+}
