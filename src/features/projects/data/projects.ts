@@ -6,7 +6,7 @@ export const projects: readonly Project[] = [
     "number": "01",
     "title": "Выбрали деталь. Нашли аналоги.",
     "shortTitle": "Моторика · автомагазин",
-    "cardTitle": "AnimeLove",
+    "cardTitle": "Магазин автозапчастей",
     "preview": [
       "Запчасть для клиента искали вручную.",
       "Связали каталог и внутреннюю базу.",
