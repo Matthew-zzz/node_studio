@@ -224,6 +224,7 @@ body:has(.home-landing) .footer {
 .landing-service-list {
   display: grid;
   gap: 9px;
+  overflow-anchor: none;
 }
 
 .landing-service-card {
