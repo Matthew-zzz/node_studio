@@ -93,7 +93,19 @@ body:has(.home-landing) .footer {
 
 .landing-hero {
   position: relative;
-  padding: clamp(80px,11vw,150px) 0 54px;
+  padding: 0 0 54px;
+}
+
+.landing-hero-video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin-inline: auto;
+  object-fit: contain;
+  object-position: center;
+  background: #fff;
 }
 
 .landing-kicker {
@@ -535,7 +547,7 @@ body:has(.home-landing) .footer {
 
 @media (max-width: 760px) {
   .landing-hero {
-    padding-top: 75px;
+    padding-top: 0;
     padding-bottom: 36px;
   }
 
