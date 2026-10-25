@@ -1,6 +1,7 @@
 import { DeviceFrame } from "@/components/ui/device-frame";
 import { Screenshot } from "@/features/projects/components/screenshot";
 import { getScreenshot } from "@/features/projects/data/screenshots";
+import { AnimeLoveCarousel } from "@/features/projects/components/anime-love-carousel";
 import type { Project } from "@/features/projects/model/types";
 
 const galleryHeadings: Readonly<Record<string, string>> = {
@@ -11,6 +12,7 @@ const galleryHeadings: Readonly<Record<string, string>> = {
 
 export function ProjectGallery({ project }: { project: Project }) {
   if (!project.gallery.length) return null;
+  if (project.slug === "anime-love") return <AnimeLoveCarousel slides={project.gallery} />;
   const hasMobile = project.gallery.some((screen) => getScreenshot(screen.src).mobile);
 
   return (
