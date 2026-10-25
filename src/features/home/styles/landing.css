@@ -223,14 +223,16 @@ body:has(.home-landing) .footer {
 
 .landing-service-list {
   display: grid;
+  width: min(100%, 1040px);
+  margin-inline: auto;
   gap: 9px;
   overflow-anchor: none;
 }
 
 .landing-service-card {
   --service-glow: #333b5d;
-  --service-collapsed-height: 110px;
-  --service-expanded-height: 250px;
+  --service-collapsed-height: 124px;
+  --service-expanded-height: 310px;
   --service-ease: cubic-bezier(.4,0,.2,1);
   position: relative;
   min-width: 0;
@@ -568,8 +570,8 @@ body:has(.home-landing) .footer {
   .landing-service-panel { grid-template-rows: 0fr; }
 
   .landing-service-card {
-    --service-collapsed-height: 80px;
-    --service-expanded-height: 390px;
+    --service-collapsed-height: 90px;
+    --service-expanded-height: 450px;
     height: var(--service-height, var(--service-collapsed-height));
   }
 
