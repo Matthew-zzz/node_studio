@@ -72,49 +72,6 @@ a.media:hover > img {
   line-height: 1.55;
 }
 
-.vectraBackdrop {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 42%, rgb(138 104 243 / 44%), transparent 40%),
-    linear-gradient(145deg, #151329 0%, #29234b 55%, #151a2e 100%);
-}
-
-.vectraPresentation {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 8% 11%;
-}
-
-.vectraPresentation :global(.project-stage) {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: auto;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.vectraPresentation :global(.presentation-screens) {
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 5%;
-}
-
-.vectraPresentation :global(.presentation-screen) {
-  height: 88%;
-  width: auto;
-  flex: 0 1 44%;
-}
-
-.vectraPresentation :global(.presentation-screen-2) {
-  transform: translateY(10%) rotate(5deg);
-}
-
 .conceptArtwork {
   position: absolute;
   inset: 0;
@@ -356,7 +313,4 @@ a.media:hover > img {
     font-size: 15px;
   }
 
-  .vectraPresentation {
-    padding: 10% 16%;
-  }
 }

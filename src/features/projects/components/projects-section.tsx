@@ -1,8 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
-import { ProjectPresentation } from "@/features/projects/components/project-presentation";
-import { projects } from "@/features/projects/data/projects";
 import styles from "./projects-section.module.css";
 
 const conceptProjects = [
@@ -74,10 +72,6 @@ function ConceptArtwork({ visual }: { visual: string }) {
 }
 
 export function ProjectsSection() {
-  const autoparts = projects.find((project) => project.slug === "autoparts");
-  const vectra = projects.find((project) => project.slug === "vectra");
-  if (!autoparts || !vectra) return null;
-
   return (
     <section className={`projects-section section ${styles.section}`} id="projects">
       <div className="container">
@@ -100,8 +94,7 @@ export function ProjectsSection() {
         <div className={styles.grid}>
           <article className={`${styles.item} ${styles.itemVectra} reveal`}>
             <Link className={styles.media} href="/projects/vectra/" aria-label="Открыть проект Vectra">
-              <div className={styles.vectraBackdrop} />
-              <div className={styles.vectraPresentation}><ProjectPresentation project={vectra} /></div>
+              <Image src="/assets/vectra-showcase.png" alt="Презентация Vectra — управление ИИ-ассистентами" fill sizes="(max-width: 760px) 100vw, 48vw" />
             </Link>
             <div className={styles.caption}>
               <p>База знаний и ИИ-агенты, которые отвечают пользователям по документам компании.</p>
