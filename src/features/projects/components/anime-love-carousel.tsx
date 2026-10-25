@@ -33,29 +33,9 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
   const current = slides[activeIndex];
 
   return (
-    <section className={`case-gallery section container ${styles.section}`} aria-labelledby="anime-carousel-heading">
-      <div className={styles.heading}>
-        <div className={styles.intro}>
-          <p className={styles.kicker}>
-            <span aria-hidden="true" />
-            ИНТЕРАКТИВНАЯ ГАЛЕРЕЯ · ANIMELOVE
-          </p>
-          <h2 id="anime-carousel-heading">Выбрать. Смотреть. Настроить.</h2>
-          <p className={styles.lead}>Четыре экрана — один цельный сервис внутри Telegram.</p>
-        </div>
-        <div className={styles.controls} aria-label="Управление каруселью">
-          <button className={styles.arrow} type="button" aria-label="Предыдущий экран" onClick={() => move(-1)}>
-            <Icon name="arrow" />
-          </button>
-          <span className={styles.counter} aria-live="polite">
-            {String(activeIndex + 1).padStart(2, "0")}
-            <span> / </span>
-            {String(count).padStart(2, "0")}
-          </span>
-          <button className={styles.arrow} type="button" aria-label="Следующий экран" onClick={() => move(1)}>
-            <Icon name="arrow" />
-          </button>
-        </div>
+    <section className={`case-gallery section container ${styles.section}`} aria-label="Экраны приложения AnimeLove">
+      <div className={styles.brand}>
+        <Image src="/assets/anime-love-logo-transparent.png" alt="AnimeLove" width={1000} height={280} priority />
       </div>
 
       <div
@@ -142,18 +122,33 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
             <span aria-hidden="true">↔</span>
             Перетяните, чтобы листать
           </span>
-          <div className={styles.pagination} aria-label="Выбрать экран">
-            {slides.map((slide, index) => (
-              <button
-                key={slide.src}
-                type="button"
-                className={styles.dot}
-                data-active={index === activeIndex}
-                aria-label={`Показать экран: ${slide.title}`}
-                aria-current={index === activeIndex ? "true" : undefined}
-                onClick={() => setActiveIndex(index)}
-              />
-            ))}
+          <div className={styles.navigation}>
+            <div className={styles.controls} aria-label="Управление каруселью">
+              <button className={styles.arrow} type="button" aria-label="Предыдущий экран" onClick={() => move(-1)}>
+                <Icon name="arrow" />
+              </button>
+              <span className={styles.counter} aria-live="polite">
+                {String(activeIndex + 1).padStart(2, "0")}
+                <span> / </span>
+                {String(count).padStart(2, "0")}
+              </span>
+              <button className={styles.arrow} type="button" aria-label="Следующий экран" onClick={() => move(1)}>
+                <Icon name="arrow" />
+              </button>
+            </div>
+            <div className={styles.pagination} aria-label="Выбрать экран">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.src}
+                  type="button"
+                  className={styles.dot}
+                  data-active={index === activeIndex}
+                  aria-label={`Показать экран: ${slide.title}`}
+                  aria-current={index === activeIndex ? "true" : undefined}
+                  onClick={() => setActiveIndex(index)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
