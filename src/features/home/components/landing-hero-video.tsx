@@ -33,7 +33,7 @@ export function LandingHeroVideo() {
       poster="/assets/node-studio-home-hero-poster.jpg"
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       aria-hidden="true"
     />
   );
