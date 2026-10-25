@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
-import { site } from "@/config/site";
 import { Faq } from "@/features/home/components/faq";
 import { LandingServiceCards } from "@/features/home/components/landing-service-cards";
+import { LandingContactButton } from "@/features/home/components/landing-contact-button";
 import { Process } from "@/features/home/components/process";
 import { ProjectsSection } from "@/features/projects/components/projects-section";
 import { Contact } from "@/components/sections/contact";
@@ -19,10 +18,7 @@ function HomeHero() {
       <div className="container">
         <div className="landing-hero-bottom">
           <div className="landing-hero-action">
-            <ExternalLink className="button button-primary" href={site.contact}>
-              Обсудить задачу
-              <Icon name="diagonal" />
-            </ExternalLink>
+            <LandingContactButton />
             <span>
               Напрямую с разработчиком
               <br />
