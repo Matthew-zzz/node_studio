@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
 import { serviceOfferings } from "@/features/services/data/services";
 import { getScreenshot } from "@/features/projects/data/screenshots";
@@ -19,65 +19,70 @@ const artworkByService: Readonly<Record<string, string>> = {
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [phase, setPhase] = useState(1);
+  const cardRefs = useRef<Array<HTMLElement | null>>([]);
 
   useEffect(() => {
-    if (activeIndex < 0) return;
-    const showDetails = window.setTimeout(() => setPhase(2), 320);
-    const finish = window.setTimeout(() => setPhase(3), 680);
-    return () => {
-      window.clearTimeout(showDetails);
-      window.clearTimeout(finish);
+    let frame = 0;
+    const updatePhases = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const viewportHeight = window.innerHeight || 1;
+        const enterAt = viewportHeight * 0.9;
+        const centerAt = viewportHeight * 0.22;
+        const exitAt = -viewportHeight * 0.65;
+
+        for (const card of cardRefs.current) {
+          if (!card) continue;
+          const top = card.getBoundingClientRect().top;
+          let progress = 0;
+
+          if (top < enterAt && top > centerAt) progress = (enterAt - top) / (enterAt - centerAt);
+          else if (top <= centerAt && top > exitAt) progress = (top - exitAt) / (centerAt - exitAt);
+
+          const phase = progress <= 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
+          if (card.dataset.phase === String(phase)) continue;
+          card.dataset.phase = String(phase);
+          const panel = card.querySelector<HTMLElement>(".landing-service-panel");
+          panel?.setAttribute("aria-hidden", String(phase < 2));
+          panel?.toggleAttribute("inert", phase < 3);
+        }
+      });
     };
-  }, [activeIndex]);
 
-  function activate(index: number) {
-    if (activeIndex === index) return;
-    setActiveIndex(index);
-    setPhase(1);
-  }
-
-  function toggle(index: number) {
-    if (activeIndex === index) {
-      setActiveIndex(-1);
-      setPhase(0);
-      return;
-    }
-    activate(index);
-  }
+    updatePhases();
+    window.addEventListener("scroll", updatePhases, { passive: true });
+    window.addEventListener("resize", updatePhases);
+    return () => {
+      window.removeEventListener("scroll", updatePhases);
+      window.removeEventListener("resize", updatePhases);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   return (
     <div className="landing-service-list">
       {services.map((service, index) => {
-        const active = activeIndex === index;
         const image = getScreenshot(artworkByService[service.id] ?? "/assets/autoparts-catalog.jpg");
         const panelId = `landing-service-panel-${service.id}`;
+        const titleId = `landing-service-title-${service.id}`;
 
         return (
           <article
-            className={`landing-service-card landing-service-${service.id}${active ? " is-active" : ""}`}
-            data-phase={active ? phase : 0}
+            className={`landing-service-card landing-service-${service.id}`}
+            data-phase="0"
+            aria-labelledby={titleId}
+            ref={(element) => { cardRefs.current[index] = element; }}
             key={service.id}
-            onPointerEnter={(event) => {
-              if (event.pointerType === "mouse" || event.pointerType === "pen") activate(index);
-            }}
-            onFocusCapture={() => activate(index)}
           >
             <div className="landing-service-art" aria-hidden="true">
               <Image src={image.src} alt="" fill sizes="(max-width: 760px) 100vw, 42vw" />
             </div>
-            <button
-              className="landing-service-trigger"
-              type="button"
-              aria-expanded={active}
-              aria-controls={panelId}
-              onClick={() => toggle(index)}
-            >
-              <span>{service.title}</span>
+            <div className="landing-service-trigger">
+              <h3 id={titleId}>{service.title}</h3>
               <span className="landing-service-number">{String(index + 1).padStart(2, "0")}</span>
-            </button>
-            <div className="landing-service-panel" id={panelId} aria-hidden={!active || phase < 2} inert={!active || phase < 3}>
+            </div>
+            <div className="landing-service-panel" id={panelId} aria-hidden="true" inert>
               <div className="landing-service-inner">
                 <div className="landing-service-copy">
                   <p>{service.description}</p>
