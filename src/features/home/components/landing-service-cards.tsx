@@ -8,7 +8,7 @@ import { serviceOfferings } from "@/features/services/data/services";
 import { getScreenshot } from "@/features/projects/data/screenshots";
 
 const artworkByService: Readonly<Record<string, string>> = {
-  website: "/assets/autoparts-catalog.jpg",
+  website: "/assets/white-site-growth.png",
   "new-product": "/assets/anime-catalog.jpg",
   improve: "/assets/autoparts-analogs.png",
   integrations: "/assets/autoparts-stock.jpg",
@@ -119,7 +119,8 @@ export function LandingServiceCards() {
   return (
     <div className="landing-service-list">
       {services.map((service, index) => {
-        const image = getScreenshot(artworkByService[service.id] ?? "/assets/autoparts-catalog.jpg");
+        const imageSrc = artworkByService[service.id] ?? "/assets/autoparts-catalog.jpg";
+        const image = service.id === "website" ? { src: imageSrc } : getScreenshot(imageSrc);
         const panelId = `landing-service-panel-${service.id}`;
         const titleId = `landing-service-title-${service.id}`;
 

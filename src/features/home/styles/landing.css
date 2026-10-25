@@ -480,6 +480,14 @@ body:has(.home-landing) .footer {
   transform: scale(1);
 }
 
+.landing-service-website[data-phase="2"] .landing-service-art img {
+  opacity: .4;
+}
+
+.landing-service-website[data-phase="3"] .landing-service-art img {
+  opacity: .68;
+}
+
 .home-landing .process-section {
   border: 0;
 }
