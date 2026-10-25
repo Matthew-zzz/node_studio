@@ -104,10 +104,6 @@ export function ProjectsSection() {
               <div className={styles.vectraPresentation}><ProjectPresentation project={vectra} /></div>
             </Link>
             <div className={styles.caption}>
-              <div>
-                <h3><Link href="/projects/vectra/">Vectra</Link></h3>
-                <span>ИИ-платформа · Telegram Mini App</span>
-              </div>
               <p>База знаний и ИИ-агенты, которые отвечают пользователям по документам компании.</p>
             </div>
           </article>
@@ -117,10 +113,6 @@ export function ProjectsSection() {
               <Image src="/assets/autoparts-showcase.png" alt="Премиальная презентация каталога автозапчастей и локальной системы магазина" fill sizes="(max-width: 760px) 100vw, 48vw" />
             </Link>
             <div className={styles.caption}>
-              <div>
-                <h3><Link href="/projects/autoparts/">Магазин автозапчастей</Link></h3>
-                <span>Каталог · аналоги · склад</span>
-              </div>
               <p>Поиск деталей, подбор аналогов и проверка остатков в одной системе для сотрудников.</p>
             </div>
           </article>
@@ -132,10 +124,6 @@ export function ProjectsSection() {
                 <span className={styles.conceptTag}>Концепт</span>
               </div>
               <div className={styles.caption}>
-                <div>
-                  <h3>{project.title}</h3>
-                  <span>{project.category}</span>
-                </div>
                 <p>{project.description}</p>
               </div>
             </article>
