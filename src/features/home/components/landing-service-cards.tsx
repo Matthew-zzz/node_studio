@@ -37,6 +37,9 @@ export function LandingServiceCards() {
             }}
             onFocusCapture={() => setActiveIndex(index)}
           >
+            <div className="landing-service-art" aria-hidden="true">
+              <Image src={image.src} alt="" fill sizes="(max-width: 760px) 100vw, 42vw" />
+            </div>
             <button
               className="landing-service-trigger"
               type="button"
@@ -48,15 +51,14 @@ export function LandingServiceCards() {
               <span className="landing-service-number">{String(index + 1).padStart(2, "0")}</span>
             </button>
             <div className="landing-service-panel" id={panelId} aria-hidden={!active} inert={!active}>
-              <div className="landing-service-copy">
-                <p>{service.description}</p>
-                <Link href={service.proof?.href ?? "#contact"}>
-                  {service.proof?.label ?? "Обсудить задачу"}
-                  <span className="landing-service-arrow"><Icon name="diagonal" /></span>
-                </Link>
-              </div>
-              <div className="landing-service-art" aria-hidden="true">
-                <Image src={image.src} alt="" fill sizes="(max-width: 760px) 100vw, 42vw" />
+              <div className="landing-service-inner">
+                <div className="landing-service-copy">
+                  <p>{service.description}</p>
+                  <Link href={service.proof?.href ?? "#contact"}>
+                    {service.proof?.label ?? "Обсудить задачу"}
+                    <span className="landing-service-arrow"><Icon name="diagonal" /></span>
+                  </Link>
+                </div>
               </div>
             </div>
           </article>
