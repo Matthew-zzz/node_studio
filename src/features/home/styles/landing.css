@@ -246,10 +246,6 @@ body:has(.home-landing) .footer {
   height: var(--service-height, var(--service-expanded-height));
 }
 
-.landing-service-card:last-child {
-  transition: height .48s var(--service-ease), background-color .52s var(--service-ease), color .52s var(--service-ease);
-}
-
 .landing-service-new-product { --service-glow: #5728a1; }
 .landing-service-improve { --service-glow: #174276; }
 .landing-service-integrations { --service-glow: #263887; }
