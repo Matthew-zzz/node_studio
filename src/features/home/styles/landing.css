@@ -20,6 +20,7 @@ body:has(.home-landing) {
 }
 
 body:has(.home-landing) .header {
+  height: 64px;
   border-bottom: 0;
   background: rgb(255 255 255 / 94%);
   backdrop-filter: blur(12px);
@@ -93,6 +94,7 @@ body:has(.home-landing) .footer {
 
 .landing-hero {
   position: relative;
+  overflow: hidden;
   padding: 0 0 54px;
 }
 
@@ -100,11 +102,10 @@ body:has(.home-landing) .footer {
   display: block;
   width: 100%;
   max-width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
+  height: min(52vw, calc(100svh - 64px));
   margin-inline: auto;
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: center 60%;
   background: #fff;
 }
 
@@ -546,9 +547,21 @@ body:has(.home-landing) .footer {
 }
 
 @media (max-width: 760px) {
+  body:has(.home-landing) .header {
+    height: calc(56px + env(safe-area-inset-top));
+  }
+
+  body:has(.home-landing) .header-inner {
+    height: 56px;
+  }
+
   .landing-hero {
     padding-top: 0;
     padding-bottom: 36px;
+  }
+
+  .landing-hero-video {
+    height: min(52vw, calc(100svh - 56px - env(safe-area-inset-top)));
   }
 
   .landing-hero h1 {
