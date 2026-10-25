@@ -481,13 +481,19 @@ body:has(.home-landing) .footer {
 }
 
 .landing-service-website[data-phase="2"] .landing-service-art img,
-.landing-service-new-product[data-phase="2"] .landing-service-art img {
+.landing-service-new-product[data-phase="2"] .landing-service-art img,
+.landing-service-improve[data-phase="2"] .landing-service-art img,
+.landing-service-integrations[data-phase="2"] .landing-service-art img,
+.landing-service-telegram[data-phase="2"] .landing-service-art img {
   opacity: .4;
   transform: scale(.78);
 }
 
 .landing-service-website[data-phase="3"] .landing-service-art img,
-.landing-service-new-product[data-phase="3"] .landing-service-art img {
+.landing-service-new-product[data-phase="3"] .landing-service-art img,
+.landing-service-improve[data-phase="3"] .landing-service-art img,
+.landing-service-integrations[data-phase="3"] .landing-service-art img,
+.landing-service-telegram[data-phase="3"] .landing-service-art img {
   opacity: .68;
   transform: scale(.78);
 }

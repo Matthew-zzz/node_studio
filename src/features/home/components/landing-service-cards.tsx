@@ -8,16 +8,16 @@ import { serviceOfferings } from "@/features/services/data/services";
 import { getScreenshot } from "@/features/projects/data/screenshots";
 
 const artworkByService: Readonly<Record<string, string>> = {
-  website: "/assets/white-site-growth.png",
-  "new-product": "/assets/project-stages.png",
-  improve: "/assets/autoparts-analogs.png",
-  integrations: "/assets/autoparts-stock.jpg",
-  telegram: "/assets/anime-profile.jpg",
+  website: "/assets/stage-web-analytics.png",
+  "new-product": "/assets/stage-project-launch.png",
+  improve: "/assets/stage-project-update.png",
+  integrations: "/assets/stage-integrations.png",
+  telegram: "/assets/stage-telegram-miniapp.png",
   automation: "/assets/autoparts-administration.jpg",
   ai: "/assets/vectra-knowledge.png",
 };
 
-const providedArtworkServices = new Set(["website", "new-product"]);
+const providedArtworkServices = new Set(["website", "new-product", "improve", "integrations", "telegram"]);
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
