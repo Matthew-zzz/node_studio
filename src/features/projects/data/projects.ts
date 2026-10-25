@@ -80,7 +80,7 @@ export const projects: readonly Project[] = [
     "slug": "anime-love",
     "mobileScreenshots": true,
     "number": "02",
-    "title": "Нашли аниме. Сразу смотрите.",
+    "title": "AnimeLove",
     "shortTitle": "AnimeLove",
     "cardTitle": "AnimeLove",
     "preview": [
