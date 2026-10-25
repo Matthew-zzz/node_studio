@@ -1,23 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
+import { LandingServiceArtwork } from "@/features/home/components/landing-service-artwork";
 import { serviceOfferings } from "@/features/services/data/services";
-import { getScreenshot } from "@/features/projects/data/screenshots";
-
-const artworkByService: Readonly<Record<string, string>> = {
-  website: "/assets/stage-web-analytics.png",
-  "new-product": "/assets/stage-project-launch.png",
-  improve: "/assets/stage-project-update.png",
-  integrations: "/assets/stage-integrations.png",
-  telegram: "/assets/stage-telegram-miniapp.png",
-  automation: "/assets/autoparts-administration.jpg",
-  ai: "/assets/vectra-knowledge.png",
-};
-
-const providedArtworkServices = new Set(["website", "new-product", "improve", "integrations", "telegram"]);
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
@@ -115,8 +102,6 @@ export function LandingServiceCards() {
   return (
     <div className="landing-service-list">
       {services.map((service, index) => {
-        const imageSrc = artworkByService[service.id] ?? "/assets/autoparts-catalog.jpg";
-        const image = providedArtworkServices.has(service.id) ? { src: imageSrc } : getScreenshot(imageSrc);
         const panelId = `landing-service-panel-${service.id}`;
         const titleId = `landing-service-title-${service.id}`;
 
@@ -129,7 +114,7 @@ export function LandingServiceCards() {
             key={service.id}
           >
             <div className="landing-service-art" aria-hidden="true">
-              <Image src={image.src} alt="" fill sizes="(max-width: 760px) 100vw, 42vw" />
+              <LandingServiceArtwork serviceId={service.id} />
             </div>
             <div className="landing-service-trigger">
               <h3 id={titleId}>{service.title}</h3>

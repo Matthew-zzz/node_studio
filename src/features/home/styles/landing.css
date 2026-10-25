@@ -438,7 +438,7 @@ body:has(.home-landing) .footer {
 .landing-service-card[data-phase="2"] .landing-service-art {
   transform: translateX(0) scale(1);
   opacity: .52;
-  filter: blur(4px) brightness(.72);
+  filter: blur(1.5px) brightness(.82);
 }
 
 .landing-service-card[data-phase="3"] .landing-service-art {
@@ -456,42 +456,42 @@ body:has(.home-landing) .footer {
   pointer-events: none;
 }
 
-.landing-service-art img {
-  object-fit: cover;
-  object-position: center;
-  opacity: .75;
-  mix-blend-mode: lighten;
+.landing-service-illustration {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: .44;
   transform: scale(1.08);
-  transition: transform .56s var(--service-ease), opacity .5s var(--service-ease), filter .52s var(--service-ease);
+  transform-origin: 60% 55%;
+  transition: transform .7s var(--service-ease), opacity .62s var(--service-ease), filter .62s var(--service-ease);
 }
 
-.landing-service-card[data-phase="2"] .landing-service-art img {
-  opacity: .57;
-  filter: blur(2px);
-  transform: scale(1.03);
+.landing-service-illustration [pathLength="1"] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.05s cubic-bezier(.22,.72,.2,1);
 }
 
-.landing-service-card[data-phase="3"] .landing-service-art img {
-  opacity: .9;
+.landing-service-card[data-phase="2"] .landing-service-illustration {
+  opacity: .66;
+  filter: blur(1px);
+  transform: scale(1.02);
+}
+
+.landing-service-card[data-phase="2"] .landing-service-illustration [pathLength="1"] {
+  stroke-dashoffset: .42;
+}
+
+.landing-service-card[data-phase="3"] .landing-service-illustration {
+  opacity: .96;
+  filter: blur(0);
   transform: scale(1);
 }
 
-.landing-service-website[data-phase="2"] .landing-service-art img,
-.landing-service-new-product[data-phase="2"] .landing-service-art img,
-.landing-service-improve[data-phase="2"] .landing-service-art img,
-.landing-service-integrations[data-phase="2"] .landing-service-art img,
-.landing-service-telegram[data-phase="2"] .landing-service-art img {
-  opacity: .4;
-  transform: scale(.78);
-}
-
-.landing-service-website[data-phase="3"] .landing-service-art img,
-.landing-service-new-product[data-phase="3"] .landing-service-art img,
-.landing-service-improve[data-phase="3"] .landing-service-art img,
-.landing-service-integrations[data-phase="3"] .landing-service-art img,
-.landing-service-telegram[data-phase="3"] .landing-service-art img {
-  opacity: .68;
-  transform: scale(.78);
+.landing-service-card[data-phase="3"] .landing-service-illustration [pathLength="1"] {
+  stroke-dashoffset: 0;
 }
 
 .home-landing .process-section {
