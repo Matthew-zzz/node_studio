@@ -229,6 +229,7 @@ body:has(.home-landing) .footer {
 
 .landing-service-card {
   --service-glow: #333b5d;
+  --service-ease: cubic-bezier(.4,0,.2,1);
   position: relative;
   min-width: 0;
   height: 136px;
@@ -236,7 +237,7 @@ body:has(.home-landing) .footer {
   border-radius: 20px;
   background: #eee;
   color: #111;
-  transition: height .32s cubic-bezier(.42,0,.58,1), background-color .42s cubic-bezier(.42,0,.58,1), color .42s cubic-bezier(.42,0,.58,1);
+  transition: height .56s var(--service-ease), background-color .58s var(--service-ease), color .58s var(--service-ease);
 }
 
 .landing-service-new-product { --service-glow: #5728a1; }
@@ -284,22 +285,15 @@ body:has(.home-landing) .footer {
   font-weight: 500;
   letter-spacing: -.045em;
   line-height: 1.1;
-  filter: blur(0);
-  transition: transform .42s cubic-bezier(.42,0,.58,1), filter .36s cubic-bezier(.42,0,.58,1), color .36s cubic-bezier(.42,0,.58,1);
-}
-
-.landing-service-card[data-phase="1"] .landing-service-trigger>h3 {
-  filter: blur(.25px);
+  transition: transform .5s var(--service-ease), color .5s var(--service-ease);
 }
 
 .landing-service-card[data-phase="2"] .landing-service-trigger>h3 {
   color: #e0e0e2;
-  filter: blur(.45px);
 }
 
 .landing-service-card[data-phase="3"] .landing-service-trigger>h3 {
   transform: translateX(2px);
-  filter: blur(0);
 }
 
 .landing-service-number {
@@ -319,7 +313,7 @@ body:has(.home-landing) .footer {
   display: grid;
   grid-template-rows: 0fr;
   pointer-events: none;
-  transition: grid-template-rows .36s cubic-bezier(.42,0,.58,1);
+  transition: grid-template-rows .52s var(--service-ease);
 }
 
 .landing-service-card[data-phase="2"] .landing-service-panel,
@@ -335,7 +329,7 @@ body:has(.home-landing) .footer {
   min-height: 0;
   overflow: hidden;
   padding: 0 54px;
-  transition: padding .34s cubic-bezier(.42,0,.58,1);
+  transition: padding .5s var(--service-ease), min-height .5s var(--service-ease);
 }
 
 .landing-service-card[data-phase="2"] .landing-service-inner {
@@ -355,7 +349,7 @@ body:has(.home-landing) .footer {
   padding-block: 2px;
   opacity: 0;
   transform: translateY(12px);
-  transition: opacity .38s cubic-bezier(.42,0,.58,1), transform .38s cubic-bezier(.42,0,.58,1);
+  transition: opacity .48s var(--service-ease), transform .52s var(--service-ease);
 }
 
 .landing-service-card[data-phase="2"] .landing-service-copy,
@@ -370,8 +364,7 @@ body:has(.home-landing) .footer {
   color: #bfc0c4;
   font-size: clamp(15px,1.35vw,18px);
   line-height: 1.65;
-  filter: blur(.65px);
-  transition: color .38s cubic-bezier(.42,0,.58,1), filter .38s cubic-bezier(.42,0,.58,1);
+  transition: color .48s var(--service-ease);
 }
 
 .landing-service-copy>a {
@@ -384,17 +377,15 @@ body:has(.home-landing) .footer {
   opacity: 0;
   visibility: hidden;
   transform: translateY(10px);
-  transition: opacity .34s cubic-bezier(.42,0,.58,1), transform .36s cubic-bezier(.42,0,.58,1), visibility 0s linear .34s;
+  transition: opacity .42s var(--service-ease), transform .48s var(--service-ease), visibility 0s linear .42s;
 }
 
 .landing-service-card[data-phase="2"] .landing-service-copy>p {
   color: #c8c9cd;
-  filter: blur(.4px);
 }
 
 .landing-service-card[data-phase="3"] .landing-service-copy>p {
   color: #d0d1d5;
-  filter: blur(0);
 }
 
 .landing-service-card[data-phase="3"] .landing-service-copy>a {
@@ -434,7 +425,7 @@ body:has(.home-landing) .footer {
   background: radial-gradient(ellipse at 55% 95%,color-mix(in srgb,var(--service-glow) 80%,#161821),#0a0b10 72%);
   transform: translateX(4%) scale(1.04);
   opacity: 0;
-  transition: transform .42s cubic-bezier(.42,0,.58,1), opacity .38s cubic-bezier(.42,0,.58,1), filter .42s cubic-bezier(.42,0,.58,1);
+  transition: transform .52s var(--service-ease), opacity .5s var(--service-ease), filter .52s var(--service-ease);
 }
 
 .landing-service-card[data-phase="1"] .landing-service-art {
@@ -468,7 +459,7 @@ body:has(.home-landing) .footer {
   opacity: .75;
   mix-blend-mode: lighten;
   transform: scale(1.08);
-  transition: transform .46s cubic-bezier(.42,0,.58,1), opacity .38s cubic-bezier(.42,0,.58,1), filter .42s cubic-bezier(.42,0,.58,1);
+  transition: transform .56s var(--service-ease), opacity .5s var(--service-ease), filter .52s var(--service-ease);
 }
 
 .landing-service-card[data-phase="2"] .landing-service-art img {
@@ -479,7 +470,6 @@ body:has(.home-landing) .footer {
 
 .landing-service-card[data-phase="3"] .landing-service-art img {
   opacity: .9;
-  filter: blur(0);
   transform: scale(1);
 }
 
@@ -583,7 +573,7 @@ body:has(.home-landing) .footer {
     width: 100%;
     height: 270px;
     transform: translateY(16px) scale(1.03);
-    transition: transform .42s cubic-bezier(.42,0,.58,1), opacity .38s cubic-bezier(.42,0,.58,1), filter .42s cubic-bezier(.42,0,.58,1);
+    transition: transform .52s var(--service-ease), opacity .5s var(--service-ease), filter .52s var(--service-ease);
   }
 
   .landing-service-art::before { background: linear-gradient(180deg,#090a0d 0%,rgb(9 10 13 / 52%) 40%,transparent 100%); }
