@@ -17,7 +17,7 @@ export function ProjectDetail({ project }: { project: Project }) {
   ] as const;
 
   return (
-    <>
+    <div className="case-page">
       <section className="case-hero container">
         <Link className="back-link" href="/#projects">← Все проекты</Link>
         <h1>{project.title}</h1>
@@ -73,6 +73,6 @@ export function ProjectDetail({ project }: { project: Project }) {
         </section>
       )}
       <Contact />
-    </>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main id="main" className="not-found container" role="alert">
+    <main id="main" className="not-found marketing-error container" role="alert">
       <h1>Не удалось открыть страницу.</h1>
       <p>Попробуйте загрузить её ещё раз.</p>
       <div className="error-actions">

@@ -14,6 +14,7 @@ import "@/styles/responsive-layout.css";
 import "@/features/projects/styles/project-stories.css";
 import "@/styles/globals.css";
 import "@/features/home/styles/landing.css";
+import "@/features/projects/styles/case-page.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <main id="main" className="not-found container">
+    <main id="main" className="not-found marketing-error container">
       <span className="eyebrow">404 / СТРАНИЦА НЕ НАЙДЕНА</span>
       <h1>
         Кажется, здесь
