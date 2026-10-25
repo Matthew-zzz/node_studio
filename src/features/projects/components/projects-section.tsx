@@ -110,6 +110,21 @@ export function ProjectsSection() {
             </div>
           </article>
 
+          <article className={`${styles.item} ${styles.itemAi} reveal`}>
+            <div className={styles.media}>
+              <video autoPlay loop muted playsInline preload="metadata" aria-label="Видео презентация NodeStudio AI">
+                <source src="/assets/nodestudio-ai-showcase.mp4" type="video/mp4" />
+              </video>
+              <div className={styles.aiTitle}>
+                <span>ИИ-агент студии</span>
+                <h3>NodeStudio AI</h3>
+              </div>
+            </div>
+            <div className={styles.caption}>
+              <p>Наш ИИ-агент проконсультирует по вопросам разработки, услугам студии и вашему проекту.</p>
+            </div>
+          </article>
+
           {conceptProjects.map((project) => (
             <article className={`${styles.item} ${styles.conceptItem} reveal`} key={project.visual}>
               <div className={styles.media}>
