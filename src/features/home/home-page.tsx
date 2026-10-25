@@ -7,6 +7,7 @@ import { LandingServiceCards } from "@/features/home/components/landing-service-
 import { Process } from "@/features/home/components/process";
 import { ProjectsSection } from "@/features/projects/components/projects-section";
 import { Contact } from "@/components/sections/contact";
+import { LandingHeroVideo } from "@/features/home/components/landing-hero-video";
 
 function HomeHero() {
   return (
@@ -14,16 +15,7 @@ function HomeHero() {
       <h1 className="sr-only" id="intro-title">
         Свяжем ваши сервисы. Автоматизируем рутину. Запустим ваш продукт.
       </h1>
-      <video
-        className="landing-hero-video"
-        src="/assets/node-studio-home-hero.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        aria-hidden="true"
-      />
+      <LandingHeroVideo />
       <div className="container">
         <div className="landing-hero-bottom">
           <div className="landing-hero-action">
