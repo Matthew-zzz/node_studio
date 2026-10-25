@@ -24,8 +24,8 @@ export function LandingServiceCards() {
 
   useEffect(() => {
     if (activeIndex < 0) return;
-    const showDetails = window.setTimeout(() => setPhase(2), 550);
-    const finish = window.setTimeout(() => setPhase(3), 1120);
+    const showDetails = window.setTimeout(() => setPhase(2), 350);
+    const finish = window.setTimeout(() => setPhase(3), 800);
     return () => {
       window.clearTimeout(showDetails);
       window.clearTimeout(finish);
