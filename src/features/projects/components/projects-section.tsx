@@ -113,6 +113,17 @@ export function ProjectsSection() {
             </div>
           </article>
 
+          <article className={`${styles.item} ${styles.itemNexus} reveal`}>
+            <div className={styles.media}>
+              <ConceptArtwork visual="nexus" />
+              <span className={styles.conceptTag}>Концепт</span>
+              <span className={styles.conceptTitle}>Nexus</span>
+            </div>
+            <div className={styles.caption}>
+              <p>Единое рабочее пространство, которое собирает задачи, документы и коммуникации команды.</p>
+            </div>
+          </article>
+
           <article className={`${styles.item} ${styles.itemAi} reveal`}>
             <div className={styles.media}>
               <video autoPlay loop muted playsInline preload="metadata" aria-label="Видео презентация NodeStudio AI">

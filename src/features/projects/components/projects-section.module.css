@@ -26,6 +26,24 @@
   margin-top: clamp(52px, 9vw, 120px);
 }
 
+.itemNexus {
+  grid-column: 1;
+  margin-top: 0 !important;
+}
+
+.conceptTitle {
+  position: absolute;
+  z-index: 4;
+  right: 22px;
+  bottom: 19px;
+  color: #25263a;
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 700;
+  letter-spacing: -.06em;
+  line-height: 1;
+  text-shadow: 0 1px 16px rgb(255 255 255 / 70%);
+}
+
 .media {
   position: relative;
   display: block;
@@ -182,6 +200,12 @@ a.media:hover > img {
   --concept-orb: #ecc4a9;
   --concept-orb-2: #c4cbe6;
   background: #f0e9e2;
+}
+
+.conceptArtwork[data-visual="nexus"] {
+  --concept-orb: #b2b9ed;
+  --concept-orb-2: #a7ddd2;
+  background: #e8eaf5;
 }
 
 .conceptWindow {
@@ -368,6 +392,8 @@ a.media:hover > img {
     grid-column: auto;
     margin-top: 0 !important;
   }
+
+  .itemNexus { grid-column: auto; }
 
   .media {
     aspect-ratio: 1.1 / 1;
