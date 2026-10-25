@@ -114,8 +114,7 @@ export function ProjectsSection() {
 
           <article className={`${styles.item} ${styles.itemAutoparts} reveal`}>
             <Link className={styles.media} href="/projects/autoparts/" aria-label="Открыть проект магазина автозапчастей">
-              <Image src="/assets/autoparts-catalog.jpg" alt="Каталог локальной системы магазина автозапчастей" fill sizes="(max-width: 760px) 100vw, 48vw" />
-              <span className={styles.imageTag}>Система магазина</span>
+              <Image src="/assets/autoparts-showcase.png" alt="Премиальная презентация каталога автозапчастей и локальной системы магазина" fill sizes="(max-width: 760px) 100vw, 48vw" />
             </Link>
             <div className={styles.caption}>
               <div>
