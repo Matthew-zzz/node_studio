@@ -23,44 +23,80 @@ export function LandingServiceCards() {
 
   useEffect(() => {
     let frame = 0;
-    let firstUpdate = true;
+    const stageStarts = new Map<number, number>();
+    const cards = cardRefs.current.filter((card): card is HTMLElement => card !== null);
+
+    const setPhase = (card: HTMLElement, phase: number, openHeight: number) => {
+      card.style.setProperty("--service-height", `${openHeight}px`);
+      if (card.dataset.phase === String(phase)) return;
+      card.dataset.phase = String(phase);
+      const panel = card.querySelector<HTMLElement>(".landing-service-panel");
+      panel?.setAttribute("aria-hidden", String(phase < 2));
+      panel?.toggleAttribute("inert", phase < 3);
+    };
+
+    const firstCard = cards[0];
+    if (!firstCard) return;
+
+    const getHeights = (card: HTMLElement) => {
+      const styles = window.getComputedStyle(card);
+      return {
+        collapsed: Number.parseFloat(styles.getPropertyValue("--service-collapsed-height")) || 110,
+        expanded: Number.parseFloat(styles.getPropertyValue("--service-expanded-height")) || 250,
+      };
+    };
+
+    // The first card is open on entry. Each next card grows by the same
+    // number of pixels the page scrolls, keeping the following card at the
+    // viewport's lower edge until the current card is fully open.
+    const firstHeights = getHeights(firstCard);
+    setPhase(firstCard, 3, firstHeights.expanded);
+
     const updatePhases = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
         const viewportHeight = window.innerHeight || 1;
-        const enterAt = viewportHeight * 0.9;
-        const centerAt = viewportHeight * 0.22;
-        const exitAt = -viewportHeight * 0.65;
+        const scrollY = window.scrollY;
 
-        const cards = cardRefs.current.flatMap((card) => {
-          if (!card) return [];
-          const top = card.getBoundingClientRect().top;
-          let progress = 0;
-
-          if (top < enterAt && top > centerAt) progress = (enterAt - top) / (enterAt - centerAt);
-          else if (top <= centerAt && top > exitAt) progress = (top - exitAt) / (centerAt - exitAt);
-
-          return [{ card, progress }];
-        });
-        const active = cards.reduce<(typeof cards)[number] | null>((selected, current) => (
-          current.progress > (selected?.progress ?? 0) ? current : selected
-        ), null);
-
-        for (const { card } of cards) {
-          const progress = active?.card === card ? active.progress : 0;
-          const targetPhase = progress <= 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
-          const previousPhase = Number(card.dataset.phase ?? 0);
-          const phase = firstUpdate || targetPhase === 0
-            ? targetPhase
-            : Math.max(previousPhase - 1, Math.min(previousPhase + 1, targetPhase));
-          if (card.dataset.phase === String(phase)) continue;
-          card.dataset.phase = String(phase);
-          const panel = card.querySelector<HTMLElement>(".landing-service-panel");
-          panel?.setAttribute("aria-hidden", String(phase < 2));
-          panel?.toggleAttribute("inert", phase < 3);
+        // Reversing the page scroll also reverses the current card's opening.
+        for (const [index, startY] of [...stageStarts.entries()].sort(([a], [b]) => b - a)) {
+          if (scrollY < startY) {
+            stageStarts.delete(index);
+            const card = cards[index];
+            if (card) {
+              const heights = getHeights(card);
+              setPhase(card, 0, heights.collapsed);
+            }
+          }
         }
-        firstUpdate = false;
+
+        for (let index = 1; index < cards.length; index += 1) {
+          const card = cards[index];
+          if (!card) continue;
+          const heights = getHeights(card);
+          const startY = stageStarts.get(index);
+
+          if (startY === undefined) {
+            // Card N starts opening only when card N+1 is fully visible.
+            const anchor = cards[index + 1];
+            if (!anchor) break;
+            const anchorRect = anchor.getBoundingClientRect();
+            if (anchorRect.top < 0 || anchorRect.bottom > viewportHeight) break;
+            // Account for scroll steps that crossed the viewport edge between
+            // two animation frames; this keeps the anchor aligned to the edge.
+            stageStarts.set(index, scrollY - Math.max(0, viewportHeight - anchorRect.bottom));
+          }
+
+          const stageStart = stageStarts.get(index) ?? scrollY;
+          const distance = heights.expanded - heights.collapsed;
+          const opened = Math.max(0, Math.min(distance, scrollY - stageStart));
+          const progress = distance > 0 ? opened / distance : 1;
+          const phase = progress === 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
+          setPhase(card, phase, heights.collapsed + opened);
+
+          if (progress < 1) break;
+        }
       });
     };
 
@@ -84,7 +120,7 @@ export function LandingServiceCards() {
         return (
           <article
             className={`landing-service-card landing-service-${service.id}`}
-            data-phase="0"
+            data-phase={index === 0 ? "3" : "0"}
             aria-labelledby={titleId}
             ref={(element) => { cardRefs.current[index] = element; }}
             key={service.id}
