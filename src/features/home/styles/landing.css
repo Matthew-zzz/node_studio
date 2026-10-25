@@ -254,7 +254,7 @@ body:has(.home-landing) .footer {
   border-radius: 20px;
   background: #eee;
   color: #111;
-  transition: background-color .52s var(--service-ease), color .52s var(--service-ease);
+  transition: background-color .2s var(--service-ease), color .16s linear;
 }
 
 .landing-service-card:first-child {
@@ -303,7 +303,7 @@ body:has(.home-landing) .footer {
   font-weight: 500;
   letter-spacing: -.045em;
   line-height: 1.1;
-  transition: transform .5s var(--service-ease), color .5s var(--service-ease);
+  transition: transform .22s var(--service-ease), color .12s linear;
 }
 
 .landing-service-card[data-phase="2"] .landing-service-trigger>h3 {
@@ -311,6 +311,7 @@ body:has(.home-landing) .footer {
 }
 
 .landing-service-card[data-phase="3"] .landing-service-trigger>h3 {
+  color: #fff;
   transform: translateX(2px);
 }
 
