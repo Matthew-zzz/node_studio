@@ -23,6 +23,7 @@ export function LandingServiceCards() {
 
   useEffect(() => {
     let frame = 0;
+    let firstUpdate = true;
     const updatePhases = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
@@ -32,21 +33,34 @@ export function LandingServiceCards() {
         const centerAt = viewportHeight * 0.22;
         const exitAt = -viewportHeight * 0.65;
 
-        for (const card of cardRefs.current) {
-          if (!card) continue;
+        const cards = cardRefs.current.flatMap((card) => {
+          if (!card) return [];
           const top = card.getBoundingClientRect().top;
           let progress = 0;
 
           if (top < enterAt && top > centerAt) progress = (enterAt - top) / (enterAt - centerAt);
           else if (top <= centerAt && top > exitAt) progress = (top - exitAt) / (centerAt - exitAt);
 
-          const phase = progress <= 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
+          return [{ card, progress }];
+        });
+        const active = cards.reduce<(typeof cards)[number] | null>((selected, current) => (
+          current.progress > (selected?.progress ?? 0) ? current : selected
+        ), null);
+
+        for (const { card } of cards) {
+          const progress = active?.card === card ? active.progress : 0;
+          const targetPhase = progress <= 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
+          const previousPhase = Number(card.dataset.phase ?? 0);
+          const phase = firstUpdate || targetPhase === 0
+            ? targetPhase
+            : Math.max(previousPhase - 1, Math.min(previousPhase + 1, targetPhase));
           if (card.dataset.phase === String(phase)) continue;
           card.dataset.phase = String(phase);
           const panel = card.querySelector<HTMLElement>(".landing-service-panel");
           panel?.setAttribute("aria-hidden", String(phase < 2));
           panel?.toggleAttribute("inert", phase < 3);
         }
+        firstUpdate = false;
       });
     };
 
