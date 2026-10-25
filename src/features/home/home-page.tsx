@@ -3,9 +3,9 @@ import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { site } from "@/config/site";
 import { Faq } from "@/features/home/components/faq";
+import { LandingServiceCards } from "@/features/home/components/landing-service-cards";
 import { Process } from "@/features/home/components/process";
 import { ProjectsSection } from "@/features/projects/components/projects-section";
-import { serviceOfferings } from "@/features/services/data/services";
 import { Contact } from "@/components/sections/contact";
 
 function HomeHero() {
@@ -52,23 +52,7 @@ function HomeCapabilities() {
           </div>
           <p>Подключаемся к задаче на нужном этапе: проектируем решение, разрабатываем и доводим его до запуска.</p>
         </div>
-        <div className="landing-capability-grid">
-          {serviceOfferings.filter(service => service.id !== "individual").map((service, index) => (
-            <article className="landing-capability" key={service.id}>
-              <span className="landing-capability-index">{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <h3>{service.title}</h3>
-                <p>{service.description}</p>
-                {service.proof && (
-                <Link href={service.proof.href}>
-                  {service.proof.label}
-                  <Icon name="diagonal" />
-                </Link>
-)}
-              </div>
-            </article>
-          ))}
-        </div>
+        <LandingServiceCards />
       </div>
     </section>
   );
