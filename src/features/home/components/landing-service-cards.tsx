@@ -9,13 +9,15 @@ import { getScreenshot } from "@/features/projects/data/screenshots";
 
 const artworkByService: Readonly<Record<string, string>> = {
   website: "/assets/white-site-growth.png",
-  "new-product": "/assets/anime-catalog.jpg",
+  "new-product": "/assets/project-stages.png",
   improve: "/assets/autoparts-analogs.png",
   integrations: "/assets/autoparts-stock.jpg",
   telegram: "/assets/anime-profile.jpg",
   automation: "/assets/autoparts-administration.jpg",
   ai: "/assets/vectra-knowledge.png",
 };
+
+const providedArtworkServices = new Set(["website", "new-product"]);
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
@@ -120,7 +122,7 @@ export function LandingServiceCards() {
     <div className="landing-service-list">
       {services.map((service, index) => {
         const imageSrc = artworkByService[service.id] ?? "/assets/autoparts-catalog.jpg";
-        const image = service.id === "website" ? { src: imageSrc } : getScreenshot(imageSrc);
+        const image = providedArtworkServices.has(service.id) ? { src: imageSrc } : getScreenshot(imageSrc);
         const panelId = `landing-service-panel-${service.id}`;
         const titleId = `landing-service-title-${service.id}`;
 
