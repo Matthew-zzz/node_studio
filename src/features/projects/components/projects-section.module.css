@@ -116,6 +116,21 @@ a.media:hover > img {
   line-height: 1.55;
 }
 
+.askButton {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  margin-top: 17px;
+  padding-inline: 18px;
+  gap: 13px;
+  font-size: 14px;
+}
+
+.askButton :global(.icon) {
+  width: 16px;
+  height: 16px;
+}
+
 .conceptArtwork {
   position: absolute;
   inset: 0;

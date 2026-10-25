@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ExternalLink } from "@/components/ui/external-link";
+import { Icon } from "@/components/ui/icon";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
+import { site } from "@/config/site";
 import styles from "./projects-section.module.css";
 
 const conceptProjects = [
@@ -122,6 +125,10 @@ export function ProjectsSection() {
             </div>
             <div className={styles.caption}>
               <p>Наш ИИ-агент проконсультирует по вопросам разработки, услугам студии и вашему проекту.</p>
+              <ExternalLink className={`button button-primary ${styles.askButton}`} href={site.contact}>
+                Спросить
+                <Icon name="diagonal" />
+              </ExternalLink>
             </div>
           </article>
 
