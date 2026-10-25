@@ -80,7 +80,13 @@ export function LandingServiceCards() {
           if (startY === undefined) {
             // Card N starts opening only when card N+1 is fully visible.
             const anchor = cards[index + 1];
-            if (!anchor) break;
+            if (!anchor) {
+              const cardRect = card.getBoundingClientRect();
+              if (cardRect.top >= 0 && cardRect.bottom <= viewportHeight) {
+                setPhase(card, 3, heights.expanded);
+              }
+              break;
+            }
             const anchorRect = anchor.getBoundingClientRect();
             if (anchorRect.top < 0 || anchorRect.bottom > viewportHeight) break;
             // Account for scroll steps that crossed the viewport edge between
