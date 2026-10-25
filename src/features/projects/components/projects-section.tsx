@@ -31,6 +31,12 @@ const conceptProjects = [
     description: "Каталог предметов для дома с подборками, быстрым поиском и удобным оформлением заказа.",
     visual: "noma",
   },
+  {
+    title: "Nexus",
+    category: "Рабочее пространство",
+    description: "Единое рабочее пространство, которое собирает задачи, документы и коммуникации команды.",
+    visual: "nexus",
+  },
 ] as const;
 
 function ConceptArtwork({ visual }: { visual: string }) {
@@ -113,14 +119,12 @@ export function ProjectsSection() {
             </div>
           </article>
 
-          <article className={`${styles.item} ${styles.itemNexus} reveal`}>
-            <div className={styles.media}>
-              <ConceptArtwork visual="nexus" />
-              <span className={styles.conceptTag}>Концепт</span>
-              <span className={styles.conceptTitle}>Nexus</span>
-            </div>
+          <article className={`${styles.item} ${styles.itemAnimeLove} reveal`}>
+            <Link className={styles.media} href="/projects/anime-love/" aria-label="Открыть проект AnimeLove">
+              <Image src="/assets/animelove-showcase.png" alt="Презентация AnimeLove — каталог аниме и подборки" fill sizes="(max-width: 760px) 100vw, 48vw" />
+            </Link>
             <div className={styles.caption}>
-              <p>Единое рабочее пространство, которое собирает задачи, документы и коммуникации команды.</p>
+              <p>Каталог аниме, встроенный плеер и персональные профили в приложении Telegram.</p>
             </div>
           </article>
 
