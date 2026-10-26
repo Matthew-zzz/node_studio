@@ -37,6 +37,13 @@
   line-height: 1.7;
 }
 
+.terms-date {
+  margin: calc(clamp(54px, 8vw, 92px) * -0.7) 0 clamp(46px, 7vw, 76px);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+
 .terms-page section {
   max-width: 780px;
   padding-block: 28px;
