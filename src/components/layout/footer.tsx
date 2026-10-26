@@ -15,6 +15,20 @@ export function Footer() {
           <Icon name="diagonal" />
         </ExternalLink>
       </div>
+      <div className="container footer-contacts" aria-label="Контактные данные">
+        <div>
+          <span>Проекты и общие вопросы</span>
+          <a href={`mailto:${site.projectsEmail}`}>{site.projectsEmail}</a>
+        </div>
+        <div>
+          <span>Техническая поддержка</span>
+          <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>
+        </div>
+        <div>
+          <span>Телефон</span>
+          <a href={`tel:${site.phone}`}>{site.phoneDisplay}</a>
+        </div>
+      </div>
       <div className="container footer-bottom">
         <span>
           ©

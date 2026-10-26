@@ -749,6 +749,42 @@ h2 {
   height: 15px;
 }
 
+.footer-contacts {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 22px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.footer-contacts>div {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.footer-contacts>div>span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.footer-contacts>div>a {
+  width: fit-content;
+  max-width: 100%;
+  color: var(--muted-strong);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  transition: color .18s ease;
+}
+
+.footer-contacts>div>a:hover {
+  color: var(--accent);
+}
+
 .footer-bottom {
   display: flex;
   justify-content: space-between;
