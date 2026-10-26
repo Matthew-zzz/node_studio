@@ -5,7 +5,6 @@ export const site = {
   "handle": "@node_studio_bot",
   "supportTelegram": "https://t.me/node_studio_support",
   "supportHandle": "@node_studio_support",
-  "supportEmail": "support@node-studio.ru",
   "projectsEmail": "projects@node-studio.ru",
   "phone": "+79992790115",
   "phoneDisplay": "+7 (999) 279-01-15",

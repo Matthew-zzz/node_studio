@@ -17,12 +17,8 @@ export function Footer() {
       </div>
       <div className="container footer-contacts" aria-label="Контактные данные">
         <div>
-          <span>Проекты и общие вопросы</span>
+          <span>Все вопросы, включая техподдержку</span>
           <a href={`mailto:${site.projectsEmail}`}>{site.projectsEmail}</a>
-        </div>
-        <div>
-          <span>Техническая поддержка</span>
-          <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>
         </div>
         <div>
           <span>Телефон</span>
