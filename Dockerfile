@@ -19,16 +19,14 @@ WORKDIR /app
 ARG SOURCE_REVISION=local
 LABEL org.opencontainers.image.source="https://github.com/Matthew-zzz/node_studio" \
       org.opencontainers.image.revision="${SOURCE_REVISION}"
-ENV NODE_ENV=production PORTAL_HOST=0.0.0.0 PORTAL_PORT=3000 \
-    PORTAL_STATIC_DIR=/app/dist PORTAL_DATABASE=/data/portal.sqlite \
-    PORTAL_STATE_DIR=/data PORTAL_BOOTSTRAP_EMPLOYEES=true SOURCE_REVISION=${SOURCE_REVISION}
-RUN mkdir -p /data && chown node:node /data && chmod 0700 /data
-COPY --from=build --chown=node:node /app/dist ./dist
+ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0 SITE_OUTPUT_DIR=dist SOURCE_REVISION=${SOURCE_REVISION}
+COPY --from=build /app/dist ./dist
 COPY --chown=node:node package.json ./
-COPY --chown=node:node server ./server
-COPY --chown=node:node src/features/portal/model ./src/features/portal/model
-COPY --chown=node:node src/features/payments/model ./src/features/payments/model
+COPY --chown=node:node scripts/serve.mjs ./scripts/serve.mjs
+COPY --chown=node:node scripts/healthcheck.mjs ./scripts/healthcheck.mjs
+COPY --chown=node:node scripts/lib/static-server.mjs ./scripts/lib/static-server.mjs
+COPY --chown=node:node scripts/lib/static-handler.mjs ./scripts/lib/static-handler.mjs
 USER node
 EXPOSE 3000
-HEALTHCHECK --interval=15s --timeout=8s --start-period=20s --retries=3 CMD ["node", "server/healthcheck.ts"]
-CMD ["node", "server/main.ts"]
+HEALTHCHECK --interval=15s --timeout=8s --start-period=10s --retries=3 CMD ["node", "scripts/healthcheck.mjs"]
+CMD ["node", "scripts/serve.mjs"]

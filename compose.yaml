@@ -12,21 +12,9 @@ services:
     init: true
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-3158}:3000"
-    env_file:
-      - path: .env
-        required: false
     environment:
-      PORTAL_HOST: 0.0.0.0
-      PORTAL_PORT: "3000"
-      PORTAL_ORIGIN: ${PORTAL_ORIGIN:-https://node-studio.ru}
-      PORTAL_STATIC_DIR: /app/dist
-      PORTAL_DATABASE: /data/portal.sqlite
-      PORTAL_STATE_DIR: /data
-      PORTAL_BOOTSTRAP_EMPLOYEES: "true"
-      PORTAL_MOCK_PAYMENTS: ${PORTAL_MOCK_PAYMENTS:-true}
-      PORTAL_TRUST_PROXY: ${PORTAL_TRUST_PROXY:-true}
-    volumes:
-      - portal-data:/data
+      HOST: 0.0.0.0
+      PORT: "3000"
     read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
@@ -43,4 +31,5 @@ services:
         max-file: "3"
 
 volumes:
+  # Retired portal data is deliberately detached and preserved pending a deletion decision.
   portal-data:

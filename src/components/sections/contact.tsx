@@ -51,12 +51,8 @@ export function Contact() {
               <ResponsiveCopy wide={`${site.hours} · обычно отвечаем в течение часа`} compact={`${site.hours} · ответ до часа`} />
             </p>
           </div>
-          <div className="contact-support" aria-label="Связь и поддержка">
-            <span>Связь и техническая поддержка</span>
-            <ExternalLink href={site.supportTelegram}>
-              <Icon name="telegram" />
-              {site.supportHandle}
-            </ExternalLink>
+          <div className="contact-support" aria-label="Почта для всех вопросов">
+            <span>Почта для всех вопросов</span>
             <a href={`mailto:${site.projectsEmail}`}>
               <Icon name="mail" />
               {site.projectsEmail}

@@ -1,11 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  ...(process.env.NODE_ENV === "development" ? {
-    async rewrites() {
-      return [{ source: "/api/portal/:path*", destination: "http://127.0.0.1:3158/api/portal/:path*" }];
-    },
-  } : { output: "export" }),
+  output: "export",
   trailingSlash: true,
   reactStrictMode: true,
   poweredByHeader: false,

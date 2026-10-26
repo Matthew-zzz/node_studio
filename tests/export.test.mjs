@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 nextEnv.loadEnvConfig(root, false);
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const origin = new URL(process.env.SITE_ORIGIN || "https://node-studio.ru").origin;
-const routes = ["/", "/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/"];
+const routes = ["/", "/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/", "/terms/"];
 
 function descendants(node) {
   return [node, ...(node.childNodes ?? []).flatMap(descendants)];
@@ -94,34 +94,6 @@ test("sitemap, robots and custom 404 are exported", async () => {
   const notFound = await readFile(resolve(output, "404.html"), "utf8");
   assert.ok(notFound.includes("Кажется, здесь"));
   assert.ok(notFound.includes('name="robots" content="noindex"'));
-});
-
-test("portal and checkout routes are exported and excluded from indexing", async () => {
-  const sitemap = await readFile(resolve(output, "sitemap.xml"), "utf8");
-  for (const route of ["/cabinet/", "/checkout/", "/recover/", "/miniapp/", "/miniapp/checkout/", "/miniapp/recover/"]) {
-    const { nodes } = await documentAt(route);
-    assert.equal(nodes.filter(node => node.tagName === "h1").length, 1);
-    assert.equal(nodes.filter(node => node.tagName === "main").length, 1);
-    assert.ok(nodes.some(node => node.tagName === "meta" && attribute(node, "name") === "robots" && attribute(node, "content").includes("noindex")));
-    assert.ok(!sitemap.includes(`<loc>${origin}${route}</loc>`));
-  }
-});
-
-test("production export excludes demo pages, customer fixtures and browser role switching", async () => {
-  for (const route of ["cabinet-demo", "checkout-demo", "payment-demo"]) {
-    await assert.rejects(access(resolve(output, route, "index.html")), { code: "ENOENT" });
-  }
-  async function verify(directory) {
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      const path = resolve(directory, entry.name);
-      if (entry.isDirectory()) await verify(path);
-      else if (/\.(?:js|html)$/.test(entry.name)) {
-        const content = await readFile(path, "utf8");
-        for (const marker of ["nodo.portal.demo.v1", "demo-client", "Fixture-password-2026", "Быстрое переключение кабинетов"]) assert.ok(!content.includes(marker), `test-only content excluded: ${marker}`);
-      }
-    }
-  }
-  await verify(output);
 });
 
 test("exported assets match the source files byte for byte", async () => {

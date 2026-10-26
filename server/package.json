@@ -1,6 +1,0 @@
-{
-  "name": "node-studio-portal-api",
-  "private": true,
-  "type": "module",
-  "engines": { "node": ">=24.0.0" }
-}

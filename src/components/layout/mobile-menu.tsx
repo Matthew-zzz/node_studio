@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Brand } from "@/components/ui/brand";
 import { Icon } from "@/components/ui/icon";
+import { ExternalLink } from "@/components/ui/external-link";
 import { navigation } from "@/config/navigation";
 import { site } from "@/config/site";
 
@@ -103,10 +104,10 @@ export function MobileMenu() {
             <span className="status-dot" />
             {site.hours}
           </p>
-          <Link className="button button-primary" href="/cabinet/" onClick={() => close(false)}>
-            Личный кабинет
-            <Icon name="people" />
-          </Link>
+          <ExternalLink className="button button-primary" href={site.contact} onClick={() => close(false)}>
+            Обсудить задачу
+            <Icon name="diagonal" />
+          </ExternalLink>
           <span>Общаемся в Telegram.</span>
         </div>
       </dialog>
