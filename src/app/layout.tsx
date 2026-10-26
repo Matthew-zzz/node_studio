@@ -15,6 +15,7 @@ import "@/features/projects/styles/project-stories.css";
 import "@/styles/globals.css";
 import "@/features/home/styles/landing.css";
 import "@/features/projects/styles/case-page.css";
+import "@/features/legal/styles/terms.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),

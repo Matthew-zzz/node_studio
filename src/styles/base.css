@@ -751,7 +751,7 @@ h2 {
 
 .footer-contacts {
   display: grid;
-  grid-template-columns: repeat(3,minmax(0,1fr));
+  grid-template-columns: repeat(4,minmax(0,1fr));
   gap: 22px;
   margin-top: 24px;
   padding-top: 20px;
@@ -785,6 +785,12 @@ h2 {
   color: var(--accent);
 }
 
+.footer-requisites {
+  color: var(--muted-strong);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .footer-bottom {
   display: flex;
   justify-content: space-between;
@@ -794,6 +800,14 @@ h2 {
   margin-top: 28px;
   font-size: 9px;
   color: var(--muted);
+}
+
+.footer-bottom>a:first-of-type {
+  color: var(--muted);
+}
+
+.footer-bottom>a:first-of-type:hover {
+  color: var(--accent);
 }
 
 

@@ -28,6 +28,14 @@ export function Footer() {
           <span>Телефон</span>
           <a href={`tel:${site.phone}`}>{site.phoneDisplay}</a>
         </div>
+        <div>
+          <span>Исполнитель · самозанятый</span>
+          <span className="footer-requisites">
+            Фатнев Матвей Сергеевич
+            <br />
+            ИНН 463312994377
+          </span>
+        </div>
       </div>
       <div className="container footer-bottom">
         <span>
@@ -36,6 +44,7 @@ export function Footer() {
           {' '}
           Node Studio
         </span>
+        <Link href="/terms/">Условия оказания услуг и возврата</Link>
         <Link href="/#main">Наверх ↑</Link>
       </div>
     </footer>
