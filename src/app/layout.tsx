@@ -21,8 +21,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
   ...createMetadata(),
   icons: {
-    icon: [{ url: "/assets/brand/favicon-32.png?v=transparent", type: "image/png", sizes: "32x32" }],
-    apple: [{ url: "/assets/brand/apple-touch-icon.png?v=transparent", sizes: "180x180", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "16x16 32x32 48x48" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
