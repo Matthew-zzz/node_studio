@@ -547,6 +547,15 @@ body:has(.home-landing) .footer {
   border-color: #dfe3eb;
 }
 
+.home-landing .contact-support {
+  border-color: #dfe3eb;
+  color: #454d60;
+}
+
+.home-landing .contact-support>a:hover {
+  color: #553ba1;
+}
+
 @media (max-width: 760px) {
   body:has(.home-landing) .header {
     height: calc(56px + env(safe-area-inset-top));

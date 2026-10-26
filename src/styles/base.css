@@ -665,6 +665,44 @@ h2 {
   height: 13px;
 }
 
+.contact-support {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 19px;
+  padding-top: 17px;
+  border-top: 1px solid #ffffff38;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.contact-support>span {
+  font-weight: 650;
+}
+
+.contact-support>a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: inherit;
+  overflow-wrap: anywhere;
+  transition: color .2s ease;
+}
+
+.contact-support>a:hover {
+  color: var(--brand-cyan);
+}
+
+.contact-support .icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
 .contact-note {
   color: var(--muted);
   font-size: 10px;

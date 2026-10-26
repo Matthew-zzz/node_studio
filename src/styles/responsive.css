@@ -650,6 +650,20 @@
     height: 15px;
     width: 15px;
   }
+  .contact-support {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    gap: 4px;
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  .contact-support>span {
+    margin-bottom: 3px;
+  }
+  .contact-support>a {
+    min-height: 44px;
+    font-size: 14px;
+  }
   .contact-note {
     font-size: 12px;
     line-height: 1.8;
