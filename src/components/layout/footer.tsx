@@ -40,6 +40,7 @@ export function Footer() {
           {' '}
           Node Studio
         </span>
+        <Link href="/services/">Услуги и стоимость</Link>
         <Link href="/terms/">Публичная оферта</Link>
         <Link href="/#main">Наверх ↑</Link>
       </div>

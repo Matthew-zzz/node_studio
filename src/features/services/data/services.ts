@@ -33,6 +33,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "website",
     "icon": "site",
     "title": "Сайты для бизнеса",
+    "priceFromRub": 3000,
     "description": "Создадим сайт под вашу задачу: от страницы с описанием услуг до личного кабинета или рабочего интерфейса. Подключим формы и нужные данные.",
     "tasks": [
       "Лендинг или сайт компании",
@@ -45,6 +46,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "new-product",
     "icon": "service",
     "title": "Проект с нуля",
+    "priceFromRub": 10000,
     "description": "Поможем определить функции первой версии. Разработаем интерфейс, внутреннюю логику и подключение данных, затем развернём приложение на сервере.",
     "tasks": [
       "Функции первой версии без лишнего",
@@ -61,6 +63,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "improve",
     "icon": "check",
     "title": "Доработка проекта",
+    "priceFromRub": 1500,
     "description": "Разработаем недостающую функцию или отдельный инструмент: подбор товаров, сопоставление записей, личный кабинет или панель для сотрудников. Сначала разберёмся в коде и ограничениях текущей системы.",
     "tasks": [
       "Новые функции под ваш процесс",
@@ -73,6 +76,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "integrations",
     "icon": "database",
     "title": "Связь сервисов",
+    "priceFromRub": 5000,
     "description": "Свяжем сайт, внешние сервисы и вашу базу данных. Настроим получение, обработку и обновление информации по правилам вашего бизнеса.",
     "tasks": [
       "Связь сайта, CRM, таблиц и баз",
@@ -89,6 +93,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "telegram",
     "icon": "telegram",
     "title": "Боты и мини-приложения",
+    "priceFromRub": 2500,
     "description": "Создадим Telegram-бота для заявок, уведомлений и ответов или мини-приложение со своим интерфейсом. Подключим данные и нужные рабочие сценарии.",
     "tasks": [
       "Диалоги, заявки и уведомления",
@@ -105,6 +110,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "automation",
     "icon": "trigger",
     "title": "Скрипты и автоматизация",
+    "priceFromRub": 1500,
     "description": "Автоматизируем повторяющиеся операции: сбор заявок, обновление данных и отправку уведомлений. Сотрудникам останется обработка ситуаций, где нужно их решение.",
     "tasks": [
       "Сбор и обработка данных",
@@ -121,6 +127,7 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     "id": "ai",
     "icon": "spark",
     "title": "Внедрение ИИ",
+    "priceFromRub": 5000,
     "description": "Создадим ИИ-помощника, которому можно задать вопрос по вашим материалам. Подключим его к Telegram или встроим в приложение.",
     "tasks": [
       "Ответы по документам компании",

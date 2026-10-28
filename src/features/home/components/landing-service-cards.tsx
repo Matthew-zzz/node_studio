@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
 import { LandingServiceArtwork } from "@/features/home/components/landing-service-artwork";
 import { serviceOfferings } from "@/features/services/data/services";
+import { formatServicePrice } from "@/features/services/lib/pricing";
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
@@ -117,7 +118,10 @@ export function LandingServiceCards() {
               <LandingServiceArtwork serviceId={service.id} />
             </div>
             <div className="landing-service-trigger">
-              <h3 id={titleId}>{service.title}</h3>
+              <h3 id={titleId}>
+                {service.title}
+                {service.priceFromRub !== undefined && <span className="landing-service-price">{formatServicePrice(service.priceFromRub)}</span>}
+              </h3>
               <span className="landing-service-number">{String(index + 1).padStart(2, "0")}</span>
             </div>
             <div className="landing-service-panel" id={panelId} aria-hidden="true" inert>

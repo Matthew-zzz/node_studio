@@ -323,6 +323,30 @@ body:has(.home-landing) .footer {
   transition: color .4s ease;
 }
 
+.landing-service-price {
+  display: block;
+  margin-top: 10px;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.landing-service-pricing-note {
+  width: min(100%, 1040px);
+  margin: 0 auto 28px;
+  color: #697286;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.landing-service-pricing-note a {
+  color: #553ba1;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .landing-service-card[data-phase="2"] .landing-service-number,
 .landing-service-card[data-phase="3"] .landing-service-number {
   color: #85878d;
@@ -605,7 +629,7 @@ body:has(.home-landing) .footer {
   .landing-service-panel { grid-template-rows: 0fr; }
 
   .landing-service-card {
-    --service-collapsed-height: 90px;
+    --service-collapsed-height: 124px;
     --service-expanded-height: 450px;
     height: var(--service-height, var(--service-collapsed-height));
   }

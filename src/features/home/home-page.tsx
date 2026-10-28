@@ -8,6 +8,7 @@ import { Process } from "@/features/home/components/process";
 import { ProjectsSection } from "@/features/projects/components/projects-section";
 import { Contact } from "@/components/sections/contact";
 import { LandingHeroVideo } from "@/features/home/components/landing-hero-video";
+import { servicePricingNote } from "@/features/services/lib/pricing";
 
 function HomeHero() {
   return (
@@ -50,6 +51,11 @@ function HomeCapabilities() {
           </div>
           <p>Подключаемся к задаче на нужном этапе: проектируем решение, разрабатываем и доводим его до запуска.</p>
         </div>
+        <p className="landing-service-pricing-note">
+          {servicePricingNote}
+          {" "}
+          <Link href="/services/">Описание услуг и стоимость →</Link>
+        </p>
         <LandingServiceCards />
       </div>
     </section>

@@ -15,5 +15,6 @@ export interface ServiceOffering {
   readonly description: string;
   readonly tasks: readonly string[];
   readonly result: string;
+  readonly priceFromRub?: number;
   readonly proof?: { readonly href: string; readonly label: string };
 }
