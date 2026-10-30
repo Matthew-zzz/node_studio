@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "assets:showcases": "node scripts/prepare-project-showcases.mjs",
     "build": "next build --webpack && node scripts/finalize-export.mjs",
     "preview": "node scripts/serve.mjs",
     "lint": "eslint . --max-warnings=0",

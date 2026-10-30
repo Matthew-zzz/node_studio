@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
 import { site } from "@/config/site";
 import { ProjectShowcase, type ProjectShowcaseItem } from "./project-showcase";
+import { ShowcaseImage } from "./showcase-image";
 import styles from "./projects-section.module.css";
 
 const conceptProjects = [
@@ -94,7 +94,7 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     content: (
       <>
         <Link className={styles.media} href="/projects/vectra/" aria-label="Открыть проект Vectra">
-          <Image src="/assets/vectra-showcase.png" alt="Презентация Vectra — управление ИИ-ассистентами" fill sizes="(max-width: 760px) 100vw, 48vw" />
+          <ShowcaseImage name="vectra" alt="Презентация Vectra — управление ИИ-ассистентами" />
         </Link>
         <div className={styles.caption}>
           <p>База знаний и ИИ-агенты, которые отвечают пользователям по документам компании.</p>
@@ -109,7 +109,7 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     content: (
       <>
         <Link className={styles.media} href="/projects/autoparts/" aria-label="Открыть проект магазина автозапчастей">
-          <Image src="/assets/autoparts-showcase.png" alt="Премиальная презентация каталога автозапчастей и локальной системы магазина" fill sizes="(max-width: 760px) 100vw, 48vw" />
+          <ShowcaseImage name="autoparts" alt="Премиальная презентация каталога автозапчастей и локальной системы магазина" />
         </Link>
         <div className={styles.caption}>
           <p>Поиск деталей, подбор аналогов и проверка остатков в одной системе для сотрудников.</p>
@@ -125,7 +125,7 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     content: (
       <>
         <Link className={styles.media} href="/projects/anime-love/" aria-label="Открыть проект AnimeLove">
-          <Image src="/assets/animelove-showcase.png" alt="Презентация AnimeLove — каталог аниме и подборки" fill sizes="(max-width: 760px) 100vw, 48vw" />
+          <ShowcaseImage name="animeLove" alt="Презентация AnimeLove — каталог аниме и подборки" />
         </Link>
         <div className={styles.caption}>
           <p>Каталог аниме, встроенный плеер и персональные профили в приложении Telegram.</p>
