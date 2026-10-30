@@ -19,6 +19,7 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
   const [focused, setFocused] = useState(false);
   const startX = useRef<number | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
+  const activeSlide = useRef<HTMLDivElement>(null);
   const count = slides.length;
 
   const move = useCallback((step: number) => {
@@ -59,6 +60,61 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
       reducedMotion.removeEventListener("change", syncAutoplay);
     };
   }, [count, move, hovered, focused]);
+
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+    let bounds: DOMRect | undefined;
+    let tilted: HTMLElement | null = null;
+    let x = 0;
+    let y = 0;
+    const reset = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      bounds = undefined;
+      tilted?.style.removeProperty("--tilt-x");
+      tilted?.style.removeProperty("--tilt-y");
+      tilted = null;
+    };
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" || event.buttons || !finePointer.matches || reducedMotion.matches || document.hidden) return;
+      x = event.clientX;
+      y = event.clientY;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        bounds ??= element.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        tilted = activeSlide.current;
+        // Only the active plane changes, at most once per frame. Avoid inherited
+        // variables invalidating every screenshot during pointer movement.
+        tilted?.style.setProperty("--tilt-x", `${((x - bounds.left) / bounds.width - 0.5) * 3.5}deg`);
+        tilted?.style.setProperty("--tilt-y", `${((y - bounds.top) / bounds.height - 0.5) * -2.5}deg`);
+      });
+    };
+    element.addEventListener("pointermove", onMove);
+    element.addEventListener("pointerleave", reset);
+    element.addEventListener("pointerdown", reset);
+    window.addEventListener("scroll", reset, { passive: true });
+    window.addEventListener("resize", reset);
+    document.addEventListener("visibilitychange", reset);
+    reducedMotion.addEventListener("change", reset);
+    finePointer.addEventListener("change", reset);
+    return () => {
+      reset();
+      element.removeEventListener("pointermove", onMove);
+      element.removeEventListener("pointerleave", reset);
+      element.removeEventListener("pointerdown", reset);
+      window.removeEventListener("scroll", reset);
+      window.removeEventListener("resize", reset);
+      document.removeEventListener("visibilitychange", reset);
+      reducedMotion.removeEventListener("change", reset);
+      finePointer.removeEventListener("change", reset);
+    };
+  }, []);
 
   if (!count) return null;
   const current = slides[activeIndex];
@@ -117,18 +173,6 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
             startX.current = event.clientX;
             if (event.pointerType !== "mouse") event.currentTarget.setPointerCapture(event.pointerId);
           }}
-          onPointerMove={(event) => {
-            if (event.pointerType !== "mouse" || startX.current !== null) return;
-            const bounds = event.currentTarget.getBoundingClientRect();
-            const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-            const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-            viewport.current?.style.setProperty("--tilt-x", `${x * 3.5}deg`);
-            viewport.current?.style.setProperty("--tilt-y", `${y * -2.5}deg`);
-          }}
-          onPointerLeave={() => {
-            viewport.current?.style.setProperty("--tilt-x", "0deg");
-            viewport.current?.style.setProperty("--tilt-y", "0deg");
-          }}
           onPointerUp={(event) => {
             if (startX.current === null) return;
             const distance = event.clientX - startX.current;
@@ -145,7 +189,9 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
               <div
                 className={styles.slide}
                 key={slide.src}
+                ref={offset === 0 ? activeSlide : undefined}
                 data-active={offset === 0}
+                data-visible={distance <= 1}
                 aria-hidden={offset !== 0}
                 role="group"
                 aria-roledescription="слайд"

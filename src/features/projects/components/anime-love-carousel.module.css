@@ -121,8 +121,7 @@
   width: min(64vw,760px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #ded4f250;
-  filter: blur(70px);
+  background: radial-gradient(ellipse,#ded4f250,transparent 70%);
   transform: translate(-50%,-50%);
 }
 
@@ -139,7 +138,8 @@
   height: clamp(380px,50vw,640px);
   perspective: 1500px;
   perspective-origin: 50% 47%;
-  transform-style: preserve-3d;
+  /* The explicit height reserves space while offscreen contents are skipped. */
+  content-visibility: auto;
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
@@ -159,15 +159,17 @@
   border: 1px solid #ffffffd9;
   border-radius: 22px;
   background: linear-gradient(145deg,#ffffffed,#f9f8fbeb);
-  box-shadow: 0 35px 85px #17132b27,0 8px 20px #17132b16,inset 0 1px #fff;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  transition: transform .9s var(--carousel-ease),opacity .65s ease,filter .65s ease,box-shadow .7s var(--carousel-ease);
-  will-change: transform,opacity;
+  box-shadow: 0 16px 32px #17132b26,inset 0 1px #fff;
+  /* Perspective on the viewport keeps the 3D arrangement. Each screen is a
+     single flat surface; filters and nested 3D scenes add costly render passes. */
+  transition: transform .9s var(--carousel-ease),opacity .65s ease,visibility 0s;
 }
 
-.slide[data-active="false"] { filter: saturate(.72) brightness(.95); }
-.slide[data-active="true"] { box-shadow: 0 42px 100px #17132b30,0 12px 28px #17132b1d,inset 0 1px #fff; }
+.slide[data-visible="false"] {
+  visibility: hidden;
+  /* Let the departing neighbour finish fading before removing its layer. */
+  transition-delay: 0s,0s,.9s;
+}
 
 .imageFrame {
   width: 100%;

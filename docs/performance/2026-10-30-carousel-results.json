@@ -1,0 +1,692 @@
+{
+  "baselineRevision": "4196d1bd7b6ddb68a134c5b842d94ac8c15b6e39",
+  "route": "/projects/anime-love/",
+  "method": "Sequential headless Chromium runs on the same VPS; initial navigation settled before measuring. requestAnimationFrame scrolls through the carousel twice over 6400 ms; CDP tracing enabled for both versions. Synthetic measurements, not physical devices or field percentiles.",
+  "beforeOrigin": "https://node-studio.ru",
+  "afterOrigin": "http://127.0.0.1:3161",
+  "before": [
+    {
+      "name": "desktop",
+      "frames": {
+        "count": 209,
+        "p95": 50,
+        "max": 100,
+        "over33": 53,
+        "over50": 10
+      },
+      "totals": {
+        "UpdateLayoutTree": {
+          "count": 16,
+          "ms": 4.483,
+          "maxMs": 0.598
+        },
+        "PrePaint": {
+          "count": 418,
+          "ms": 27.255000000000013,
+          "maxMs": 1.444
+        },
+        "Layerize": {
+          "count": 210,
+          "ms": 1.9729999999999928,
+          "maxMs": 0.447
+        },
+        "Layout": {
+          "count": 3,
+          "ms": 0.877,
+          "maxMs": 0.349
+        },
+        "Paint": {
+          "count": 10,
+          "ms": 5.829000000000001,
+          "maxMs": 1.075
+        },
+        "RasterTask": {
+          "count": 129,
+          "ms": 119.73800000000001,
+          "maxMs": 7.66
+        }
+      },
+      "inp": {
+        "value": 120,
+        "inputDelay": 0.699999988079071,
+        "processingDuration": 3.300000011920929,
+        "presentationDelay": 116
+      },
+      "layers": [
+        {
+          "width": 0,
+          "height": 0,
+          "paintCount": 0,
+          "compositingReasons": [],
+          "compositingReasonIds": []
+        },
+        {
+          "width": 1440,
+          "height": 4307,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Is the document.rootScroller.",
+            "Is a scrollable overflow element using accelerated scrolling."
+          ],
+          "compositingReasonIds": [
+            "RootScroller",
+            "OverflowScrolling"
+          ]
+        },
+        {
+          "width": 1196,
+          "height": 844,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint.",
+            "Has backface-visibility: hidden."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform",
+            "BackfaceVisibilityHidden"
+          ]
+        },
+        {
+          "width": 1196,
+          "height": 844,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform"
+          ]
+        },
+        {
+          "width": 1196,
+          "height": 844,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform"
+          ]
+        },
+        {
+          "width": 1240,
+          "height": 888,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has a trivial 3d transform.",
+            "Has a will-change: transform compositing hint.",
+            "Has a will-change: opacity compositing hint.",
+            "Leaf of a 3D scene, for flattening its descendants into that scene."
+          ],
+          "compositingReasonIds": [
+            "Trivial3DTransform",
+            "WillChangeTransform",
+            "WillChangeOpacity",
+            "Transform3DSceneLeaf"
+          ]
+        },
+        {
+          "width": 1280,
+          "height": 106,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has an active accelerated transform animation or transition.",
+            "Has an active accelerated opacity animation or transition."
+          ],
+          "compositingReasonIds": [
+            "ActiveTransformAnimation",
+            "ActiveOpacityAnimation"
+          ]
+        },
+        {
+          "width": 1280,
+          "height": 575,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Overlaps other composited content."
+          ],
+          "compositingReasonIds": [
+            "Overlap"
+          ]
+        },
+        {
+          "width": 1440,
+          "height": 88,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Is sticky position.",
+            "Has a backdrop filter."
+          ],
+          "compositingReasonIds": [
+            "StickyPosition",
+            "BackdropFilter"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mobile-cpu6",
+      "frames": {
+        "count": 385,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "over33": 0,
+        "over50": 0
+      },
+      "totals": {
+        "Paint": {
+          "count": 13,
+          "ms": 13.703000000000001,
+          "maxMs": 3.808
+        },
+        "Layerize": {
+          "count": 388,
+          "ms": 22.416000000000036,
+          "maxMs": 5.319
+        },
+        "RasterTask": {
+          "count": 42,
+          "ms": 63.444,
+          "maxMs": 8.502
+        },
+        "PrePaint": {
+          "count": 773,
+          "ms": 256.0679999999993,
+          "maxMs": 5.676
+        },
+        "UpdateLayoutTree": {
+          "count": 28,
+          "ms": 34.85,
+          "maxMs": 4.525
+        },
+        "Layout": {
+          "count": 2,
+          "ms": 2.646,
+          "maxMs": 1.659
+        }
+      },
+      "inp": {
+        "value": 216,
+        "inputDelay": 63.30000001192093,
+        "processingDuration": 82,
+        "presentationDelay": 70.69999998807907
+      },
+      "layers": [
+        {
+          "width": 0,
+          "height": 0,
+          "paintCount": 0,
+          "compositingReasons": [],
+          "compositingReasonIds": []
+        },
+        {
+          "width": 412,
+          "height": 3770,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Is the document.rootScroller.",
+            "Is a scrollable overflow element using accelerated scrolling."
+          ],
+          "compositingReasonIds": [
+            "RootScroller",
+            "OverflowScrolling"
+          ]
+        },
+        {
+          "width": 575,
+          "height": 456,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint.",
+            "Has backface-visibility: hidden."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform",
+            "BackfaceVisibilityHidden"
+          ]
+        },
+        {
+          "width": 575,
+          "height": 456,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform"
+          ]
+        },
+        {
+          "width": 575,
+          "height": 456,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has a 3d transform.",
+            "Has a will-change: transform compositing hint."
+          ],
+          "compositingReasonIds": [
+            "3DTransform",
+            "WillChangeTransform"
+          ]
+        },
+        {
+          "width": 619,
+          "height": 500,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has a trivial 3d transform.",
+            "Has a will-change: transform compositing hint.",
+            "Has a will-change: opacity compositing hint.",
+            "Leaf of a 3D scene, for flattening its descendants into that scene."
+          ],
+          "compositingReasonIds": [
+            "Trivial3DTransform",
+            "WillChangeTransform",
+            "WillChangeOpacity",
+            "Transform3DSceneLeaf"
+          ]
+        },
+        {
+          "width": 372,
+          "height": 90,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Has an active accelerated transform animation or transition.",
+            "Has an active accelerated opacity animation or transition."
+          ],
+          "compositingReasonIds": [
+            "ActiveTransformAnimation",
+            "ActiveOpacityAnimation"
+          ]
+        },
+        {
+          "width": 372,
+          "height": 492,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Overlaps other composited content."
+          ],
+          "compositingReasonIds": [
+            "Overlap"
+          ]
+        },
+        {
+          "width": 412,
+          "height": 72,
+          "paintCount": 0,
+          "compositingReasons": [
+            "Is sticky position.",
+            "Has a backdrop filter."
+          ],
+          "compositingReasonIds": [
+            "StickyPosition",
+            "BackdropFilter"
+          ]
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "name": "desktop",
+      "frames": {
+        "count": 376,
+        "p95": 16.800000000000182,
+        "max": 50,
+        "over33": 1,
+        "over50": 0
+      },
+      "totals": {
+        "RasterTask": {
+          "count": 208,
+          "ms": 150.473,
+          "maxMs": 7.583
+        },
+        "PrePaint": {
+          "count": 755,
+          "ms": 46.26000000000018,
+          "maxMs": 1.609
+        },
+        "Layerize": {
+          "count": 377,
+          "ms": 3.304999999999996,
+          "maxMs": 0.337
+        },
+        "UpdateLayoutTree": {
+          "count": 32,
+          "ms": 6.680000000000001,
+          "maxMs": 1.037
+        },
+        "Layout": {
+          "count": 6,
+          "ms": 1.773,
+          "maxMs": 0.51
+        },
+        "Paint": {
+          "count": 19,
+          "ms": 7.7620000000000005,
+          "maxMs": 1.024
+        }
+      },
+      "inp": {
+        "value": 56,
+        "inputDelay": 0.7999999523162842,
+        "processingDuration": 3.800000011920929,
+        "presentationDelay": 51.40000003576279
+      },
+      "layers": [
+        {
+          "width": 0,
+          "height": 0,
+          "paintCount": 0,
+          "compositingReasons": [],
+          "compositingReasonIds": []
+        },
+        {
+          "width": 1440,
+          "height": 4307,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Is the document.rootScroller.",
+            "Is a scrollable overflow element using accelerated scrolling."
+          ],
+          "compositingReasonIds": [
+            "RootScroller",
+            "OverflowScrolling"
+          ]
+        },
+        {
+          "width": 1036,
+          "height": 684,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a 3d transform."
+          ],
+          "compositingReasonIds": [
+            "3DTransform"
+          ]
+        },
+        {
+          "width": 1036,
+          "height": 684,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a 3d transform."
+          ],
+          "compositingReasonIds": [
+            "3DTransform"
+          ]
+        },
+        {
+          "width": 1036,
+          "height": 685,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a perspective transform that needs to be known by compositor because of 3d descendants."
+          ],
+          "compositingReasonIds": [
+            "PerspectiveWith3DDescendants"
+          ]
+        },
+        {
+          "width": 1280,
+          "height": 106,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has an active accelerated transform animation or transition.",
+            "Has an active accelerated opacity animation or transition."
+          ],
+          "compositingReasonIds": [
+            "ActiveTransformAnimation",
+            "ActiveOpacityAnimation"
+          ]
+        },
+        {
+          "width": 1280,
+          "height": 575,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Overlaps other composited content."
+          ],
+          "compositingReasonIds": [
+            "Overlap"
+          ]
+        },
+        {
+          "width": 1440,
+          "height": 88,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Is sticky position.",
+            "Has a backdrop filter."
+          ],
+          "compositingReasonIds": [
+            "StickyPosition",
+            "BackdropFilter"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mobile-cpu6",
+      "frames": {
+        "count": 385,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109,
+        "over33": 0,
+        "over50": 0
+      },
+      "totals": {
+        "PrePaint": {
+          "count": 778,
+          "ms": 255.95199999999966,
+          "maxMs": 5.699
+        },
+        "Paint": {
+          "count": 23,
+          "ms": 102.96500000000002,
+          "maxMs": 9.017
+        },
+        "Layerize": {
+          "count": 388,
+          "ms": 35.76900000000009,
+          "maxMs": 6.325
+        },
+        "RasterTask": {
+          "count": 34,
+          "ms": 62.65,
+          "maxMs": 7.406
+        },
+        "UpdateLayoutTree": {
+          "count": 36,
+          "ms": 32.087,
+          "maxMs": 6.719
+        },
+        "Layout": {
+          "count": 10,
+          "ms": 10.490000000000002,
+          "maxMs": 1.759
+        }
+      },
+      "inp": {
+        "value": 128,
+        "inputDelay": 43.80000001192093,
+        "processingDuration": 46.19999998807907,
+        "presentationDelay": 38
+      },
+      "layers": [
+        {
+          "width": 0,
+          "height": 0,
+          "paintCount": 0,
+          "compositingReasons": [],
+          "compositingReasonIds": []
+        },
+        {
+          "width": 412,
+          "height": 3770,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Is the document.rootScroller.",
+            "Is a scrollable overflow element using accelerated scrolling."
+          ],
+          "compositingReasonIds": [
+            "RootScroller",
+            "OverflowScrolling"
+          ]
+        },
+        {
+          "width": 415,
+          "height": 296,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a 3d transform."
+          ],
+          "compositingReasonIds": [
+            "3DTransform"
+          ]
+        },
+        {
+          "width": 415,
+          "height": 296,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a 3d transform."
+          ],
+          "compositingReasonIds": [
+            "3DTransform"
+          ]
+        },
+        {
+          "width": 416,
+          "height": 297,
+          "paintCount": 2,
+          "compositingReasons": [
+            "Has a perspective transform that needs to be known by compositor because of 3d descendants."
+          ],
+          "compositingReasonIds": [
+            "PerspectiveWith3DDescendants"
+          ]
+        },
+        {
+          "width": 372,
+          "height": 90,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Has an active accelerated transform animation or transition.",
+            "Has an active accelerated opacity animation or transition."
+          ],
+          "compositingReasonIds": [
+            "ActiveTransformAnimation",
+            "ActiveOpacityAnimation"
+          ]
+        },
+        {
+          "width": 372,
+          "height": 492,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Overlaps other composited content."
+          ],
+          "compositingReasonIds": [
+            "Overlap"
+          ]
+        },
+        {
+          "width": 412,
+          "height": 72,
+          "paintCount": 1,
+          "compositingReasons": [
+            "Is sticky position.",
+            "Has a backdrop filter."
+          ],
+          "compositingReasonIds": [
+            "StickyPosition",
+            "BackdropFilter"
+          ]
+        }
+      ]
+    }
+  ],
+  "nativeWheel": {
+    "method": "CDP Input.synthesizeScrollGesture, mouse, speed 1200 px/s; distances -1700,+1700,-1700,+1700; 1920x1080, DPR 2. Same live baseline and local candidate after networkidle.",
+    "before": {
+      "frames": 173,
+      "p95Ms": 66.7,
+      "maxMs": 83.4,
+      "framesOver34Ms": 64
+    },
+    "after": {
+      "frames": 295,
+      "p95Ms": 33.4,
+      "maxMs": 66.7,
+      "framesOver34Ms": 5
+    }
+  },
+  "fullBrowserScenario": [
+    {
+      "profile": "desktop-chromium",
+      "status": "passed",
+      "INP": {
+        "value": 104,
+        "rating": "good",
+        "navigationType": "navigate",
+        "target": "div.anime-love-carousel_pagination__C17pe>button.anime-love-carousel_dot__hUUvd",
+        "inputDelay": 1.0999999642372131,
+        "processingDuration": 10,
+        "presentationDelay": 92.90000003576279
+      },
+      "CLS": {
+        "value": 0,
+        "rating": "good",
+        "navigationType": "navigate"
+      },
+      "scroll": {
+        "carouselScrollFrames": 357,
+        "frameMedianMs": 16.699999999999818,
+        "frameP95Ms": 33.30000000000018,
+        "framesOver34Ms": 1,
+        "framesOver50Ms": 1
+      },
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "profile": "android-slow4g-cpu6",
+      "status": "passed",
+      "INP": {
+        "value": 352,
+        "rating": "needs-improvement",
+        "navigationType": "navigate",
+        "target": "html>body.menu-open>header.header>div.container.header-inner>button.menu-toggle",
+        "inputDelay": 32.700000047683716,
+        "processingDuration": 277.69999998807907,
+        "presentationDelay": 41.59999996423721
+      },
+      "CLS": {
+        "value": 0,
+        "rating": "good",
+        "navigationType": "navigate"
+      },
+      "scroll": {
+        "carouselScrollFrames": 372,
+        "frameMedianMs": 16.699999999999818,
+        "frameP95Ms": 16.800000000000182,
+        "framesOver34Ms": 1,
+        "framesOver50Ms": 1
+      },
+      "errors": [],
+      "failedRequests": []
+    }
+  ]
+}

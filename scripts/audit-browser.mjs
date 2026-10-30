@@ -114,6 +114,32 @@ for (const profile of profiles.filter(profile => selected ? selected.includes(pr
           steps.push("FAQ opens and closes");
         }
         if (route === "/projects/anime-love/") {
+          // Scroll into and out of the 3D scene twice. A fast initial page load
+          // does not catch expensive compositing when the gallery enters view.
+          const frames = await page.evaluate(async () => {
+            const carousel = document.querySelector('[aria-label="Экраны приложения AnimeLove"]');
+            const top = carousel.getBoundingClientRect().top + scrollY;
+            const gaps = [];
+            let started;
+            let last;
+            await new Promise(resolve => {
+              const frame = time => {
+                started ??= time;
+                if (last !== undefined) gaps.push(time - last);
+                last = time;
+                const elapsed = time - started;
+                const progress = (elapsed % 3200) / 3200;
+                const fraction = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
+                scrollTo({ top: top - innerHeight - 200 + fraction * (innerHeight + 700), behavior: "instant" });
+                if (elapsed < 6400) requestAnimationFrame(frame);
+                else resolve();
+              };
+              requestAnimationFrame(frame);
+            });
+            return gaps;
+          });
+          const sorted = frames.toSorted((a, b) => a - b);
+          steps.push({ carouselScrollFrames: frames.length, frameMedianMs: sorted[Math.floor(sorted.length / 2)], frameP95Ms: sorted[Math.floor(sorted.length * 0.95)], framesOver34Ms: frames.filter(gap => gap > 34).length, framesOver50Ms: frames.filter(gap => gap > 50).length });
           for (let i = 0; i < 4; i++) {
             await click(page.locator('[aria-label="Выбрать экран"] button').nth(i));
             const img = page.locator('[aria-roledescription="слайд"][data-active="true"] img');
