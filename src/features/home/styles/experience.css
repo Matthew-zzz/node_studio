@@ -1,25 +1,5 @@
 /* Work-led presentation: one product viewport and a selectable service story. */
 
-.reading-progress {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.reading-progress>span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--accent-gradient);
-  transform: scaleX(var(--read-progress,0));
-  transform-origin: left;
-  transition: transform .12s linear;
-}
-
 .studio-intro {
   position: relative;
   overflow: hidden;
@@ -381,9 +361,6 @@
     width: 13px;
     height: 13px;
   }
-  .reading-progress {
-    height: 1px;
-  }
 }
 
 @media(max-width:360px) {
@@ -411,7 +388,7 @@
   .intro-line {
     animation: none;
   }
-  .reading-progress>span,.work-image-link>img {
+  .work-image-link>img {
     transition: none;
   }
   .work-image-link:hover>img {

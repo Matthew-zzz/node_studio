@@ -11,7 +11,6 @@ export function Header() {
     <>
       <a className="skip-link" href="#main">Перейти к содержимому</a>
       <header className="header">
-        <div className="reading-progress" aria-hidden="true"><span /></div>
         <div className="container header-inner">
           <Brand />
           <nav className="desktop-nav" aria-label="Главная навигация">

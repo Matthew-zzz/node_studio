@@ -23,19 +23,6 @@ export function SiteEffects() {
     }, { threshold: 0.06 });
     document.querySelectorAll(".reveal").forEach((element) => reveal.observe(element));
 
-    let frame = 0;
-    const updateProgress = () => {
-      frame = 0;
-      const distance = document.documentElement.scrollHeight - window.innerHeight;
-      document.documentElement.style.setProperty("--read-progress", String(distance > 0 ? Math.min(1, Math.max(0, window.scrollY / distance)) : 0));
-    };
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(updateProgress); };
-    const resize = new ResizeObserver(schedule);
-    resize.observe(document.body);
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule, { passive: true });
-    updateProgress();
-
     const sections = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
@@ -55,12 +42,8 @@ export function SiteEffects() {
     return () => {
       reveal.disconnect();
       sections.disconnect();
-      resize.disconnect();
       animations.forEach((animation) => animation.cancel());
       motion.removeEventListener("change", cancelAnimations);
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      cancelAnimationFrame(frame);
       document.querySelectorAll(".desktop-nav a").forEach((link) => { link.classList.remove("current"); link.removeAttribute("aria-current"); });
     };
   }, [pathname]);
