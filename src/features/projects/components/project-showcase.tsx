@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { site } from "@/config/site";
@@ -26,16 +26,8 @@ export interface ProjectShowcaseItem {
 
 export function ProjectShowcase({ items }: { items: readonly ProjectShowcaseItem[] }) {
   const [selected, setSelected] = useState<Category>("all");
-  const grid = useRef<HTMLDivElement>(null);
   const matches = (item: ProjectShowcaseItem) => selected === "all" || item.categories.some((category) => category === selected);
   const count = items.filter(matches).length;
-
-  useEffect(() => {
-    grid.current?.querySelectorAll("video").forEach((video) => {
-      if (video.closest("[hidden]")) video.pause();
-      else void video.play().catch(() => {});
-    });
-  }, [selected]);
 
   return (
     <>
@@ -55,7 +47,7 @@ export function ProjectShowcase({ items }: { items: readonly ProjectShowcaseItem
       </div>
       <p className="sr-only" role="status">{`${categories.find((category) => category.id === selected)?.label}. Найдено проектов: ${count}.`}</p>
       <div id="project-showcase-results">
-        <div ref={grid} className={styles.grid} hidden={count === 0} data-filtered={selected !== "all"}>
+        <div className={styles.grid} hidden={count === 0} data-filtered={selected !== "all"}>
           {items.map((item) => (
             <article
               key={item.id}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
+import { ViewportVideo } from "@/components/ui/viewport-video";
 import { site } from "@/config/site";
 import { ProjectShowcase, type ProjectShowcaseItem } from "./project-showcase";
 import { ShowcaseImage } from "./showcase-image";
@@ -141,9 +142,7 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     content: (
       <>
         <div className={styles.media}>
-          <video autoPlay loop muted playsInline preload="metadata" aria-label="Видео презентация NodeStudio AI">
-            <source src="/assets/nodestudio-ai-showcase.mp4" type="video/mp4" />
-          </video>
+          <ViewportVideo src="/assets/video/ai-showcase.mp4" poster="/assets/video/ai-poster.jpg" aria-label="Видео презентация NodeStudio AI" />
           <div className={styles.aiTitle}>
             <span>ИИ-агент студии</span>
             <h3>NodeStudio AI</h3>

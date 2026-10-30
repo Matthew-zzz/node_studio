@@ -1,0 +1,36 @@
+{
+  "command": "npm run assets:videos",
+  "codec": "H.264 / yuv420p",
+  "frameRate": "Source frame rates preserved",
+  "fastStart": true,
+  "videos": [
+    {
+      "source": "node-studio-home-hero.mp4",
+      "sourceSha256": "563763660f1e6bf8e75f3f6a8fa70203ff057ea1a2e12f703dcc0d2a56096733",
+      "sourceBytes": 6500427,
+      "file": "video/hero-desktop.mp4",
+      "bytes": 1751001,
+      "crf": 23,
+      "audio": false
+    },
+    {
+      "source": "node-studio-home-hero.mp4",
+      "sourceSha256": "563763660f1e6bf8e75f3f6a8fa70203ff057ea1a2e12f703dcc0d2a56096733",
+      "sourceBytes": 6500427,
+      "file": "video/hero-mobile.mp4",
+      "bytes": 876278,
+      "crf": 24,
+      "width": 1280,
+      "audio": false
+    },
+    {
+      "source": "nodestudio-ai-showcase.mp4",
+      "sourceSha256": "7d50a2a80592a5c621c3b38b79861c8b291baaba2b437a936f749fd7939f43e4",
+      "sourceBytes": 1348198,
+      "file": "video/ai-showcase.mp4",
+      "bytes": 354358,
+      "crf": 23,
+      "audio": false
+    }
+  ]
+}
