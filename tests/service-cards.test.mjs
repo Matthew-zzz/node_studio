@@ -60,12 +60,16 @@ test("service cards keep staged scroll geometry, reverse correctly and adapt to 
     await scroll(0);
     assert((await geometry()).slice(1).every((card) => card.phase === 0));
 
-    // Filtering projects changes the section's document position without a window resize.
-    await page.getByRole("button", { name: "Скрипты", exact: true }).evaluate((button) => button.click());
+    // Portfolio content can change the section's position without a window resize.
+    await page.locator("#projects").evaluate((section) => {
+      const content = document.createElement("div");
+      content.style.height = "240px";
+      section.append(content);
+    });
     await settle();
     const shifted = await cards.nth(2).evaluate((element) => element.getBoundingClientRect().bottom + scrollY - innerHeight);
     await scroll(shifted + (expanded - collapsed) * 0.5);
-    assert.equal((await geometry())[1].phase, 2, "project filter invalidates cached position");
+    assert.equal((await geometry())[1].phase, 2, "portfolio layout change invalidates cached position");
 
     await page.setViewportSize({ width: width <= 760 ? 1440 : 390, height: 1000 });
     await settle();
@@ -84,7 +88,7 @@ test("service cards keep staged scroll geometry, reverse correctly and adapt to 
     for (let y = 0; y <= 700; y += 100) await scroll(y);
     assert.equal(await page.evaluate(() => window.__cardReads), 0, "offscreen scroll does not remeasure cards");
     await page.close();
-    console.log(`${width}px: all seven cards, staged opening/closing, anchors, jump, filtering and resize passed`);
+    console.log(`${width}px: all seven cards, staged opening/closing, anchors, jump, content changes and resize passed`);
   }
   assert.deepEqual(errors, []);
 });

@@ -17,5 +17,29 @@ export const showcaseImages = {
     "srcSet": "/assets/showcase/animeLove-480.webp 480w, /assets/showcase/animeLove-640.webp 640w, /assets/showcase/animeLove-768.webp 768w, /assets/showcase/animeLove-1024.webp 1024w, /assets/showcase/animeLove-1254.webp 1254w",
     "width": 1254,
     "height": 1254
+  },
+  "xnrBots": {
+    "fallback": "/assets/xnr-bots-showcase.png",
+    "srcSet": "/assets/showcase/xnrBots-480.webp 480w, /assets/showcase/xnrBots-640.webp 640w, /assets/showcase/xnrBots-768.webp 768w, /assets/showcase/xnrBots-1024.webp 1024w, /assets/showcase/xnrBots-1254.webp 1254w",
+    "width": 1254,
+    "height": 1254
+  },
+  "poizon": {
+    "fallback": "/assets/poizon-showcase.png",
+    "srcSet": "/assets/showcase/poizon-480.webp 480w, /assets/showcase/poizon-640.webp 640w, /assets/showcase/poizon-768.webp 768w, /assets/showcase/poizon-1024.webp 1024w, /assets/showcase/poizon-1254.webp 1254w",
+    "width": 1254,
+    "height": 1254
+  },
+  "tapLeague": {
+    "fallback": "/assets/tap-league-showcase.png",
+    "srcSet": "/assets/showcase/tapLeague-480.webp 480w, /assets/showcase/tapLeague-640.webp 640w, /assets/showcase/tapLeague-768.webp 768w, /assets/showcase/tapLeague-1024.webp 1024w, /assets/showcase/tapLeague-1254.webp 1254w",
+    "width": 1254,
+    "height": 1254
+  },
+  "clicker": {
+    "fallback": "/assets/clicker-showcase.png",
+    "srcSet": "/assets/showcase/clicker-480.webp 480w, /assets/showcase/clicker-640.webp 640w, /assets/showcase/clicker-768.webp 768w, /assets/showcase/clicker-1024.webp 1024w, /assets/showcase/clicker-1254.webp 1254w",
+    "width": 1254,
+    "height": 1254
   }
 } as const;

@@ -11,38 +11,55 @@ import styles from "./projects-section.module.css";
 const conceptProjects = [
   {
     title: "Forma",
-    category: "Сервис для студий",
     description: "Запись, расписание и оплата занятий — в одном пространстве для команды и клиентов.",
     visual: "forma",
-    categories: ["from-scratch", "web-apps"],
   },
   {
     title: "Northline",
-    category: "Сайт архитектурного бюро",
     description: "Цифровая витрина проектов с выразительной подачей портфолио и материалов студии.",
     visual: "northline",
-    categories: ["from-scratch"],
   },
   {
     title: "Relay",
-    category: "Автоматизация процессов",
     description: "Заявки из разных каналов собираются в общую очередь и распределяются по команде.",
     visual: "relay",
-    categories: ["scripts"],
   },
   {
     title: "Noma",
-    category: "Интернет-магазин",
     description: "Каталог предметов для дома с подборками, быстрым поиском и удобным оформлением заказа.",
     visual: "noma",
-    categories: ["from-scratch", "web-apps"],
   },
   {
     title: "Nexus",
-    category: "Рабочее пространство",
     description: "Единое рабочее пространство, которое собирает задачи, документы и коммуникации команды.",
     visual: "nexus",
-    categories: ["from-scratch", "web-apps"],
+  },
+] as const;
+
+const imageProjects = [
+  {
+    id: "xnr-bots",
+    title: "XNR Bots",
+    image: "xnrBots",
+    description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
+  },
+  {
+    id: "poizon",
+    title: "Poizon",
+    image: "poizon",
+    description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
+  },
+  {
+    id: "tap-league",
+    title: "Tap League",
+    image: "tapLeague",
+    description: "Игровой кликер в Telegram с балансом, усилениями и приглашением друзей.",
+  },
+  {
+    id: "telegram-clicker",
+    title: "Кликер — Telegram WebApp",
+    image: "clicker",
+    description: "Игровое мини-приложение в Telegram: накопление очков, энергия и таблица лидеров.",
   },
 ] as const;
 
@@ -91,7 +108,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
   {
     id: "vectra",
     title: "Vectra",
-    categories: ["from-scratch", "web-apps"],
     content: (
       <>
         <Link className={styles.media} href="/projects/vectra/" aria-label="Открыть проект Vectra">
@@ -106,7 +122,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
   {
     id: "autoparts",
     title: "Магазин автозапчастей",
-    categories: ["from-scratch", "web-apps"],
     content: (
       <>
         <Link className={styles.media} href="/projects/autoparts/" aria-label="Открыть проект магазина автозапчастей">
@@ -121,7 +136,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
   {
     id: "anime-love",
     title: "AnimeLove",
-    categories: ["from-scratch", "web-apps"],
     className: styles.itemAnimeLove,
     content: (
       <>
@@ -137,7 +151,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
   {
     id: "nodestudio-ai",
     title: "NodeStudio AI",
-    categories: ["from-scratch", "web-apps"],
     className: styles.itemAi,
     content: (
       <>
@@ -158,10 +171,23 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
       </>
     ),
   },
+  ...imageProjects.map((project): ProjectShowcaseItem => ({
+    id: project.id,
+    title: project.title,
+    content: (
+      <>
+        <div className={`${styles.media} ${styles.imageOnly}`}>
+          <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
+        </div>
+        <div className={styles.caption}>
+          <p>{project.description}</p>
+        </div>
+      </>
+    ),
+  })),
   ...conceptProjects.map((project): ProjectShowcaseItem => ({
     id: project.visual,
     title: project.title,
-    categories: project.categories,
     className: styles.conceptItem,
     content: (
       <>

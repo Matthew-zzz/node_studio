@@ -5,6 +5,10 @@ const projects = [
   { id: "vectra", source: "vectra-showcase.png" },
   { id: "autoparts", source: "autoparts-showcase.png" },
   { id: "animeLove", source: "animelove-showcase.png" },
+  { id: "xnrBots", source: "xnr-bots-showcase.png" },
+  { id: "poizon", source: "poizon-showcase.png" },
+  { id: "tapLeague", source: "tap-league-showcase.png" },
+  { id: "clicker", source: "clicker-showcase.png" },
 ];
 const outputDirectory = new URL("../public/assets/showcase/", import.meta.url);
 const manifest = {};

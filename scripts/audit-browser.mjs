@@ -83,9 +83,7 @@ for (const profile of profiles.filter(profile => selected ? selected.includes(pr
           steps.push("mobile menu opens and closes");
         }
         if (route === "/") {
-          await click(page.getByRole("button", { name: "Скрипты", exact: true }));
-          assert.equal(await page.locator('[aria-label="Категории проектов"] button[aria-pressed="true"]').textContent(), "Скрипты");
-          await click(page.getByRole("button", { name: "Все проекты", exact: true }));
+          assert(await page.locator("#projects article").count() > 0, "portfolio is available without filtering");
           const frames = await page.evaluate(async () => {
             const list = document.querySelector(".landing-service-list");
             const top = list.getBoundingClientRect().top + scrollY;
