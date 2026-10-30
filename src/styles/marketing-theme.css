@@ -1,0 +1,110 @@
+body:has(.home-landing) {
+  min-height: 100vh;
+  color-scheme: light;
+  --bg: #fff;
+  --surface: #fff;
+  --surface-2: #f5f6f9;
+  --surface-blue: #f5f6fa;
+  --surface-violet: #f4f1fa;
+  --line: #e2e5ed;
+  --line-strong: #c8cedb;
+  --text: #171b2b;
+  --muted: #697286;
+  --muted-strong: #414a5e;
+  --accent: #553ba1;
+  --accent-pink: #8c4cba;
+  --accent-text-gradient: linear-gradient(105deg,#3152b5,#6a3caa);
+  background: #fff;
+}
+
+body:has(.home-landing) .header {
+  height: 64px;
+  border-bottom: 0;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(12px);
+}
+
+body:has(.home-landing) .header :is(.brand,.desktop-nav,.header-contact) {
+  color: #171b2b;
+  font-weight: 700;
+}
+
+body:has(.home-landing) .header .brand > * {
+  font-weight: 700;
+}
+
+body:has(.home-landing) .header .desktop-nav {
+  font-weight: 800;
+}
+
+body:has(.home-landing) .header .desktop-nav a {
+  font-weight: 800;
+}
+
+body:has(.home-landing) .header-contact {
+  border-color: #d5d9e3;
+  border-radius: 8px;
+}
+
+body:has(.home-landing) .header-contact .icon {
+  color: #553ba1;
+}
+
+body:has(.home-landing) .header .menu-toggle {
+  border-color: #d5d9e3;
+  background: #fff;
+  color: #171b2b;
+}
+
+body:has(.home-landing) .mobile-drawer {
+  border-color: #e2e5ed;
+  background: #fff;
+  color: #171b2b;
+}
+
+body:has(.home-landing) .drawer-nav > a {
+  color: #171b2b;
+  font-weight: 700;
+}
+
+body:has(.home-landing) .drawer-heading .brand > * {
+  font-weight: 700;
+}
+
+body:has(.home-landing) .footer {
+  border-color: #e2e5ed;
+  background: transparent;
+}
+
+.home-landing {
+  overflow: clip;
+  color: #171b2b;
+}
+
+@media (max-width: 760px) {
+  body:has(.home-landing) .header {
+    height: calc(56px + env(safe-area-inset-top));
+  }
+
+  body:has(.home-landing) .header-inner {
+    height: 56px;
+  }
+}
+body:has(.case-page),
+body:has(.marketing-error) {
+  color-scheme: light;
+  --bg: #fff;
+  --surface: #f7f7f9;
+  --surface-2: #f1f2f5;
+  --surface-blue: #f3f4f7;
+  --surface-violet: #f5f1fa;
+  --line: #e4e5e9;
+  --line-strong: #d2d4dc;
+  --text: #171b2b;
+  --muted: #697286;
+  --muted-strong: #535d72;
+  --accent: #563ba1;
+  --accent-pink: #8c4cba;
+  --accent-text-gradient: linear-gradient(105deg,#3152b5,#6a3caa);
+  background: #fff;
+}

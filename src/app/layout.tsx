@@ -5,17 +5,11 @@ import { createMetadata, siteOrigin } from "@/lib/metadata";
 import "@/styles/fonts.css";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
-import "@/features/home/styles/experience.css";
-import "@/features/projects/styles/screenshots.css";
-import "@/features/home/styles/hero-atmosphere.css";
-import "@/features/services/styles/services.css";
 import "@/styles/responsive.css";
 import "@/styles/responsive-layout.css";
-import "@/features/projects/styles/project-stories.css";
 import "@/styles/globals.css";
-import "@/features/home/styles/landing.css";
-import "@/features/projects/styles/case-page.css";
-import "@/features/legal/styles/terms.css";
+import "@/styles/marketing-theme.css";
+import "@/styles/errors.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),

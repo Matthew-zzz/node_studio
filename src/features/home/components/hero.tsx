@@ -7,6 +7,7 @@ import { HeroAtmosphere } from "@/features/home/components/hero-atmosphere";
 import { Screenshot } from "@/features/projects/components/screenshot";
 import { getScreenshot } from "@/features/projects/data/screenshots";
 import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
+import "@/features/home/styles/experience.css";
 
 export function Hero() {
   return (

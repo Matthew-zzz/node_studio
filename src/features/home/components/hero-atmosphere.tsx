@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { HeroAtmosphereMotion } from "@/features/home/components/hero-atmosphere-motion";
+import "@/features/home/styles/hero-atmosphere.css";
 
 export function HeroAtmosphere() {
   return (

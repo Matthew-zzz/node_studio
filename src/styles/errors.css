@@ -1,0 +1,20 @@
+.marketing-error {
+  display: flex;
+  min-height: 78vh;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block: clamp(80px,12vw,160px);
+  color: #171b2b;
+}
+
+.marketing-error h1 {
+  max-width: 900px;
+  margin-block: 22px;
+  font-size: clamp(48px,8vw,104px);
+  line-height: 1;
+  letter-spacing: -.07em;
+}
+
+.marketing-error>p { margin-bottom: 28px; color: #535d72; }
+.marketing-error .eyebrow { color: #563ba1; }

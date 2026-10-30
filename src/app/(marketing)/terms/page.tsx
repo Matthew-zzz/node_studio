@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createMetadata } from "@/lib/metadata";
 import { site } from "@/config/site";
+import "@/features/legal/styles/terms.css";
 
 export const metadata: Metadata = createMetadata({
   title: "Публичная оферта — Node Studio",

@@ -30,6 +30,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:images
       - run: npm run test:carousel
+      - run: npm run test:services
+      - run: npm run test:styles
       - uses: docker/setup-buildx-action@v3
       - name: Build application image
         uses: docker/build-push-action@v6

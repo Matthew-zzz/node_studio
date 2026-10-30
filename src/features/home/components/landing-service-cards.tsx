@@ -6,102 +6,120 @@ import { Icon } from "@/components/ui/icon";
 import { LandingServiceArtwork } from "@/features/home/components/landing-service-artwork";
 import { serviceOfferings } from "@/features/services/data/services";
 import { formatServicePrice } from "@/features/services/lib/pricing";
+import { serviceCardStarts, serviceCardState, type ServiceCardHeight } from "@/features/home/lib/service-card-timeline";
 
 export function LandingServiceCards() {
   const services = serviceOfferings.filter((service) => service.id !== "individual");
   const cardRefs = useRef<Array<HTMLElement | null>>([]);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
     let frame = 0;
-    const stageStarts = new Map<number, number>();
+    let visible = false;
+    let disposed = false;
+    let needsMeasure = true;
+    let width = 0;
+    let heights: ServiceCardHeight[] = [];
+    let starts: number[] = [];
     const cards = cardRefs.current.filter((card): card is HTMLElement => card !== null);
-
-    const setPhase = (card: HTMLElement, phase: number, openHeight: number) => {
-      card.style.setProperty("--service-height", `${openHeight}px`);
-      if (card.dataset.phase === String(phase)) return;
-      card.dataset.phase = String(phase);
-      const panel = card.querySelector<HTMLElement>(".landing-service-panel");
-      panel?.setAttribute("aria-hidden", String(phase < 2));
-      panel?.toggleAttribute("inert", phase < 3);
-    };
-
-    const firstCard = cards[0];
-    if (!firstCard) return;
-
-    const getHeights = (card: HTMLElement) => {
-      const styles = window.getComputedStyle(card);
-      return {
-        collapsed: Number.parseFloat(styles.getPropertyValue("--service-collapsed-height")) || 110,
-        expanded: Number.parseFloat(styles.getPropertyValue("--service-expanded-height")) || 250,
-      };
-    };
-
-    // The first card is open on entry. Each next card grows by the same
-    // number of pixels the page scrolls, keeping the following card at the
-    // viewport's lower edge until the current card is fully open.
-    const firstHeights = getHeights(firstCard);
-    setPhase(firstCard, 3, firstHeights.expanded);
+    const panels = cards.map((card) => card.querySelector<HTMLElement>(".landing-service-panel"));
+    const states = cards.map(() => ({ height: -1, phase: -1 }));
 
     const updatePhases = () => {
+      if (disposed || document.hidden) return;
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        const viewportHeight = window.innerHeight || 1;
+        if (disposed || document.hidden) return;
         const scrollY = window.scrollY;
-
-        // Reversing the page scroll also reverses the current card's opening.
-        for (const [index, startY] of [...stageStarts.entries()].sort(([a], [b]) => b - a)) {
-          if (scrollY < startY) {
-            stageStarts.delete(index);
-            const card = cards[index];
-            if (card) {
-              const heights = getHeights(card);
-              setPhase(card, 0, heights.collapsed);
-            }
-          }
+        if (needsMeasure) {
+          // Read geometry together, only after layout changes; never after card writes.
+          const top = list.getBoundingClientRect().top + scrollY;
+          const gap = Number.parseFloat(window.getComputedStyle(list).rowGap) || 0;
+          heights = cards.map((card) => {
+            const styles = window.getComputedStyle(card);
+            return {
+              collapsed: Number.parseFloat(styles.getPropertyValue("--service-collapsed-height")) || 124,
+              expanded: Number.parseFloat(styles.getPropertyValue("--service-expanded-height")) || 310,
+            };
+          });
+          starts = serviceCardStarts(heights, gap, top, window.innerHeight);
+          needsMeasure = false;
         }
-
-        for (let index = 1; index < cards.length; index += 1) {
-          const card = cards[index];
-          if (!card) continue;
-          const heights = getHeights(card);
-          const startY = stageStarts.get(index);
-
-          if (startY === undefined) {
-            // Each card starts opening when the next one is fully visible.
-            // The final card uses itself as the anchor since there is no next card.
-            const anchor = cards[index + 1] ?? card;
-            const anchorRect = anchor.getBoundingClientRect();
-            if (anchorRect.top < 0 || anchorRect.bottom > viewportHeight) break;
-            // Account for scroll steps that crossed the viewport edge between
-            // two animation frames; this keeps the anchor aligned to the edge.
-            stageStarts.set(index, scrollY - Math.max(0, viewportHeight - anchorRect.bottom));
+        cards.forEach((card, index) => {
+          const next = index === 0 ? { height: heights[index]!.expanded, phase: 3 } : serviceCardState(heights[index]!, starts[index]!, scrollY);
+          const previous = states[index]!;
+          if (previous.height !== next.height) {
+            card.style.setProperty("height", `${next.height}px`);
           }
-
-          const stageStart = stageStarts.get(index) ?? scrollY;
-          const distance = heights.expanded - heights.collapsed;
-          const opened = Math.max(0, Math.min(distance, scrollY - stageStart));
-          const progress = distance > 0 ? opened / distance : 1;
-          const phase = progress === 0 ? 0 : progress < 0.34 ? 1 : progress < 0.68 ? 2 : 3;
-          setPhase(card, phase, heights.collapsed + opened);
-
-          if (progress < 1) break;
-        }
+          if (previous.phase !== next.phase) {
+            card.dataset.phase = String(next.phase);
+            panels[index]?.setAttribute("aria-hidden", String(next.phase < 2));
+            panels[index]?.toggleAttribute("inert", next.phase < 3);
+          }
+          states[index] = next;
+        });
       });
     };
+    const invalidate = () => { needsMeasure = true; updatePhases(); };
+    const onScroll = () => {
+      const first = heights[1];
+      const last = heights.at(-1);
+      const scrollY = window.scrollY;
+      // A direct jump can cross the list without an intersecting observer entry.
+      const jumpedBefore = first && scrollY < starts[1]! && states[1]?.height !== first.collapsed;
+      const jumpedAfter = last && scrollY >= starts.at(-1)! + last.expanded - last.collapsed && states.at(-1)?.height !== last.expanded;
+      if (visible || jumpedBefore || jumpedAfter) updatePhases();
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        window.cancelAnimationFrame(frame);
+        frame = 0;
+      } else invalidate();
+    };
+    const visibility = new IntersectionObserver(([entry]) => {
+      visible = Boolean(entry?.isIntersecting);
+      // Settle to open/closed when a large scroll crosses the entire section.
+      updatePhases();
+    });
+    visibility.observe(list);
+    const resize = new ResizeObserver((entries) => {
+      let changed = false;
+      for (const entry of entries) {
+        if (entry.target !== list) changed = true;
+        else if (width !== entry.contentRect.width) {
+          width = entry.contentRect.width;
+          changed = true;
+        }
+      }
+      if (changed) invalidate();
+    });
+    resize.observe(list);
+    const section = list.closest("section");
+    for (let sibling = section?.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+      resize.observe(sibling);
+    }
 
     updatePhases();
-    window.addEventListener("scroll", updatePhases, { passive: true });
-    window.addEventListener("resize", updatePhases);
+    void document.fonts.ready.then(() => { if (!disposed) invalidate(); });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", invalidate);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("scroll", updatePhases);
-      window.removeEventListener("resize", updatePhases);
+      disposed = true;
+      visibility.disconnect();
+      resize.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", invalidate);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
 
   return (
-    <div className="landing-service-list">
+    <div className="landing-service-list" ref={listRef}>
       {services.map((service, index) => {
         const panelId = `landing-service-panel-${service.id}`;
         const titleId = `landing-service-title-${service.id}`;
@@ -124,7 +142,7 @@ export function LandingServiceCards() {
               </h3>
               <span className="landing-service-number">{String(index + 1).padStart(2, "0")}</span>
             </div>
-            <div className="landing-service-panel" id={panelId} aria-hidden="true" inert>
+            <div className="landing-service-panel" id={panelId} aria-hidden={index !== 0} inert={index !== 0}>
               <div className="landing-service-inner">
                 <div className="landing-service-copy">
                   <p>{service.description}</p>

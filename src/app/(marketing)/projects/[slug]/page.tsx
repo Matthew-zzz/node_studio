@@ -4,6 +4,8 @@ import { ProjectDetail } from "@/features/projects/components/project-detail";
 import { projects } from "@/features/projects/data/projects";
 import { getProject } from "@/features/projects/lib/projects";
 import { createMetadata } from "@/lib/metadata";
+import "@/features/projects/styles/presentation.css";
+import "@/features/projects/styles/case-page.css";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>;

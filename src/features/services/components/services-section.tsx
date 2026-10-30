@@ -11,6 +11,7 @@ import { ProductArt } from "@/features/services/components/illustrations/product
 import { IntelligenceArt } from "@/features/services/components/illustrations/intelligence-art";
 import { EvolutionArt } from "@/features/services/components/illustrations/evolution-art";
 import type { SituationId } from "@/features/services/model/types";
+import "@/features/services/styles/services.css";
 
 const illustrations = { connect: IntegrationArt, automate: AutomationArt, build: ProductArt, intelligence: IntelligenceArt, evolve: EvolutionArt } satisfies Record<SituationId, () => ReactNode>;
 

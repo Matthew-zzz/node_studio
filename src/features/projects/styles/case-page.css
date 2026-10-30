@@ -1,22 +1,4 @@
 /* Editorial, light project stories aligned with the studio landing page. */
-body:has(.case-page),
-body:has(.marketing-error) {
-  color-scheme: light;
-  --bg: #fff;
-  --surface: #f7f7f9;
-  --surface-2: #f1f2f5;
-  --surface-blue: #f3f4f7;
-  --surface-violet: #f5f1fa;
-  --line: #e4e5e9;
-  --line-strong: #d2d4dc;
-  --text: #171b2b;
-  --muted: #697286;
-  --muted-strong: #535d72;
-  --accent: #563ba1;
-  --accent-pink: #8c4cba;
-  --accent-text-gradient: linear-gradient(105deg,#3152b5,#6a3caa);
-  background: #fff;
-}
 
 body:has(.case-page) .header {
   border-bottom: 0;
@@ -62,27 +44,6 @@ body:has(.case-page) .footer {
   overflow: clip;
   color: #171b2b;
 }
-
-.marketing-error {
-  display: flex;
-  min-height: 78vh;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  padding-block: clamp(80px,12vw,160px);
-  color: #171b2b;
-}
-
-.marketing-error h1 {
-  max-width: 900px;
-  margin-block: 22px;
-  font-size: clamp(48px,8vw,104px);
-  line-height: 1;
-  letter-spacing: -.07em;
-}
-
-.marketing-error>p { margin-bottom: 28px; color: #535d72; }
-.marketing-error .eyebrow { color: #563ba1; }
 
 .case-page .case-hero {
   padding-top: clamp(42px,7vw,92px);
