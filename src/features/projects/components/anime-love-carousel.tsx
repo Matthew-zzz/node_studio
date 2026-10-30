@@ -15,7 +15,8 @@ function wrappedOffset(index: number, activeIndex: number, length: number) {
 
 export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const startX = useRef<number | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const count = slides.length;
@@ -25,16 +26,52 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
   }, [count]);
 
   useEffect(() => {
-    if (paused || count < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => move(1), 6200);
-    return () => window.clearInterval(timer);
-  }, [count, move, paused]);
+    const element = viewport.current;
+    if (!element || hovered || focused || count < 2 || !("IntersectionObserver" in window)) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let visible = false;
+    let timer: number | undefined;
+    const canAdvance = () => visible && !document.hidden && !reducedMotion.matches;
+    const stop = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+    };
+    const syncAutoplay = () => {
+      stop();
+      if (canAdvance()) {
+        // Returning to the carousel starts a full interval, without skipping slides.
+        timer = window.setInterval(() => { if (canAdvance()) move(1); }, 6200);
+      }
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.01 && entry.boundingClientRect.width > 0 && entry.boundingClientRect.height > 0);
+      syncAutoplay();
+    }, { threshold: [0, 0.01] });
+
+    observer.observe(element);
+    document.addEventListener("visibilitychange", syncAutoplay);
+    reducedMotion.addEventListener("change", syncAutoplay);
+    return () => {
+      stop();
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", syncAutoplay);
+      reducedMotion.removeEventListener("change", syncAutoplay);
+    };
+  }, [count, move, hovered, focused]);
 
   if (!count) return null;
   const current = slides[activeIndex];
 
   return (
-    <section className={`case-gallery section container ${styles.section}`} aria-labelledby="anime-carousel-heading">
+    <section
+      className={`case-gallery section container ${styles.section}`}
+      aria-labelledby="anime-carousel-heading"
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <div className={styles.heading}>
         <div className={styles.intro}>
           <p className={styles.kicker}>
@@ -61,12 +98,8 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
 
       <div
         className={styles.showcase}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocus={() => setPaused(true)}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
-        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         <div className={styles.lightOrb} aria-hidden="true" />
         <div
