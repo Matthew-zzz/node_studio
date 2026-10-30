@@ -13,7 +13,7 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node tests/export.test.mjs",
+    "test": "node --test tests/export.test.mjs tests/static-http.test.mjs",
     "test:images": "node tests/project-images.test.mjs",
     "test:carousel": "node tests/carousel-autoplay.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run test"

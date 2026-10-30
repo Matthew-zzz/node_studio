@@ -26,6 +26,7 @@ COPY --chown=node:node scripts/serve.mjs ./scripts/serve.mjs
 COPY --chown=node:node scripts/healthcheck.mjs ./scripts/healthcheck.mjs
 COPY --chown=node:node scripts/lib/static-server.mjs ./scripts/lib/static-server.mjs
 COPY --chown=node:node scripts/lib/static-handler.mjs ./scripts/lib/static-handler.mjs
+COPY --chown=node:node scripts/lib/static-encoding.mjs ./scripts/lib/static-encoding.mjs
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=8s --start-period=10s --retries=3 CMD ["node", "scripts/healthcheck.mjs"]

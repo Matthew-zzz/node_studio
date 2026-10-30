@@ -1,20 +1,41 @@
 import { createReadStream } from "node:fs";
-import { realpath, stat } from "node:fs/promises";
+import { open, realpath, stat } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
+import { compressibleExtensions, encodingPreferences } from "./static-encoding.mjs";
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml; charset=utf-8",
   ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
   ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp4": "video/mp4", ".webm": "video/webm", ".pdf": "application/pdf",
+  ".webmanifest": "application/manifest+json", ".gz": "application/gzip",
 };
+
+async function openGzip(filename, original, withinRoot) {
+  let file;
+  try {
+    const path = await realpath(`${filename}.gz`);
+    if (!withinRoot(path)) return null;
+    file = await open(path, "r");
+    const info = await file.stat();
+    if (!info.isFile() || info.size >= original.size || Math.floor(info.mtimeMs) < Math.floor(original.mtimeMs)) {
+      await file.close();
+      return null;
+    }
+    return { file, info };
+  } catch {
+    await file?.close().catch(() => {});
+    return null;
+  }
+}
 
 /** Serve only the immutable Next.js export. API source and the database are outside this root. */
 export function createStaticHandler(directory) {
   const root = resolve(directory);
   const withinRoot = path => path === root || path.startsWith(root + sep);
   return async function handle(request, response) {
+    let compressed;
     function reject(status, message) {
       response.writeHead(status, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
       response.end(request.method === "HEAD" ? undefined : message);
@@ -45,16 +66,32 @@ export function createStaticHandler(directory) {
       } catch {
         status = 404; filename = resolve(root, "404.html"); info = await stat(filename);
       }
-      const etag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`;
+      const extension = extname(filename);
+      const compressible = compressibleExtensions.has(extension);
+      const preference = encodingPreferences(request.headers["accept-encoding"]);
+      const range = request.headers.range;
+      if (compressible && !range && preference.gzip > 0 && preference.gzip >= preference.identity) {
+        compressed = await openGzip(filename, info, withinRoot);
+      }
+      if (!compressed && preference.identity === 0) {
+        response.setHeader("Vary", "Accept-Encoding");
+        reject(406, "No acceptable content encoding"); return;
+      }
+      const lastModified = info.mtime.toUTCString();
+      if (compressed) info = compressed.info;
+      const encoding = compressed ? "gzip" : "identity";
+      const etag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}-${encoding}"`;
       const headers = {
-        "Content-Type": contentTypes[extname(filename)] ?? "application/octet-stream",
+        "Content-Type": contentTypes[extension] ?? "application/octet-stream",
         "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin",
         "Cache-Control": status === 200 && pathname.startsWith("/_next/static/") ? "public, max-age=31536000, immutable" : "no-cache",
-        "Accept-Ranges": "bytes", ETag: etag, "Last-Modified": info.mtime.toUTCString(),
+        "Accept-Ranges": compressed ? "none" : "bytes", ETag: etag, "Last-Modified": lastModified,
+        ...(compressible ? { Vary: "Accept-Encoding" } : {}),
+        ...(compressed ? { "Content-Encoding": "gzip" } : {}),
       };
-      if (status === 200 && request.headers["if-none-match"] === etag) { response.writeHead(304, headers); response.end(); return; }
+      const notModified = request.headers["if-none-match"]?.split(",").some((value) => value.trim() === "*" || value.trim().replace(/^W\//, "") === etag.replace(/^W\//, ""));
+      if (status === 200 && notModified) { response.writeHead(304, headers); response.end(); return; }
       let start = 0; let end = info.size - 1;
-      const range = request.headers.range;
       if (status === 200 && range && (!request.headers["if-range"] || request.headers["if-range"] === headers["Last-Modified"])) {
         const match = /^bytes=(\d*)-(\d*)$/.exec(range);
         if (match && (match[1] || match[2])) {
@@ -69,10 +106,13 @@ export function createStaticHandler(directory) {
       headers["Content-Length"] = Math.max(0, end - start + 1);
       response.writeHead(status, headers);
       if (request.method === "HEAD" || info.size === 0) { response.end(); return; }
-      await pipeline(createReadStream(filename, { start, end }), response);
+      const stream = compressed ? compressed.file.createReadStream({ start, end, autoClose: false }) : createReadStream(filename, { start, end });
+      await pipeline(stream, response);
     } catch {
       if (!response.headersSent) reject(500, "Server error");
       else response.destroy();
+    } finally {
+      await compressed?.file.close().catch(() => {});
     }
   };
 }

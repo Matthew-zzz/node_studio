@@ -3,6 +3,7 @@ import { access, readFile, readdir, stat } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { gunzipSync } from "node:zlib";
 import { parse } from "parse5";
 import nextEnv from "@next/env";
 
@@ -116,4 +117,22 @@ test("existing hosting configuration still consumes dist/", async () => {
   const hosting = JSON.parse(await readFile(resolve(root, ".openai/hosting.json"), "utf8"));
   assert.ok(hosting.project_id);
   assert.equal(hosting.static.directory, "dist");
+});
+
+test("all build-time Gzip files decode to their retained originals", async () => {
+  let count = 0;
+  async function verify(directory) {
+    for (const item of await readdir(directory, { withFileTypes: true })) {
+      const path = resolve(directory, item.name);
+      if (item.isDirectory()) await verify(path);
+      else if (item.name.endsWith(".gz")) {
+        const [compressed, original] = await Promise.all([readFile(path), readFile(path.slice(0, -3))]);
+        assert(compressed.length < original.length, `compression reduces ${path}`);
+        assert.deepEqual(gunzipSync(compressed), original, `lossless Gzip: ${path}`);
+        count++;
+      }
+    }
+  }
+  await verify(output);
+  assert(count > 0, "the build generates precompressed text assets");
 });

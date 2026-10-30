@@ -1,6 +1,7 @@
 import { cp, rm } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { precompress } from "./lib/precompress.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
@@ -13,4 +14,6 @@ if (output !== resolve(root, "dist") && !output.startsWith(cache)) {
 
 await rm(output, { recursive: true, force: true });
 await cp(resolve(root, "out"), output, { recursive: true });
+const compressed = await precompress(output);
+console.log(`Gzip: ${compressed.files} files, ${compressed.originalBytes} → ${compressed.gzipBytes} bytes; originals preserved`);
 console.log(`Next.js static export is ready: ${output}`);
