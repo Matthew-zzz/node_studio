@@ -3,12 +3,18 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { navigation } from "@/config/navigation";
+import { cancelSectionNavigation, scrollToSection } from "@/lib/section-navigation";
 
-/** Progressive decoration only: page content stays visible when JavaScript is unavailable. */
+/** Section navigation and reveal effects; native links/content remain usable without JavaScript. */
 export function SiteEffects() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Cross-page links and direct fragment URLs use the same destination as
+    // clicks within the homepage. Ordinary scroll is never corrected or locked.
+    const navigateToHash = () => scrollToSection(window.location.hash);
+    navigateToHash();
+    window.addEventListener("hashchange", navigateToHash);
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const animations = new Set<Animation>();
     const reveal = new IntersectionObserver((entries) => {
@@ -40,6 +46,8 @@ export function SiteEffects() {
     motion.addEventListener("change", cancelAnimations);
 
     return () => {
+      cancelSectionNavigation();
+      window.removeEventListener("hashchange", navigateToHash);
       reveal.disconnect();
       sections.disconnect();
       animations.forEach((animation) => animation.cancel());

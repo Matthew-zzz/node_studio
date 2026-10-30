@@ -180,7 +180,7 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
 export function ProjectsSection() {
   return (
     <section className={`projects-section section ${styles.section}`} id="projects">
-      <div className="container">
+      <div className="container" data-section-anchor="">
         <div className={`section-head reveal ${styles.heading}`}>
           <div>
             <p className="eyebrow">Избранные проекты</p>

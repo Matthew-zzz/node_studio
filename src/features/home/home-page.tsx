@@ -9,6 +9,7 @@ import { ProjectsSection } from "@/features/projects/components/projects-section
 import { Contact } from "@/components/sections/contact";
 import { LandingHeroVideo } from "@/features/home/components/landing-hero-video";
 import { servicePricingNote } from "@/features/services/lib/pricing";
+import { SectionLink } from "@/components/ui/section-link";
 
 function HomeHero() {
   return (
@@ -31,10 +32,10 @@ function HomeHero() {
             </span>
           </div>
         </div>
-        <Link className="landing-scroll" href="#projects">
+        <SectionLink className="landing-scroll" href="#projects">
           Избранные проекты
           <Icon name="arrow" />
-        </Link>
+        </SectionLink>
       </div>
     </section>
   );
@@ -43,7 +44,7 @@ function HomeHero() {
 function HomeCapabilities() {
   return (
     <section className="landing-capabilities section" id="services" aria-labelledby="landing-services-title">
-      <div className="container">
+      <div className="container" data-section-anchor="">
         <div className="section-head">
           <div>
             <p className="eyebrow">Чем помогаем</p>

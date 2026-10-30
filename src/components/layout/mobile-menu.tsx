@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { SectionLink } from "@/components/ui/section-link";
 import { Brand } from "@/components/ui/brand";
 import { Icon } from "@/components/ui/icon";
 import { ExternalLink } from "@/components/ui/external-link";
@@ -92,11 +92,11 @@ export function MobileMenu() {
         <h2 id="drawer-title" className="sr-only">Навигация по сайту</h2>
         <nav className="drawer-nav" aria-label="Мобильная навигация">
           {navigation.map((item) => (
-            <Link key={item.href} href={item.href} onClick={() => close(false)}>
+            <SectionLink key={item.href} href={item.href} onClick={() => close(false)}>
               <Icon name={item.icon} />
               <span>{item.label}</span>
               <Icon name="arrow" />
-            </Link>
+            </SectionLink>
           ))}
         </nav>
         <div className="drawer-contact">

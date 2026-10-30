@@ -7,7 +7,7 @@ import { site } from "@/config/site";
 export function Contact() {
   return (
     <section className="contact-section section" id="contact">
-      <div className="container">
+      <div className="container" data-section-anchor="">
         <div className="contact-panel reveal">
           <div className="contact-body">
             <div>

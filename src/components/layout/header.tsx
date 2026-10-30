@@ -1,5 +1,5 @@
 import { Brand } from "@/components/ui/brand";
-import Link from "next/link";
+import { SectionLink } from "@/components/ui/section-link";
 import { Icon } from "@/components/ui/icon";
 import { ExternalLink } from "@/components/ui/external-link";
 import { MobileMenu } from "@/components/layout/mobile-menu";
@@ -14,7 +14,7 @@ export function Header() {
         <div className="container header-inner">
           <Brand />
           <nav className="desktop-nav" aria-label="Главная навигация">
-            {navigation.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
+            {navigation.map((item) => <SectionLink key={item.href} href={item.href}>{item.label}</SectionLink>)}
           </nav>
           <ExternalLink className="header-contact" href={site.contact}>
             Обсудить задачу

@@ -18,6 +18,7 @@
     "test:carousel": "node tests/carousel-autoplay.test.mjs",
     "test:services": "node tests/service-cards.test.mjs",
     "test:styles": "node tests/page-styles.test.mjs",
+    "test:navigation": "node tests/section-navigation.test.mjs",
     "audit:lighthouse": "node scripts/audit-lighthouse.mjs",
     "audit:browser": "node scripts/audit-browser.mjs",
     "check": "npm run lint && npm run typecheck && npm run test"
