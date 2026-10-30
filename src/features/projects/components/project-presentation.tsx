@@ -1,6 +1,7 @@
 import { DeviceFrame } from "@/components/ui/device-frame";
 import { Screenshot } from "@/features/projects/components/screenshot";
 import { getScreenshot } from "@/features/projects/data/screenshots";
+import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
 import type { Project } from "@/features/projects/model/types";
 
 export function ProjectPresentation({ project, mode = "card" }: { project: Project; mode?: "card" | "cover" }) {
@@ -22,7 +23,7 @@ export function ProjectPresentation({ project, mode = "card" }: { project: Proje
         {paths.map((path, index) => {
           const screen = project.gallery.find((item) => item.src === path);
           const image = getScreenshot(path);
-          const picture = <Screenshot image={image} alt={screen ? `${screen.title}. ${screen.description}` : project.coverAlt} priority={mode === "cover" && index === 0} />;
+          const picture = <Screenshot image={image} alt={screen ? `${screen.title}. ${screen.description}` : project.coverAlt} sizes={image.portrait ? screenshotSizes.portraitCover : screenshotSizes.cover} priority={mode === "cover" && index === 0} />;
           return <div className={`presentation-screen presentation-screen-${index + 1}`} key={path}>{image.deviceFrame === "iphone" ? <DeviceFrame>{picture}</DeviceFrame> : picture}</div>;
         })}
       </div>

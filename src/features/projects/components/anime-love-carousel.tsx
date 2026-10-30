@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { Icon } from "@/components/ui/icon";
+import { Screenshot } from "@/features/projects/components/screenshot";
 import { getScreenshot } from "@/features/projects/data/screenshots";
+import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
 import type { GalleryScreen } from "@/features/projects/model/types";
 import styles from "./anime-love-carousel.module.css";
 
@@ -123,13 +124,11 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
                 }}
               >
                 <div className={styles.imageFrame}>
-                  <Image
-                    src={image.src}
+                  <Screenshot
+                    image={image}
                     alt={`${slide.title}. ${slide.description}`}
-                    width={image.width}
-                    height={image.height}
-                    sizes="(max-width: 760px) 86vw, (max-width: 1200px) 76vw, 940px"
-                    priority={distance < 2}
+                    sizes={screenshotSizes.carousel}
+                    useMobile={false}
                     draggable={false}
                   />
                 </div>

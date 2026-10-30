@@ -1,0 +1,801 @@
+{
+  "command": "npm run assets:screenshots",
+  "images": [
+    {
+      "source": "/assets/concepts/autoparts-catalog-no-images.png",
+      "sha256": "982084002f6c8058001ecd8f98ca8dcaa1f9b05a1e473e2970ac63989b2f6059",
+      "bytes": 1523566,
+      "width": 1672,
+      "height": 941,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-320.webp",
+          "width": 320,
+          "height": 180,
+          "bytes": 7920
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-480.webp",
+          "width": 480,
+          "height": 270,
+          "bytes": 14630
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-640.webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 22418
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-768.webp",
+          "width": 768,
+          "height": 432,
+          "bytes": 29694
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-1024.webp",
+          "width": 1024,
+          "height": 576,
+          "bytes": 46636
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 62816
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-catalog-no-images-1672.webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 93100
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/autoparts-catalog.png",
+      "sha256": "3da9ad691ade2432eab6cab0088b430f05a98609a3255aa5ca3f5de99774d677",
+      "bytes": 1365147,
+      "width": 941,
+      "height": 1672,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-autoparts-catalog-320.webp",
+          "width": 320,
+          "height": 569,
+          "bytes": 22824
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-catalog-480.webp",
+          "width": 480,
+          "height": 853,
+          "bytes": 38980
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-catalog-640.webp",
+          "width": 640,
+          "height": 1137,
+          "bytes": 55450
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-catalog-768.webp",
+          "width": 768,
+          "height": 1365,
+          "bytes": 69854
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-catalog-941.webp",
+          "width": 941,
+          "height": 1672,
+          "bytes": 89152
+        }
+      ]
+    },
+    {
+      "source": "/assets/concepts/autoparts-stock.png",
+      "sha256": "782b35cf794668046c61111ba32e9fcf4631656a9f14c6c8417395f6c416cb29",
+      "bytes": 1510183,
+      "width": 1672,
+      "height": 941,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-320.webp",
+          "width": 320,
+          "height": 180,
+          "bytes": 8124
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-480.webp",
+          "width": 480,
+          "height": 270,
+          "bytes": 14844
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-640.webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 22544
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-768.webp",
+          "width": 768,
+          "height": 432,
+          "bytes": 30284
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-1024.webp",
+          "width": 1024,
+          "height": 576,
+          "bytes": 45930
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 64106
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-stock-1672.webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 94164
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/autoparts-stock.png",
+      "sha256": "7c054173ca7bb775e835b6ba8cf999c3e0aa7b9ea522464c9d6e56641b26f4df",
+      "bytes": 1373724,
+      "width": 941,
+      "height": 1672,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-autoparts-stock-320.webp",
+          "width": 320,
+          "height": 569,
+          "bytes": 23322
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-stock-480.webp",
+          "width": 480,
+          "height": 853,
+          "bytes": 40864
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-stock-640.webp",
+          "width": 640,
+          "height": 1137,
+          "bytes": 60662
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-stock-768.webp",
+          "width": 768,
+          "height": 1365,
+          "bytes": 76178
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-stock-941.webp",
+          "width": 941,
+          "height": 1672,
+          "bytes": 98734
+        }
+      ]
+    },
+    {
+      "source": "/assets/concepts/autoparts-administration.png",
+      "sha256": "c5dec208c347fd1448d6b0b77ce959a948aefb951d5976763575736366c8d673",
+      "bytes": 1535941,
+      "width": 1672,
+      "height": 941,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-320.webp",
+          "width": 320,
+          "height": 180,
+          "bytes": 7596
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-480.webp",
+          "width": 480,
+          "height": 270,
+          "bytes": 14730
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-640.webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 23030
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-768.webp",
+          "width": 768,
+          "height": 432,
+          "bytes": 30262
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-1024.webp",
+          "width": 1024,
+          "height": 576,
+          "bytes": 47282
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 65554
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-administration-1672.webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 96448
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/autoparts-administration.png",
+      "sha256": "039bab6ad3da03bcde95a83fc959d1e10c04ca4a7cee0d7169ea60b9adbd20dd",
+      "bytes": 1347110,
+      "width": 941,
+      "height": 1672,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-autoparts-administration-320.webp",
+          "width": 320,
+          "height": 569,
+          "bytes": 20582
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-administration-480.webp",
+          "width": 480,
+          "height": 853,
+          "bytes": 36912
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-administration-640.webp",
+          "width": 640,
+          "height": 1137,
+          "bytes": 53986
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-administration-768.webp",
+          "width": 768,
+          "height": 1365,
+          "bytes": 68946
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-administration-941.webp",
+          "width": 941,
+          "height": 1672,
+          "bytes": 88096
+        }
+      ]
+    },
+    {
+      "source": "/assets/prepared/anime-catalog.png",
+      "sha256": "e443f0e3c771677e23e02e71509b3c22c426e43c74c06d28cd4e20730f1d8d0d",
+      "bytes": 2344871,
+      "width": 1586,
+      "height": 992,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-320.webp",
+          "width": 320,
+          "height": 200,
+          "bytes": 20670
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-480.webp",
+          "width": 480,
+          "height": 300,
+          "bytes": 41508
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-640.webp",
+          "width": 640,
+          "height": 400,
+          "bytes": 69110
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-768.webp",
+          "width": 768,
+          "height": 480,
+          "bytes": 94296
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-1024.webp",
+          "width": 1024,
+          "height": 640,
+          "bytes": 156660
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-1280.webp",
+          "width": 1280,
+          "height": 801,
+          "bytes": 227968
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-catalog-1586.webp",
+          "width": 1586,
+          "height": 992,
+          "bytes": 320034
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/anime-catalog.jpg",
+      "sha256": "cb5f8cb2a0b0909c5ce4c35daaaf74b3d0e90896a35f86c74d26ead3d927ccec",
+      "bytes": 111729,
+      "width": 726,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-anime-catalog-320.webp",
+          "width": 320,
+          "height": 564,
+          "bytes": 32578
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-catalog-480.webp",
+          "width": 480,
+          "height": 846,
+          "bytes": 56996
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-catalog-640.webp",
+          "width": 640,
+          "height": 1128,
+          "bytes": 84828
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-catalog-726.webp",
+          "width": 726,
+          "height": 1280,
+          "bytes": 101152
+        }
+      ]
+    },
+    {
+      "source": "/assets/prepared/anime-player.png",
+      "sha256": "d26a71037dac7e8b73db20be8abbf731d4b2ef1aa6500c41c7fa7bb48e90b264",
+      "bytes": 2057852,
+      "width": 1586,
+      "height": 992,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/prepared-anime-player-320.webp",
+          "width": 320,
+          "height": 200,
+          "bytes": 17530
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-480.webp",
+          "width": 480,
+          "height": 300,
+          "bytes": 34356
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-640.webp",
+          "width": 640,
+          "height": 400,
+          "bytes": 56448
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-768.webp",
+          "width": 768,
+          "height": 480,
+          "bytes": 77504
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-1024.webp",
+          "width": 1024,
+          "height": 640,
+          "bytes": 127266
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-1280.webp",
+          "width": 1280,
+          "height": 801,
+          "bytes": 182526
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-player-1586.webp",
+          "width": 1586,
+          "height": 992,
+          "bytes": 250978
+        }
+      ]
+    },
+    {
+      "source": "/assets/prepared/anime-profile.png",
+      "sha256": "8c7536e078fa9659a8ef1493c7f1ecd44b1a9ebf8b1b62ad3c5d04138f612e7d",
+      "bytes": 2082689,
+      "width": 1586,
+      "height": 992,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-320.webp",
+          "width": 320,
+          "height": 200,
+          "bytes": 17960
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-480.webp",
+          "width": 480,
+          "height": 300,
+          "bytes": 33650
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-640.webp",
+          "width": 640,
+          "height": 400,
+          "bytes": 53288
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-768.webp",
+          "width": 768,
+          "height": 480,
+          "bytes": 72968
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-1024.webp",
+          "width": 1024,
+          "height": 640,
+          "bytes": 119284
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-1280.webp",
+          "width": 1280,
+          "height": 801,
+          "bytes": 170990
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-profile-1586.webp",
+          "width": 1586,
+          "height": 992,
+          "bytes": 239216
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/anime-profile.jpg",
+      "sha256": "d479d6ed30e96985bcdd27185e9cdfc72f39b1a4aa93194411b848ecc93feb18",
+      "bytes": 78372,
+      "width": 724,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-anime-profile-320.webp",
+          "width": 320,
+          "height": 566,
+          "bytes": 20298
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-profile-480.webp",
+          "width": 480,
+          "height": 849,
+          "bytes": 33268
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-profile-640.webp",
+          "width": 640,
+          "height": 1131,
+          "bytes": 49686
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-profile-724.webp",
+          "width": 724,
+          "height": 1280,
+          "bytes": 60090
+        }
+      ]
+    },
+    {
+      "source": "/assets/prepared/anime-inventory.png",
+      "sha256": "05b71077c6ef91e4f1c0180147e04f400f95544139a716b7bc387788b00548cd",
+      "bytes": 1985200,
+      "width": 1586,
+      "height": 992,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-320.webp",
+          "width": 320,
+          "height": 200,
+          "bytes": 15518
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-480.webp",
+          "width": 480,
+          "height": 300,
+          "bytes": 29394
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-640.webp",
+          "width": 640,
+          "height": 400,
+          "bytes": 47664
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-768.webp",
+          "width": 768,
+          "height": 480,
+          "bytes": 65176
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-1024.webp",
+          "width": 1024,
+          "height": 640,
+          "bytes": 106874
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-1280.webp",
+          "width": 1280,
+          "height": 801,
+          "bytes": 159254
+        },
+        {
+          "src": "/assets/screenshots/prepared-anime-inventory-1586.webp",
+          "width": 1586,
+          "height": 992,
+          "bytes": 221578
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/anime-inventory.jpg",
+      "sha256": "4138d73c747c19cf467b62ea07274b7a65fcecaa12e76ee115ce62d4c564e3ae",
+      "bytes": 75319,
+      "width": 794,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-anime-inventory-320.webp",
+          "width": 320,
+          "height": 516,
+          "bytes": 15134
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-inventory-480.webp",
+          "width": 480,
+          "height": 774,
+          "bytes": 26046
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-inventory-640.webp",
+          "width": 640,
+          "height": 1032,
+          "bytes": 38242
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-inventory-768.webp",
+          "width": 768,
+          "height": 1238,
+          "bytes": 49378
+        },
+        {
+          "src": "/assets/screenshots/mobile-anime-inventory-794.webp",
+          "width": 794,
+          "height": 1280,
+          "bytes": 52346
+        }
+      ]
+    },
+    {
+      "source": "/assets/concepts/autoparts-analogs-no-images.png",
+      "sha256": "5d48a8dde222cdd100e95bd04f356f1f7970f608f34c1896f50f8ea3c656db53",
+      "bytes": 1556089,
+      "width": 1672,
+      "height": 941,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-320.webp",
+          "width": 320,
+          "height": 180,
+          "bytes": 7162
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-480.webp",
+          "width": 480,
+          "height": 270,
+          "bytes": 13532
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-640.webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 20822
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-768.webp",
+          "width": 768,
+          "height": 432,
+          "bytes": 27992
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-1024.webp",
+          "width": 1024,
+          "height": 576,
+          "bytes": 43716
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-1280.webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 60738
+        },
+        {
+          "src": "/assets/screenshots/concepts-autoparts-analogs-no-images-1672.webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 87934
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/autoparts-analogs.png",
+      "sha256": "86badd4e2d00e65b2d0817fe4e602db9e9d7d9b1ed1a1e9dabd0f8cbf2dfc132",
+      "bytes": 1420960,
+      "width": 941,
+      "height": 1672,
+      "quality": 90,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-autoparts-analogs-320.webp",
+          "width": 320,
+          "height": 569,
+          "bytes": 24306
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-analogs-480.webp",
+          "width": 480,
+          "height": 853,
+          "bytes": 42704
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-analogs-640.webp",
+          "width": 640,
+          "height": 1137,
+          "bytes": 62208
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-analogs-768.webp",
+          "width": 768,
+          "height": 1365,
+          "bytes": 77800
+        },
+        {
+          "src": "/assets/screenshots/mobile-autoparts-analogs-941.webp",
+          "width": 941,
+          "height": 1672,
+          "bytes": 99482
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/vectra-miniapp-agents.jpg",
+      "sha256": "2fdfb736ca19f00167bc16ec2a6a5ed027e4d6a64bd9d396b9332316f1b91ea6",
+      "bytes": 41415,
+      "width": 628,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-agents-320.webp",
+          "width": 320,
+          "height": 652,
+          "bytes": 11764
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-agents-480.webp",
+          "width": 480,
+          "height": 978,
+          "bytes": 19832
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-agents-628.webp",
+          "width": 628,
+          "height": 1280,
+          "bytes": 29324
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/vectra-miniapp-knowledge.jpg",
+      "sha256": "4a08ec62c81967e47c060844cbdf9db81ed5926859926495d3f0e476ca8f36c1",
+      "bytes": 52197,
+      "width": 627,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-knowledge-320.webp",
+          "width": 320,
+          "height": 653,
+          "bytes": 15044
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-knowledge-480.webp",
+          "width": 480,
+          "height": 980,
+          "bytes": 25388
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-knowledge-627.webp",
+          "width": 627,
+          "height": 1280,
+          "bytes": 37918
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/vectra-miniapp-messages.jpg",
+      "sha256": "331ab6f07e525ee56a9e0d69705f89381b2e9ac5cf7bb2f7a10455138cb501fb",
+      "bytes": 32737,
+      "width": 630,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-messages-320.webp",
+          "width": 320,
+          "height": 650,
+          "bytes": 8692
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-messages-480.webp",
+          "width": 480,
+          "height": 975,
+          "bytes": 14484
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-messages-630.webp",
+          "width": 630,
+          "height": 1280,
+          "bytes": 22138
+        }
+      ]
+    },
+    {
+      "source": "/assets/mobile/vectra-miniapp-statistics.jpg",
+      "sha256": "5c8874d2ccf2d18803732153040cb0158f783e9122648c46105139260eeb60bb",
+      "bytes": 40837,
+      "width": 626,
+      "height": 1280,
+      "quality": 82,
+      "variants": [
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-statistics-320.webp",
+          "width": 320,
+          "height": 654,
+          "bytes": 11364
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-statistics-480.webp",
+          "width": 480,
+          "height": 981,
+          "bytes": 19226
+        },
+        {
+          "src": "/assets/screenshots/mobile-vectra-miniapp-statistics-626.webp",
+          "width": 626,
+          "height": 1280,
+          "bytes": 28144
+        }
+      ]
+    }
+  ]
+}

@@ -10,7 +10,8 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 nextEnv.loadEnvConfig(root, false);
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const origin = new URL(process.env.SITE_ORIGIN || "https://node-studio.ru").origin;
-const routes = ["/", "/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/", "/terms/"];
+const projectRoutes = ["/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/"];
+const routes = ["/", ...projectRoutes, "/services/", "/terms/"];
 
 function descendants(node) {
   return [node, ...(node.childNodes ?? []).flatMap(descendants)];
@@ -43,7 +44,9 @@ for (const route of routes) {
       }
       if (node.tagName === "img") {
         assert.notEqual(attribute(node, "alt"), undefined, "image has alt text");
-        assert.ok(Number(attribute(node, "width")) > 0 && Number(attribute(node, "height")) > 0, "image has intrinsic dimensions");
+        const hasDimensions = Number(attribute(node, "width")) > 0 && Number(attribute(node, "height")) > 0;
+        const usesFill = attribute(node, "data-nimg") === "fill" && (attribute(node, "style") ?? "").includes("position:absolute") && Boolean(attribute(node, "sizes") || node.parentNode?.childNodes.some((child) => child.tagName === "source" && attribute(child, "sizes")));
+        assert.ok(hasDimensions || usesFill, "image has intrinsic dimensions or uses responsive Next.js fill");
       }
       if (["path", "rect", "circle", "ellipse"].includes(node.tagName)) {
         assert.ok(!node.childNodes.some((child) => child.tagName), "SVG shapes are siblings, not nested elements");
@@ -72,17 +75,19 @@ for (const route of routes) {
 test("homepage retains all service disclosures, cases and FAQ entries", async () => {
   const { nodes } = await documentAt("/");
   const hasClass = (node, className) => attribute(node, "class")?.split(/\s+/).includes(className);
-  assert.equal(nodes.filter((node) => hasClass(node, "service-disclosure")).length, 8);
-  assert.equal(nodes.filter((node) => hasClass(node, "project-card")).length, 3);
+  assert.equal(nodes.filter((node) => hasClass(node, "landing-service-card")).length, 7);
+  const projectsSection = nodes.find((node) => attribute(node, "id") === "projects");
+  const projectLinks = descendants(projectsSection).filter((node) => node.tagName === "a").map((node) => attribute(node, "href"));
+  for (const route of projectRoutes) assert.ok(projectLinks.includes(route), `homepage links to ${route}`);
   assert.equal(nodes.filter((node) => hasClass(node, "faq-item")).length, 6);
 });
 
 test("case navigation cycles through the three projects", async () => {
-  for (const [index, route] of routes.slice(1).entries()) {
+  for (const [index, route] of projectRoutes.entries()) {
     const { nodes } = await documentAt(route);
     const section = nodes.find((node) => attribute(node, "class") === "next-project container");
     const link = descendants(section).find((node) => node.tagName === "a");
-    assert.equal(attribute(link, "href"), routes[1 + ((index + 1) % 3)]);
+    assert.equal(attribute(link, "href"), projectRoutes[(index + 1) % projectRoutes.length]);
   }
 });
 

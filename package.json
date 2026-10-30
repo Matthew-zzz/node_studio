@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "assets:showcases": "node scripts/prepare-project-showcases.mjs",
+    "assets:screenshots": "node scripts/prepare-project-screenshots.mjs",
     "assets:videos": "node scripts/prepare-site-videos.mjs",
     "build": "next build --webpack && node scripts/finalize-export.mjs",
     "preview": "node scripts/serve.mjs",
@@ -13,6 +14,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node tests/export.test.mjs",
+    "test:images": "node tests/project-images.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {

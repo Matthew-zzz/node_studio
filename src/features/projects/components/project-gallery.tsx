@@ -2,6 +2,7 @@ import { DeviceFrame } from "@/components/ui/device-frame";
 import { Screenshot } from "@/features/projects/components/screenshot";
 import { getScreenshot } from "@/features/projects/data/screenshots";
 import { AnimeLoveCarousel } from "@/features/projects/components/anime-love-carousel";
+import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
 import type { Project } from "@/features/projects/model/types";
 
 const galleryHeadings: Readonly<Record<string, string>> = {
@@ -21,7 +22,7 @@ export function ProjectGallery({ project }: { project: Project }) {
       <div className="screen-stories">
         {project.gallery.map((screen, index) => {
           const image = getScreenshot(screen.src);
-          const picture = <Screenshot image={image} alt={`${image.concept ? "Визуализация интерфейса. " : ""}${screen.description}`} />;
+          const picture = <Screenshot image={image} alt={`${image.concept ? "Визуализация интерфейса. " : ""}${screen.description}`} sizes={image.portrait ? screenshotSizes.portraitGallery : screenshotSizes.gallery} />;
           return (
             <figure className={`screen-story reveal${hasMobile && !image.mobile ? " screen-desktop-only" : ""}`} id={`screen-${index + 1}`} key={screen.src}>
               <div className="screen-frame">{image.deviceFrame === "iphone" ? <DeviceFrame>{picture}</DeviceFrame> : picture}</div>

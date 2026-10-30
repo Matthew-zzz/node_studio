@@ -1,6 +1,6 @@
 import type { Screenshot } from "@/features/projects/model/types";
 
-const screenshots: Readonly<Record<string, Screenshot>> = {
+export const screenshots: Readonly<Record<string, Screenshot>> = {
   "/assets/autoparts-catalog.jpg": {
     "src": "/assets/concepts/autoparts-catalog-no-images.png",
     "original": "/assets/autoparts-catalog.jpg",
