@@ -24,7 +24,7 @@ export function ProjectGallery({ project }: { project: Project }) {
           const image = getScreenshot(screen.src);
           const picture = <Screenshot image={image} alt={`${image.concept ? "Визуализация интерфейса. " : ""}${screen.description}`} sizes={image.portrait ? screenshotSizes.portraitGallery : screenshotSizes.gallery} />;
           return (
-            <figure className={`screen-story reveal${hasMobile && !image.mobile ? " screen-desktop-only" : ""}`} id={`screen-${index + 1}`} key={screen.src}>
+            <figure className={`screen-story${project.slug === "vectra" ? "" : " reveal"}${hasMobile && !image.mobile ? " screen-desktop-only" : ""}`} id={`screen-${index + 1}`} key={screen.src}>
               <div className="screen-frame">{image.deviceFrame === "iphone" ? <DeviceFrame>{picture}</DeviceFrame> : picture}</div>
               <figcaption className="screen-story-note">
                 <h3>{screen.title}</h3>

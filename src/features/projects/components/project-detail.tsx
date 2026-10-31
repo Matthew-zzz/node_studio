@@ -46,7 +46,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           </p>
         )}
         {project.presentationNote && <p className="case-presentation-note">{project.presentationNote}</p>}
-        <div className={`case-cover portfolio-cover reveal${showcaseCover ? " case-showcase-cover" : ""}`} style={project.coverVideo ? { maxWidth: project.coverVideo.width } : undefined}><ProjectPresentation project={project} mode="cover" /></div>
+        <div className={`case-cover portfolio-cover${project.slug === "vectra" ? "" : " reveal"}${showcaseCover ? " case-showcase-cover" : ""}`} style={project.coverVideo ? { maxWidth: project.coverVideo.width } : undefined}><ProjectPresentation project={project} mode="cover" /></div>
       </section>
       {project.slug === "autoparts" && <AutopartsBrandStory />}
       <section className="case-story case-summary section container" aria-labelledby="case-summary-title">

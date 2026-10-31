@@ -6,9 +6,13 @@ body:has(.case-page) .header {
   backdrop-filter: blur(12px);
 }
 
-body:has(.case-page[data-project="anime-love"]) .header {
+body:has(.case-page:is([data-project="anime-love"],[data-project="vectra"])) .header {
   background: #fff;
   backdrop-filter: none;
+}
+
+.case-page[data-project="vectra"] .iphone-frame {
+  box-shadow: none;
 }
 
 body:has(.case-page) .header :is(.brand,.desktop-nav,.header-contact),
