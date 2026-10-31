@@ -10,6 +10,7 @@ import type { Project } from "@/features/projects/model/types";
 
 export function ProjectDetail({ project }: { project: Project }) {
   const next = getNextProject(project.slug);
+  const showcaseCover = Boolean(project.coverShowcase || project.coverVideo);
   const story = [
     { label: "Задача", text: project.context, icon: "search" },
     { label: "Решение", text: project.solution, icon: "code" },
@@ -17,7 +18,7 @@ export function ProjectDetail({ project }: { project: Project }) {
   ] as const;
 
   return (
-    <div className={`case-page${project.coverShowcase ? " case-page-showcase" : ""}`}>
+    <div className={`case-page${showcaseCover ? " case-page-showcase" : ""}`}>
       <section className="case-hero container">
         <Link className="back-link" href="/#projects">← Все проекты</Link>
         <h1>{project.title}</h1>
@@ -34,7 +35,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           )}
           {project.demo && (
             <ExternalLink href={project.demo}>
-              Открыть в Telegram
+              {project.demoLabel ?? "Открыть в Telegram"}
               <Icon name="diagonal" />
             </ExternalLink>
           )}
@@ -46,7 +47,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           </p>
         )}
         {project.presentationNote && <p className="case-presentation-note">{project.presentationNote}</p>}
-        <div className={`case-cover portfolio-cover reveal${project.coverShowcase ? " case-showcase-cover" : ""}`}><ProjectPresentation project={project} mode="cover" /></div>
+        <div className={`case-cover portfolio-cover reveal${showcaseCover ? " case-showcase-cover" : ""}`} style={project.coverVideo ? { maxWidth: project.coverVideo.width } : undefined}><ProjectPresentation project={project} mode="cover" /></div>
       </section>
       {project.slug === "autoparts" && <AutopartsBrandStory />}
       <section className="case-story case-summary section container" aria-labelledby="case-summary-title">

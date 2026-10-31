@@ -6,12 +6,13 @@ import test from "node:test";
 import { gunzipSync } from "node:zlib";
 import { parse } from "parse5";
 import nextEnv from "@next/env";
+import { projects } from "../src/features/projects/data/projects.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 nextEnv.loadEnvConfig(root, false);
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const origin = new URL(process.env.SITE_ORIGIN || "https://node-studio.ru").origin;
-const projectRoutes = ["/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/", "/projects/poison/"];
+const projectRoutes = projects.map(({ slug }) => `/projects/${slug}/`);
 const routes = ["/", ...projectRoutes, "/services/", "/terms/"];
 
 function descendants(node) {
@@ -80,6 +81,11 @@ test("homepage retains all service disclosures, cases and FAQ entries", async ()
   const projectsSection = nodes.find((node) => attribute(node, "id") === "projects");
   const projectLinks = descendants(projectsSection).filter((node) => node.tagName === "a").map((node) => attribute(node, "href"));
   for (const route of projectRoutes) assert.ok(projectLinks.includes(route), `homepage links to ${route}`);
+  const cards = descendants(projectsSection).filter((node) => node.tagName === "article");
+  assert.equal(cards.length, projectRoutes.length, "each portfolio project has a page");
+  for (const card of cards) {
+    assert(descendants(card).some((node) => node.tagName === "a" && projectRoutes.includes(attribute(node, "href"))), "each card opens its case page");
+  }
   assert.equal(nodes.filter((node) => hasClass(node, "faq-item")).length, 6);
 });
 

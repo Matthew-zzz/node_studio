@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright";
+import { projects } from "../src/features/projects/data/projects.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const tools = createRequire(resolve(root, ".cache/performance-tools/package.json"));
@@ -11,7 +12,7 @@ const { default: lighthouse, desktopConfig } = await import(pathToFileURL(tools.
 const { launch } = await import(pathToFileURL(tools.resolve("chrome-launcher")));
 const origin = process.env.AUDIT_ORIGIN || "https://node-studio.ru";
 const output = resolve(root, process.env.AUDIT_OUTPUT_DIR || ".cache/performance-audit/2026-10-30");
-const routes = ["/", "/projects/anime-love/", "/projects/autoparts/", "/projects/vectra/", "/projects/poison/", "/services/", "/terms/"];
+const routes = ["/", ...projects.map(({ slug }) => `/projects/${slug}/`), "/services/", "/terms/"];
 const revision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 const summary = { origin, revision, runner: "Lighthouse 13.6.0; Chromium from Playwright; sequential cold navigations", runs: [] };
 await mkdir(output, { recursive: true });

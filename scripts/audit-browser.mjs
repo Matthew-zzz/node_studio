@@ -4,17 +4,18 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, webkit, devices } from "playwright";
+import { projects } from "../src/features/projects/data/projects.ts";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const origin = process.env.AUDIT_ORIGIN || "https://node-studio.ru";
 const output = resolve(root, process.env.AUDIT_OUTPUT_DIR || ".cache/performance-audit/2026-10-30");
 const vitals = await readFile(resolve(root, ".cache/performance-tools/node_modules/web-vitals/dist/web-vitals.attribution.iife.js"), "utf8");
-const routes = ["/", "/projects/anime-love/", "/projects/autoparts/", "/projects/vectra/", "/projects/poison/", "/services/", "/terms/"];
+const routes = ["/", ...projects.map(({ slug }) => `/projects/${slug}/`), "/services/", "/terms/"];
 const profiles = [
   { name: "desktop-chromium", engine: chromium, viewport: { width: 1440, height: 1000 }, cpu: 1 },
   { name: "android-chromium", engine: chromium, device: devices["Pixel 7"], cpu: 1 },
   { name: "android-slow4g-cpu6", engine: chromium, device: devices["Pixel 7"], cpu: 6, latency: 150, downloadKbps: 1600, uploadKbps: 750 },
-  { name: "android-3g-cpu6", engine: chromium, device: devices["Pixel 7"], cpu: 6, latency: 400, downloadKbps: 400, uploadKbps: 100, routes: routes.slice(0, 2) },
+  { name: "android-3g-cpu6", engine: chromium, device: devices["Pixel 7"], cpu: 6, latency: 400, downloadKbps: 400, uploadKbps: 100, routes: ["/", "/projects/anime-love/"] },
   { name: "iphone-webkit", engine: webkit, device: devices["iPhone 13"], cpu: null },
 ];
 const summary = {

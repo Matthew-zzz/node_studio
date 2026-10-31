@@ -3,6 +3,7 @@ import { once } from "node:events";
 import test from "node:test";
 import { chromium } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
+import { projects } from "../src/features/projects/data/projects.ts";
 
 test("page styles remain consistent after client navigation and menu/FAQ interactions", { timeout: 120000 }, async (t) => {
   let origin = process.env.PAGE_STYLES_ORIGIN;
@@ -16,7 +17,7 @@ test("page styles remain consistent after client navigation and menu/FAQ interac
   const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
   t.after(() => browser.close());
   const errors = [];
-  const routes = ["/", "/projects/anime-love/", "/projects/vectra/", "/projects/poison/", "/projects/autoparts/", "/services/", "/terms/"];
+  const routes = ["/", ...projects.map(({ slug }) => `/projects/${slug}/`), "/services/", "/terms/"];
   const snapshot = (page) => page.evaluate(() => {
     const keys = ["display", "fontSize", "fontWeight", "lineHeight", "color", "backgroundColor", "paddingTop", "paddingBottom", "borderRadius", "gridTemplateColumns"];
     return [...document.querySelectorAll("body,.header,.desktop-nav,.menu-toggle,.footer,.footer-contacts,.contact-panel,main h1,main h2,main h3,main .button,.case-cover,.screen-frame,.landing-service-card")].map((element) => {

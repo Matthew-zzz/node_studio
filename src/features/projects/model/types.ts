@@ -24,6 +24,12 @@ export interface Project {
   readonly cover: string;
   readonly coverAlt: string;
   readonly coverShowcase?: keyof typeof showcaseImages;
+  readonly coverVideo?: {
+    readonly src: string;
+    readonly poster: string;
+    readonly width: number;
+    readonly height: number;
+  };
   readonly context: string;
   readonly solution: string;
   readonly result: string;
@@ -33,6 +39,7 @@ export interface Project {
   readonly features: readonly (readonly [string, string])[];
   readonly featuresHeading?: string;
   readonly demo?: string;
+  readonly demoLabel?: string;
   readonly presentationNote?: string;
   readonly mobilePresentation?: string;
   readonly accessNote?: string;

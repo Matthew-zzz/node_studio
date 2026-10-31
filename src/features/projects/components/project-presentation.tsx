@@ -4,8 +4,17 @@ import { getScreenshot } from "@/features/projects/data/screenshots";
 import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
 import type { Project } from "@/features/projects/model/types";
 import { ShowcaseImage } from "@/features/projects/components/showcase-image";
+import { ViewportVideo } from "@/components/ui/viewport-video";
 
 export function ProjectPresentation({ project, mode = "card" }: { project: Project; mode?: "card" | "cover" }) {
+  if (project.coverVideo) {
+    return (
+      <div className="project-showcase-cover project-showcase-video" style={{ aspectRatio: `${project.coverVideo.width} / ${project.coverVideo.height}` }}>
+        <ViewportVideo src={project.coverVideo.src} poster={project.coverVideo.poster} aria-label={project.coverAlt} />
+      </div>
+    );
+  }
+
   if (project.coverShowcase) {
     return (
       <div className="project-showcase-cover">

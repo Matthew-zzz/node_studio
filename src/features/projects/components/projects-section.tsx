@@ -13,6 +13,7 @@ const imageProjects = [
     id: "xnr-bots",
     title: "XNR Bots",
     image: "xnrBots",
+    href: "/projects/xnr-bots/",
     description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
   },
   {
@@ -26,12 +27,14 @@ const imageProjects = [
     id: "tap-league",
     title: "Tap League",
     image: "tapLeague",
+    href: "/projects/tap-league/",
     description: "Игровой кликер в Telegram с балансом, усилениями и приглашением друзей.",
   },
   {
     id: "telegram-clicker",
     title: "Кликер — Telegram WebApp",
     image: "clicker",
+    href: "/projects/telegram-clicker/",
     description: "Игровое мини-приложение в Telegram: накопление очков, энергия и таблица лидеров.",
   },
 ] as const;
@@ -86,13 +89,13 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     className: styles.itemAi,
     content: (
       <>
-        <div className={styles.media}>
+        <Link className={styles.media} href="/projects/nodestudio-ai/" aria-label="Открыть проект NodeStudio AI">
           <ViewportVideo src="/assets/video/ai-showcase.mp4" poster="/assets/video/ai-poster.jpg" aria-label="Видео презентация NodeStudio AI" />
           <div className={styles.aiTitle}>
             <span>ИИ-агент студии</span>
             <h3>NodeStudio AI</h3>
           </div>
-        </div>
+        </Link>
         <div className={styles.caption}>
           <p>Наш ИИ-агент проконсультирует по вопросам разработки, услугам студии и вашему проекту.</p>
           <ExternalLink className={`button button-primary ${styles.askButton}`} href={site.contact}>
@@ -108,15 +111,9 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     title: project.title,
     content: (
       <>
-        {"href" in project ? (
-          <Link className={`${styles.media} ${styles.imageOnly}`} href={project.href} aria-label={`Открыть проект ${project.title}`}>
-            <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
-          </Link>
-        ) : (
-          <div className={`${styles.media} ${styles.imageOnly}`}>
-            <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
-          </div>
-        )}
+        <Link className={`${styles.media} ${styles.imageOnly}`} href={project.href} aria-label={`Открыть проект ${project.title}`}>
+          <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
+        </Link>
         <div className={styles.caption}>
           <p>{project.description}</p>
         </div>
