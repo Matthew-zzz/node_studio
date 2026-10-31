@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
-import { chromium } from "playwright";
+import { chromium, firefox } from "playwright";
 import { createStaticServer } from "../scripts/lib/static-server.mjs";
 
 const index = (page) => page.locator('[aria-label="Выбрать экран"] button').evaluateAll((buttons) => buttons.findIndex((button) => button.getAttribute("aria-current") === "true"));
@@ -15,12 +15,13 @@ test("carousel autoplay pauses offscreen, in hidden tabs and during interaction"
     origin = `http://127.0.0.1:${server.address().port}`;
     t.after(() => { server.closeAllConnections(); server.close(); });
   }
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  const engine = process.env.CAROUSEL_BROWSER === "firefox" ? firefox : chromium;
+  const browser = await engine.launch({ headless: true, ...(engine === chromium ? { args: ["--no-sandbox"] } : {}) });
   t.after(() => browser.close());
   const errors = [];
 
   for (const width of [390, 1440]) {
-    const page = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390 });
+    const page = await browser.newPage({ viewport: { width, height: 900 }, ...(engine === chromium ? { isMobile: width === 390 } : {}), hasTouch: width === 390 });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.clock.install({ time: new Date("2026-10-30T12:00:00Z") });
     await page.goto(`${origin}/projects/anime-love/`, { waitUntil: "networkidle" });

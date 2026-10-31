@@ -8,18 +8,12 @@ import { screenshotSizes } from "@/features/projects/lib/screenshot-sizes";
 import type { GalleryScreen } from "@/features/projects/model/types";
 import styles from "./anime-love-carousel.module.css";
 
-function wrappedOffset(index: number, activeIndex: number, length: number) {
-  const raw = (index - activeIndex + length) % length;
-  return raw > length / 2 ? raw - length : raw;
-}
-
 export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const startX = useRef<number | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
-  const activeSlide = useRef<HTMLDivElement>(null);
   const count = slides.length;
 
   const move = useCallback((step: number) => {
@@ -60,61 +54,6 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
       reducedMotion.removeEventListener("change", syncAutoplay);
     };
   }, [count, move, hovered, focused]);
-
-  useEffect(() => {
-    const element = viewport.current;
-    if (!element) return;
-    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let frame = 0;
-    let bounds: DOMRect | undefined;
-    let tilted: HTMLElement | null = null;
-    let x = 0;
-    let y = 0;
-    const reset = () => {
-      cancelAnimationFrame(frame);
-      frame = 0;
-      bounds = undefined;
-      tilted?.style.removeProperty("--tilt-x");
-      tilted?.style.removeProperty("--tilt-y");
-      tilted = null;
-    };
-    const onMove = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse" || event.buttons || !finePointer.matches || reducedMotion.matches || document.hidden) return;
-      x = event.clientX;
-      y = event.clientY;
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        bounds ??= element.getBoundingClientRect();
-        if (!bounds.width || !bounds.height) return;
-        tilted = activeSlide.current;
-        // Only the active plane changes, at most once per frame. Avoid inherited
-        // variables invalidating every screenshot during pointer movement.
-        tilted?.style.setProperty("--tilt-x", `${((x - bounds.left) / bounds.width - 0.5) * 3.5}deg`);
-        tilted?.style.setProperty("--tilt-y", `${((y - bounds.top) / bounds.height - 0.5) * -2.5}deg`);
-      });
-    };
-    element.addEventListener("pointermove", onMove);
-    element.addEventListener("pointerleave", reset);
-    element.addEventListener("pointerdown", reset);
-    window.addEventListener("scroll", reset, { passive: true });
-    window.addEventListener("resize", reset);
-    document.addEventListener("visibilitychange", reset);
-    reducedMotion.addEventListener("change", reset);
-    finePointer.addEventListener("change", reset);
-    return () => {
-      reset();
-      element.removeEventListener("pointermove", onMove);
-      element.removeEventListener("pointerleave", reset);
-      element.removeEventListener("pointerdown", reset);
-      window.removeEventListener("scroll", reset);
-      window.removeEventListener("resize", reset);
-      document.removeEventListener("visibilitychange", reset);
-      reducedMotion.removeEventListener("change", reset);
-      finePointer.removeEventListener("change", reset);
-    };
-  }, []);
 
   if (!count) return null;
   const current = slides[activeIndex];
@@ -157,7 +96,6 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <div className={styles.lightOrb} aria-hidden="true" />
         <div
           className={styles.viewport}
           ref={viewport}
@@ -183,24 +121,17 @@ export function AnimeLoveCarousel({ slides }: { slides: readonly GalleryScreen[]
         >
           {slides.map((slide, index) => {
             const image = getScreenshot(slide.src);
-            const offset = wrappedOffset(index, activeIndex, count);
-            const distance = Math.abs(offset);
+            const active = index === activeIndex;
             return (
               <div
                 className={styles.slide}
                 key={slide.src}
-                ref={offset === 0 ? activeSlide : undefined}
-                data-active={offset === 0}
-                data-visible={distance <= 1}
-                aria-hidden={offset !== 0}
+                data-active={active}
+                hidden={!active}
+                aria-hidden={!active}
                 role="group"
                 aria-roledescription="слайд"
                 aria-label={`${index + 1} из ${count}: ${slide.title}`}
-                style={{
-                  transform: `translate3d(calc(-50% + ${offset * 76}%), -50%, ${-distance * 120}px) ${offset === 0 ? "rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg)) " : ""}rotateY(${offset * -22}deg) scale(${1 - distance * 0.14})`,
-                  opacity: distance > 1 ? 0 : 1 - distance * 0.2,
-                  zIndex: count - distance,
-                }}
               >
                 <div className={styles.imageFrame}>
                   <Screenshot

@@ -6,6 +6,11 @@ body:has(.case-page) .header {
   backdrop-filter: blur(12px);
 }
 
+body:has(.case-page[data-project="anime-love"]) .header {
+  background: #fff;
+  backdrop-filter: none;
+}
+
 body:has(.case-page) .header :is(.brand,.desktop-nav,.header-contact),
 body:has(.case-page) .drawer-nav>a {
   color: #171b2b;
