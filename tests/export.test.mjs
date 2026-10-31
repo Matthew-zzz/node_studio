@@ -33,6 +33,9 @@ for (const route of routes) {
     const { html, nodes } = await documentAt(route);
     assert.equal(nodes.filter((node) => node.tagName === "h1").length, 1, "one page heading");
     assert.equal(nodes.filter((node) => node.tagName === "main").length, 1, "one main landmark");
+    const contact = nodes.filter((node) => attribute(node, "id") === "contact");
+    assert.equal(contact.length, 1, "one shared contact section per page");
+    assert.equal(contact[0].parentNode.tagName, "main", "contact is owned by the shared layout");
     assert.equal(attribute(nodes.find((node) => node.tagName === "html"), "lang"), "ru");
     assert.ok(nodes.some((node) => node.tagName === "meta" && attribute(node, "name") === "description" && attribute(node, "content")));
     assert.ok(nodes.some((node) => node.tagName === "link" && attribute(node, "rel") === "canonical" && attribute(node, "href") === origin + route));

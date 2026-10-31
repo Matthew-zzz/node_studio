@@ -1,0 +1,25 @@
+/* The shared layout owns this light panel; page themes must not change it. */
+.section:global(.contact-section) {
+  --text: #171b2b;
+  --muted: #697286;
+  --accent: #553ba1;
+  padding-block: clamp(74px,9vw,120px);
+  background: #fff;
+  color: var(--text);
+}
+
+.section :global(.contact-panel) {
+  border: 1px solid #dfe3eb;
+  border-radius: 14px;
+  background: #fafbfc;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.section :global(.contact-panel)::before { display: none; }
+.section :global(.contact-panel h2 > span) { color: var(--accent); }
+.section :global(.contact-bottom) { border-color: #dfe3eb; }
+.section :global(.contact-handle) { color: var(--text); }
+.section :global(.contact-support) { border-color: #dfe3eb; color: #454d60; }
+.section :global(.contact-support > a:hover),
+.section :global(.copy-contact:hover) { color: var(--accent); }

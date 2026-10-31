@@ -2,8 +2,7 @@
 
 .home-landing .projects-section,
 .home-landing .process-section,
-.home-landing .faq-section,
-.home-landing .contact-section {
+.home-landing .faq-section {
   background: transparent;
 }
 
@@ -411,42 +410,6 @@
 .home-landing .faq-item,
 .home-landing .faq-item:first-child {
   border-color: #e0e3eb;
-}
-
-.home-landing .contact-section {
-  padding-bottom: clamp(74px,9vw,120px);
-}
-
-.home-landing .contact-panel {
-  border: 1px solid #dfe3eb;
-  border-radius: 14px;
-  background: #fafbfc;
-  box-shadow: none;
-}
-
-.home-landing .contact-panel::before {
-  display: none;
-}
-
-.home-landing .contact-panel h2 > span {
-  color: #553ba1;
-}
-
-.home-landing .contact-bottom {
-  border-color: #dfe3eb;
-}
-
-.home-landing .contact-handle {
-  color: #171b2b;
-}
-
-.home-landing .contact-support {
-  border-color: #dfe3eb;
-  color: #454d60;
-}
-
-.home-landing .contact-support>a:hover {
-  color: #553ba1;
 }
 
 @media (max-width: 760px) {

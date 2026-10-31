@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Contact } from "@/components/sections/contact";
 import { AutopartsBrandStory } from "@/features/projects/components/autoparts-brand-story";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
@@ -18,7 +17,7 @@ export function ProjectDetail({ project }: { project: Project }) {
   ] as const;
 
   return (
-    <div className={`case-page${showcaseCover ? " case-page-showcase" : ""}`}>
+    <div className="case-page">
       <section className="case-hero container">
         <Link className="back-link" href="/#projects">← Все проекты</Link>
         <h1>{project.title}</h1>
@@ -91,7 +90,6 @@ export function ProjectDetail({ project }: { project: Project }) {
           </Link>
         </section>
       )}
-      <Contact />
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { Faq } from "@/features/home/components/faq";
 import { LandingServiceCards } from "@/features/home/components/landing-service-cards";
 import { Process } from "@/features/home/components/process";
 import { ProjectsSection } from "@/features/projects/components/projects-section";
-import { Contact } from "@/components/sections/contact";
 import { LandingHeroVideo } from "@/features/home/components/landing-hero-video";
 import { servicePricingNote } from "@/features/services/lib/pricing";
 import { SectionLink } from "@/components/ui/section-link";
@@ -71,7 +70,6 @@ export function HomePage() {
       <HomeCapabilities />
       <Process />
       <Faq />
-      <Contact />
     </div>
   );
 }

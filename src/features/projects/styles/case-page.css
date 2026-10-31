@@ -125,20 +125,6 @@ body:has(.case-page) .footer {
   margin-inline: auto;
 }
 
-.case-page-showcase .contact-panel {
-  border: 1px solid #dfe3eb;
-  border-radius: 14px;
-  background: #fafbfc;
-  color: #171b2b;
-}
-
-.case-page-showcase .contact-panel::before { display: none; }
-.case-page-showcase .contact-body h2>span { color: #553ba1; }
-.case-page-showcase .contact-bottom,
-.case-page-showcase .contact-support { border-color: #dfe3eb; }
-.case-page-showcase .contact-support { color: #454d60; }
-.case-page-showcase .copy-contact:hover { color: #553ba1; }
-
 .case-page .case-features {
   padding-top: 0;
 }

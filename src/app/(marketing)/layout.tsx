@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SiteEffects } from "@/components/layout/site-effects";
+import { Contact } from "@/components/sections/contact";
 import { site } from "@/config/site";
 import { siteOrigin } from "@/lib/metadata";
 
@@ -10,7 +11,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <main id="main">{children}</main>
+      <main id="main">
+        {children}
+        <Contact />
+      </main>
       <Footer />
       <SiteEffects />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replaceAll("<", "\\u003c") }} />

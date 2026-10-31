@@ -25,19 +25,32 @@ test("page styles remain consistent after client navigation and menu/FAQ interac
       return Object.fromEntries(keys.map((key) => [key, style[key]]));
     });
   });
+  const contactSnapshot = (page) => page.locator("#contact").evaluate((section) => {
+    const keys = ["display", "width", "height", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "color", "backgroundColor", "backgroundImage", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight", "borderTopColor", "borderRadius", "gap"];
+    return [section, ...section.querySelectorAll("*")].map((element) => {
+      const style = getComputedStyle(element);
+      return Object.fromEntries(keys.map((key) => [key, style[key]]));
+    });
+  });
 
   for (const width of [390, 820, 1440]) {
     const baseline = new Map();
+    let sharedContact;
     for (const route of routes) {
       const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
       await page.goto(origin + route, { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts.ready);
+      assert.equal(await page.locator("#contact").count(), 1);
+      const contact = await contactSnapshot(page);
+      if (route === "/") sharedContact = contact;
+      else assert.deepEqual(contact, sharedContact, `${route}: contact matches the homepage at ${width}px`);
       baseline.set(route, await snapshot(page));
       await page.close();
     }
     const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(origin, { waitUntil: "networkidle" });
+    await page.evaluate(() => { window.__sharedContact = document.getElementById("contact"); });
     for (const route of [...routes.slice(1), ...routes]) {
       const link = page.locator(`a[href="${route}"]`).first();
       await link.evaluate((element) => element.click());
@@ -49,6 +62,8 @@ test("page styles remain consistent after client navigation and menu/FAQ interac
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       });
       assert.deepEqual(await snapshot(page), baseline.get(route), `${route}: loaded styles do not leak at ${width}px`);
+      assert(await page.evaluate(() => window.__sharedContact === document.getElementById("contact")), "layout preserves the same contact component across navigation");
+      assert.deepEqual(await contactSnapshot(page), sharedContact, `${route}: shared contact styles survive client navigation`);
     }
     await page.locator('a[href="/"]').first().evaluate((link) => link.click());
     await page.waitForURL(origin + "/");
@@ -66,7 +81,7 @@ test("page styles remain consistent after client navigation and menu/FAQ interac
     }
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.close();
-    console.log(`${width}px: direct/client styles, FAQ and navigation checked`);
+    console.log(`${width}px: direct/client styles, identical shared contact, layout persistence, FAQ and navigation checked`);
   }
   assert.deepEqual(errors, []);
 });

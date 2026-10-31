@@ -3,15 +3,16 @@ import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { ResponsiveCopy } from "@/components/ui/responsive-copy";
 import { site } from "@/config/site";
+import styles from "./contact.module.css";
 
 export function Contact() {
   return (
-    <section className="contact-section section" id="contact">
+    <section className={`contact-section section ${styles.section}`} id="contact" aria-labelledby="contact-title">
       <div className="container" data-section-anchor="">
         <div className="contact-panel reveal">
           <div className="contact-body">
             <div>
-              <h2>
+              <h2 id="contact-title">
                 <ResponsiveCopy
                   wide={<>
                     Что в вашей работе
