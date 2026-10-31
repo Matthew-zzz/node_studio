@@ -8,34 +8,6 @@ import { ProjectShowcase, type ProjectShowcaseItem } from "./project-showcase";
 import { ShowcaseImage } from "./showcase-image";
 import styles from "./projects-section.module.css";
 
-const conceptProjects = [
-  {
-    title: "Forma",
-    description: "Запись, расписание и оплата занятий — в одном пространстве для команды и клиентов.",
-    visual: "forma",
-  },
-  {
-    title: "Northline",
-    description: "Цифровая витрина проектов с выразительной подачей портфолио и материалов студии.",
-    visual: "northline",
-  },
-  {
-    title: "Relay",
-    description: "Заявки из разных каналов собираются в общую очередь и распределяются по команде.",
-    visual: "relay",
-  },
-  {
-    title: "Noma",
-    description: "Каталог предметов для дома с подборками, быстрым поиском и удобным оформлением заказа.",
-    visual: "noma",
-  },
-  {
-    title: "Nexus",
-    description: "Единое рабочее пространство, которое собирает задачи, документы и коммуникации команды.",
-    visual: "nexus",
-  },
-] as const;
-
 const imageProjects = [
   {
     id: "xnr-bots",
@@ -62,47 +34,6 @@ const imageProjects = [
     description: "Игровое мини-приложение в Telegram: накопление очков, энергия и таблица лидеров.",
   },
 ] as const;
-
-function ConceptArtwork({ visual }: { visual: string }) {
-  return (
-    <div className={styles.conceptArtwork} data-visual={visual} aria-hidden="true">
-      <div className={styles.conceptWindow}>
-        <div className={styles.windowBar}>
-          <i />
-          <i />
-          <i />
-          <span />
-        </div>
-        <div className={styles.windowContent}>
-          <div className={styles.windowNav}>
-            <b />
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className={styles.windowHero}>
-            <div className={styles.heroLines}>
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className={styles.heroShape} />
-          </div>
-          <div className={styles.windowCards}>
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-      </div>
-      <div className={styles.floatingTile}>
-        <i />
-        <i />
-        <i />
-      </div>
-    </div>
-  );
-}
 
 const showcaseItems: readonly ProjectShowcaseItem[] = [
   {
@@ -178,22 +109,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
       <>
         <div className={`${styles.media} ${styles.imageOnly}`}>
           <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
-        </div>
-        <div className={styles.caption}>
-          <p>{project.description}</p>
-        </div>
-      </>
-    ),
-  })),
-  ...conceptProjects.map((project): ProjectShowcaseItem => ({
-    id: project.visual,
-    title: project.title,
-    className: styles.conceptItem,
-    content: (
-      <>
-        <div className={styles.media}>
-          <ConceptArtwork visual={project.visual} />
-          <span className={styles.conceptTag}>Концепт</span>
         </div>
         <div className={styles.caption}>
           <p>{project.description}</p>
