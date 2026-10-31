@@ -1,4 +1,6 @@
-export type ProjectCategory = "automation" | "telegram" | "ai";
+import type { showcaseImages } from "@/features/projects/data/showcase-images";
+
+export type ProjectCategory = "automation" | "telegram" | "ai" | "commerce";
 
 export interface GalleryScreen {
   readonly src: string;
@@ -21,6 +23,7 @@ export interface Project {
   readonly tags: readonly string[];
   readonly cover: string;
   readonly coverAlt: string;
+  readonly coverShowcase?: keyof typeof showcaseImages;
   readonly context: string;
   readonly solution: string;
   readonly result: string;
@@ -28,6 +31,7 @@ export interface Project {
   readonly kind: string;
   readonly gallery: readonly GalleryScreen[];
   readonly features: readonly (readonly [string, string])[];
+  readonly featuresHeading?: string;
   readonly demo?: string;
   readonly presentationNote?: string;
   readonly mobilePresentation?: string;

@@ -1,3 +1,13 @@
+.project-showcase-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.project-showcase-cover img {
+  object-fit: contain;
+}
+
 .case-hero {
   padding-top: 49px;
 }

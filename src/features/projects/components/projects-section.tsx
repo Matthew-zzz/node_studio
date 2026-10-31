@@ -16,9 +16,10 @@ const imageProjects = [
     description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
   },
   {
-    id: "poizon",
-    title: "Poizon",
+    id: "poison",
+    title: "Poison",
     image: "poizon",
+    href: "/projects/poison/",
     description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
   },
   {
@@ -107,9 +108,15 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     title: project.title,
     content: (
       <>
-        <div className={`${styles.media} ${styles.imageOnly}`}>
-          <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
-        </div>
+        {"href" in project ? (
+          <Link className={`${styles.media} ${styles.imageOnly}`} href={project.href} aria-label={`Открыть проект ${project.title}`}>
+            <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
+          </Link>
+        ) : (
+          <div className={`${styles.media} ${styles.imageOnly}`}>
+            <ShowcaseImage name={project.image} alt={`${project.title}. ${project.description}`} />
+          </div>
+        )}
         <div className={styles.caption}>
           <p>{project.description}</p>
         </div>

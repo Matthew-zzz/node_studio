@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const origin = process.env.AUDIT_ORIGIN || "https://node-studio.ru";
 const output = resolve(root, process.env.AUDIT_OUTPUT_DIR || ".cache/performance-audit/2026-10-30");
 const vitals = await readFile(resolve(root, ".cache/performance-tools/node_modules/web-vitals/dist/web-vitals.attribution.iife.js"), "utf8");
-const routes = ["/", "/projects/anime-love/", "/projects/autoparts/", "/projects/vectra/", "/services/", "/terms/"];
+const routes = ["/", "/projects/anime-love/", "/projects/autoparts/", "/projects/vectra/", "/projects/poison/", "/services/", "/terms/"];
 const profiles = [
   { name: "desktop-chromium", engine: chromium, viewport: { width: 1440, height: 1000 }, cpu: 1 },
   { name: "android-chromium", engine: chromium, device: devices["Pixel 7"], cpu: 1 },

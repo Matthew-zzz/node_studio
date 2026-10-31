@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 nextEnv.loadEnvConfig(root, false);
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const origin = new URL(process.env.SITE_ORIGIN || "https://node-studio.ru").origin;
-const projectRoutes = ["/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/"];
+const projectRoutes = ["/projects/autoparts/", "/projects/anime-love/", "/projects/vectra/", "/projects/poison/"];
 const routes = ["/", ...projectRoutes, "/services/", "/terms/"];
 
 function descendants(node) {
@@ -83,7 +83,7 @@ test("homepage retains all service disclosures, cases and FAQ entries", async ()
   assert.equal(nodes.filter((node) => hasClass(node, "faq-item")).length, 6);
 });
 
-test("case navigation cycles through the three projects", async () => {
+test("case navigation cycles through all published projects", async () => {
   for (const [index, route] of projectRoutes.entries()) {
     const { nodes } = await documentAt(route);
     const section = nodes.find((node) => attribute(node, "class") === "next-project container");

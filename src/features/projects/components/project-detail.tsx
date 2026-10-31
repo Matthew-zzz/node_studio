@@ -17,7 +17,7 @@ export function ProjectDetail({ project }: { project: Project }) {
   ] as const;
 
   return (
-    <div className="case-page">
+    <div className={`case-page${project.coverShowcase ? " case-page-showcase" : ""}`}>
       <section className="case-hero container">
         <Link className="back-link" href="/#projects">← Все проекты</Link>
         <h1>{project.title}</h1>
@@ -46,7 +46,7 @@ export function ProjectDetail({ project }: { project: Project }) {
           </p>
         )}
         {project.presentationNote && <p className="case-presentation-note">{project.presentationNote}</p>}
-        <div className="case-cover portfolio-cover reveal"><ProjectPresentation project={project} mode="cover" /></div>
+        <div className={`case-cover portfolio-cover reveal${project.coverShowcase ? " case-showcase-cover" : ""}`}><ProjectPresentation project={project} mode="cover" /></div>
       </section>
       {project.slug === "autoparts" && <AutopartsBrandStory />}
       <section className="case-story case-summary section container" aria-labelledby="case-summary-title">
@@ -63,6 +63,24 @@ export function ProjectDetail({ project }: { project: Project }) {
           ))}
         </div>
       </section>
+      {project.featuresHeading && (
+        <section className="case-features section container" aria-labelledby="case-features-title">
+          <div className="case-features-layout">
+            <h2 id="case-features-title" className="reveal">{project.featuresHeading}</h2>
+            <div className="case-features-list">
+              {project.features.map(([title, description], index) => (
+                <article className="case-feature reveal" key={title}>
+                  <span className="case-feature-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <ProjectGallery project={project} />
       {next && (
         <section className="next-project container">
