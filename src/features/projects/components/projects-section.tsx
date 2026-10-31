@@ -17,18 +17,18 @@ const imageProjects = [
     description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
   },
   {
-    id: "poison",
-    title: "Poison",
-    image: "poizon",
-    href: "/projects/poison/",
-    description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
-  },
-  {
     id: "tap-league",
     title: "Tap League",
     image: "tapLeague",
     href: "/projects/tap-league/",
     description: "Игровой кликер в Telegram с балансом, усилениями и приглашением друзей.",
+  },
+  {
+    id: "poison",
+    title: "Poison",
+    image: "poizon",
+    href: "/projects/poison/",
+    description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
   },
   {
     id: "telegram-clicker",
