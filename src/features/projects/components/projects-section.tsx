@@ -10,13 +10,6 @@ import styles from "./projects-section.module.css";
 
 const imageProjects = [
   {
-    id: "xnr-bots",
-    title: "XNR Bots",
-    image: "xnrBots",
-    href: "/projects/xnr-bots/",
-    description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
-  },
-  {
     id: "tap-league",
     title: "Tap League",
     image: "tapLeague",
@@ -24,11 +17,11 @@ const imageProjects = [
     description: "Игровой кликер в Telegram с балансом, усилениями и приглашением друзей.",
   },
   {
-    id: "poison",
-    title: "Poison",
-    image: "poizon",
-    href: "/projects/poison/",
-    description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
+    id: "xnr-bots",
+    title: "XNR Bots",
+    image: "xnrBots",
+    href: "/projects/xnr-bots/",
+    description: "Визуальный конструктор Telegram-ботов: сообщения, кнопки и связи между блоками в одном редакторе.",
   },
   {
     id: "telegram-clicker",
@@ -36,6 +29,13 @@ const imageProjects = [
     image: "clicker",
     href: "/projects/telegram-clicker/",
     description: "Игровое мини-приложение в Telegram: накопление очков, энергия и таблица лидеров.",
+  },
+  {
+    id: "poison",
+    title: "Poison",
+    image: "poizon",
+    href: "/projects/poison/",
+    description: "Интернет-магазин одежды, обуви и аксессуаров с каталогом и калькулятором стоимости.",
   },
 ] as const;
 
