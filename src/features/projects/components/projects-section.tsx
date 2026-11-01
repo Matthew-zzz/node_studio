@@ -69,6 +69,27 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
     ),
   },
   {
+    id: "nodestudio-ai",
+    title: "NodeStudio AI",
+    className: styles.itemAi,
+    content: (
+      <>
+        <div className={styles.aiCopy}>
+          <span className={styles.aiEyebrow}>ИИ-агент студии</span>
+          <h3>NodeStudioAI</h3>
+          <p>Наш ИИ-агент проконсультирует по вопросам разработки, услугам студии и вашему проекту.</p>
+          <ExternalLink className={`button button-primary ${styles.askButton}`} href={site.contact}>
+            Спросить
+            <Icon name="diagonal" />
+          </ExternalLink>
+        </div>
+        <Link className={styles.media} href="/projects/nodestudio-ai/" aria-label="Открыть проект NodeStudio AI">
+          <ViewportVideo src="/assets/video/ai-showcase.mp4" poster="/assets/video/ai-poster.jpg" aria-label="Видео презентация NodeStudio AI" />
+        </Link>
+      </>
+    ),
+  },
+  {
     id: "anime-love",
     title: "AnimeLove",
     className: styles.itemAnimeLove,
@@ -79,29 +100,6 @@ const showcaseItems: readonly ProjectShowcaseItem[] = [
         </Link>
         <div className={styles.caption}>
           <p>Каталог аниме, встроенный плеер и персональные профили в приложении Telegram.</p>
-        </div>
-      </>
-    ),
-  },
-  {
-    id: "nodestudio-ai",
-    title: "NodeStudio AI",
-    className: styles.itemAi,
-    content: (
-      <>
-        <Link className={styles.media} href="/projects/nodestudio-ai/" aria-label="Открыть проект NodeStudio AI">
-          <ViewportVideo src="/assets/video/ai-showcase.mp4" poster="/assets/video/ai-poster.jpg" aria-label="Видео презентация NodeStudio AI" />
-          <div className={styles.aiTitle}>
-            <span>ИИ-агент студии</span>
-            <h3>NodeStudio AI</h3>
-          </div>
-        </Link>
-        <div className={styles.caption}>
-          <p>Наш ИИ-агент проконсультирует по вопросам разработки, услугам студии и вашему проекту.</p>
-          <ExternalLink className={`button button-primary ${styles.askButton}`} href={site.contact}>
-            Спросить
-            <Icon name="diagonal" />
-          </ExternalLink>
         </div>
       </>
     ),

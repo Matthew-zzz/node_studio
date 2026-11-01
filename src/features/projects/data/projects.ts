@@ -379,11 +379,11 @@ export const projects: readonly Project[] = [
     "description": "NodeStudio AI — ИИ-агент студии для консультаций о разработке, автоматизации и проектах. Обсудите идею и определите следующий шаг.",
     "tags": ["ИИ", "Консультация", "Разработка"],
     "cover": "/assets/video/ai-poster.jpg",
-    "coverAlt": "Анимированная презентация ИИ-агента NodeStudio AI",
+    "coverAlt": "Презентация ИИ-агента NodeStudio AI с фиолетовым персонажем",
     "coverVideo": {
       "src": "/assets/video/ai-showcase.mp4",
       "poster": "/assets/video/ai-poster.jpg",
-      "width": 720,
+      "width": 1280,
       "height": 720
     },
     "context": "Перед началом проекта часто нужно понять, какой инструмент подходит, что можно автоматизировать и с чего начать обсуждение.",
