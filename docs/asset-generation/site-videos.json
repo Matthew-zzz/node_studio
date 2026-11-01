@@ -28,8 +28,8 @@
       "sourceSha256": "27d627886c352f816a661a44cfd0a909cc2f0de6ae0f1cbf1e315b09d0298aaf",
       "sourceBytes": 3581695,
       "file": "video/ai-showcase.mp4",
-      "bytes": 1065988,
-      "crf": 23,
+      "bytes": 531753,
+      "crf": 28,
       "audio": false
     }
   ]

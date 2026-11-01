@@ -8,7 +8,7 @@ const output = new URL("video/", assets);
 const jobs = [
   { source: "node-studio-home-hero.mp4", file: "hero-desktop.mp4", crf: 23 },
   { source: "node-studio-home-hero.mp4", file: "hero-mobile.mp4", crf: 24, width: 1280 },
-  { source: "nodestudio-ai-showcase.mp4", file: "ai-showcase.mp4", crf: 23 },
+  { source: "nodestudio-ai-showcase.mp4", file: "ai-showcase.mp4", crf: 28 },
 ];
 
 function run(args) {
