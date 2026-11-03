@@ -17,10 +17,6 @@
   color: var(--accent);
 }
 
-.terms-page>.eyebrow {
-  margin-bottom: 18px;
-}
-
 .terms-page h1 {
   max-width: 850px;
   margin: 0;

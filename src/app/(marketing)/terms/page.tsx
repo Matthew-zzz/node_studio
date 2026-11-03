@@ -14,7 +14,6 @@ export default function OfferPage() {
   return (
     <article className="container terms-page">
       <Link className="terms-back" href="/#main">← На главную</Link>
-      <p className="eyebrow">NODE STUDIO · ДОКУМЕНТЫ</p>
       <h1>Публичная оферта</h1>
       <p className="terms-lead">на разработку сайтов, программных решений, Telegram-ботов и приложений, автоматизацию процессов и внедрение ИИ.</p>
       <p className="terms-date">Редакция от 28 октября 2026 года</p>
