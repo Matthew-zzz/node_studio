@@ -33,6 +33,42 @@ test("all screenshot variants decode, preserve proportions and source masters", 
   }
 });
 
+test("autoparts benefits include loaded illustrations after homepage navigation", { timeout: 60000 }, async (t) => {
+  let origin = process.env.PROJECT_IMAGES_ORIGIN;
+  if (!origin) {
+    const server = createStaticServer(new URL("dist/", root).pathname);
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    origin = `http://127.0.0.1:${server.address().port}`;
+    t.after(() => { server.closeAllConnections(); server.close(); });
+  }
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  t.after(() => browser.close());
+
+  for (const width of [390, 820, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
+    await page.goto(origin, { waitUntil: "networkidle" });
+    await page.locator('a[href="/projects/autoparts/"]').first().click();
+    await page.waitForURL(`${origin}/projects/autoparts/`);
+    await page.getByRole("heading", { name: "Нужная деталь находится быстрее.", exact: true }).waitFor();
+    const scenes = page.locator(".motorika-scene");
+    assert.equal(await scenes.count(), 3, "all three benefits are present");
+    for (const [index, scene] of (await scenes.all()).entries()) {
+      await scene.scrollIntoViewIfNeeded();
+      const images = scene.locator(".motorika-scene-image img");
+      assert.equal(await images.count(), 1, `benefit ${index + 1} has an illustration at ${width}px`);
+      const image = images.first();
+      await image.evaluate((img) => img.decode());
+      assert(await image.isVisible(), `benefit ${index + 1} illustration is visible at ${width}px`);
+      assert((await image.getAttribute("alt"))?.trim(), "illustration has a descriptive alternative");
+      const size = await image.evaluate((img) => ({ width: img.naturalWidth, height: img.naturalHeight }));
+      assert(size.width > 0 && size.height > 0, `benefit ${index + 1} illustration decoded at ${width}px`);
+    }
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `autoparts benefits do not overflow at ${width}px`);
+    await page.close();
+  }
+});
+
 test("project images and carousel work at mobile, tablet and desktop sizes", { timeout: 180000 }, async (t) => {
   let origin = process.env.PROJECT_IMAGES_ORIGIN;
   if (!origin) {
