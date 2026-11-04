@@ -33,6 +33,45 @@ test("all screenshot variants decode, preserve proportions and source masters", 
   }
 });
 
+test("homepage case cards have pure white media backgrounds at every layout size", { timeout: 60000 }, async (t) => {
+  let origin = process.env.PROJECT_IMAGES_ORIGIN;
+  if (!origin) {
+    const server = createStaticServer(new URL("dist/", root).pathname);
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    origin = `http://127.0.0.1:${server.address().port}`;
+    t.after(() => { server.closeAllConnections(); server.close(); });
+  }
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  t.after(() => browser.close());
+
+  for (const width of [320, 390, 820, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
+    await page.goto(`${origin}/#projects`, { waitUntil: "networkidle" });
+    const cards = page.locator("#project-showcase-results article");
+    assert(await cards.count() > 0, "homepage case cards are present");
+    assert.equal(await cards.filter({ has: page.locator('a[href="/projects/anime-love/"]') }).count(), 1, "AnimeLove is included");
+    for (const card of await cards.all()) {
+      await card.scrollIntoViewIfNeeded();
+      const media = card.locator("a:has(picture), a:has(video)");
+      assert.equal(await media.count(), 1, "case has a media container");
+      for (const image of await media.locator("img").all()) {
+        await image.evaluate((img) => img.decode());
+        assert(await image.isVisible(), "case image is visible");
+      }
+      const colors = await card.evaluate((element) => ({
+        title: element.getAttribute("aria-label"),
+        card: getComputedStyle(element).backgroundColor,
+        media: getComputedStyle(element.querySelector("a:has(picture), a:has(video)")).backgroundColor,
+      }));
+      assert.equal(colors.media, "rgb(255, 255, 255)", `${colors.title}: pure white media background at ${width}px`);
+      assert(["rgba(0, 0, 0, 0)", "rgb(255, 255, 255)"].includes(colors.card), `${colors.title}: no gray background behind the caption at ${width}px`);
+    }
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `case cards do not overflow at ${width}px`);
+    await page.close();
+  }
+});
+
 test("autoparts benefits include loaded illustrations after homepage navigation", { timeout: 60000 }, async (t) => {
   let origin = process.env.PROJECT_IMAGES_ORIGIN;
   if (!origin) {

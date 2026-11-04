@@ -20,6 +20,7 @@
 
 .item {
   min-width: 0;
+  background: #fff;
 }
 
 .item:nth-child(even of :not(.itemAi)) {
@@ -29,11 +30,6 @@
 .itemAnimeLove {
   grid-column: 1;
   margin-top: 0 !important;
-  background: #f5f5f4;
-}
-
-.itemAnimeLove .media {
-  background: #f5f5f4;
 }
 
 .itemAnimeLove .media img {
@@ -47,7 +43,7 @@
   width: 100%;
   aspect-ratio: 1.08 / 1;
   border-radius: clamp(16px, 2.2vw, 26px);
-  background: #f0f1f4;
+  background: #fff;
   isolation: isolate;
 }
 
