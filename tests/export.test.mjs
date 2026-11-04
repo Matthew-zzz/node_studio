@@ -13,7 +13,7 @@ nextEnv.loadEnvConfig(root, false);
 const output = resolve(root, process.env.SITE_OUTPUT_DIR || "dist");
 const origin = new URL(process.env.SITE_ORIGIN || "https://node-studio.ru").origin;
 const projectRoutes = projects.map(({ slug }) => `/projects/${slug}/`);
-const routes = ["/", ...projectRoutes, "/services/", "/terms/"];
+const routes = ["/", ...projectRoutes, "/services/", "/terms/", "/privacy/", "/details/"];
 
 function descendants(node) {
   return [node, ...(node.childNodes ?? []).flatMap(descendants)];

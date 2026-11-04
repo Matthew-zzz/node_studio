@@ -440,6 +440,11 @@ h2 {
   padding-top: 16px;
 }
 
+.contact-note a {
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+
 .footer {
   border-top: 1px solid var(--line);
   padding-block: 35px 22px;
@@ -518,6 +523,8 @@ h2 {
 
 .footer-bottom {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 25px;
   border-top: 1px solid #ffffff08;

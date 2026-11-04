@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CopyContact } from "@/components/ui/copy-contact";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
@@ -61,7 +62,12 @@ export function Contact() {
             </a>
           </div>
         </div>
-        <p className="contact-note">Общаемся в переписке.</p>
+        <p className="contact-note">
+          Общаемся в переписке.
+          {" "}
+          <Link href="/privacy/">Как обрабатываются ваши данные</Link>
+          .
+        </p>
       </div>
     </section>
   );

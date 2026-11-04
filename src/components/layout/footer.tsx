@@ -27,9 +27,11 @@ export function Footer() {
         <div>
           <span>Исполнитель · самозанятый</span>
           <span className="footer-requisites">
-            Фатнев Матвей Сергеевич
+            {site.operator.fullName}
             <br />
-            ИНН 463312994377
+            {`ИНН ${site.operator.inn}`}
+            <br />
+            <Link href="/details/">Реквизиты и адрес</Link>
           </span>
         </div>
       </div>
@@ -42,6 +44,8 @@ export function Footer() {
         </span>
         <Link href="/services/">Услуги и стоимость</Link>
         <Link href="/terms/">Публичная оферта</Link>
+        <Link href="/privacy/">Политика обработки данных</Link>
+        <Link href="/details/">Реквизиты</Link>
         <Link href="/#main">Наверх ↑</Link>
       </div>
     </footer>
